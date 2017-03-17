@@ -53,11 +53,11 @@ class SimpleModel {
 		GLuint vertexArray;		//VAO
 	} GLbuffers;
 	//Model internal
-	const GLfloat *vertices;
+	GLfloat *vertices;
 	const GLfloat *texCoords;
 	const GLfloat *colors;
 	const GLfloat *normals;
-	const GLfloat *elements;
+	const GLuint  *elements;
 	GLsizei size;
 	//Our internal
 	Shader *shader;
@@ -85,9 +85,9 @@ class SimpleModel {
 	}
 
 public:
-	SimpleModel(GLsizei meshSize,							const GLfloat *verticesArray = nullptr, 
+	SimpleModel(GLsizei meshSize,							GLfloat *verticesArray = nullptr, 
 				const GLfloat *texCoordsArray = nullptr,	const GLfloat *colorsArray = nullptr,
-				const GLfloat *normalsArray = nullptr,		const GLfloat *indexesArray = nullptr) :	vertices(verticesArray),	texCoords(texCoordsArray),
+				const GLfloat *normalsArray = nullptr,		const GLuint *indexesArray = nullptr) :	vertices(verticesArray),	texCoords(texCoordsArray),
 																										colors(colorsArray),		normals(normalsArray), 
 																										elements(indexesArray),		shader(nullptr),
 																										size(meshSize)
@@ -111,8 +111,24 @@ public:
 		glGenVertexArrays(1, &GLbuffers.vertexArray);
 	};
 	
+	~SimpleModel() {
+		shader = nullptr;
+		glDeleteBuffers(1, &GLbuffers.vertex);
+		if (colors != nullptr)
+			glDeleteBuffers(1, &GLbuffers.color);
+		if (texCoords != nullptr)
+			glDeleteBuffers(1, &GLbuffers.textureCoord);
+		if (normals != nullptr)
+			glDeleteBuffers(1, &GLbuffers.normal);
+		glDeleteBuffers(1, &GLbuffers.element);
+		glDeleteVertexArrays(1, &GLbuffers.vertexArray);
+	}
+	
 	//Setup shader
 	void setShader(Shader *s) { shader = s; }
+
+	//Reload shader from disk
+	void reloadShader() { shader->Reload(); }
 	
 	//Push texture to texture stack
 	void pushTexture(Texture &t) {
@@ -133,7 +149,7 @@ public:
 			#endif
 		}
 		//Setup texture slot
-		textures.end()->TextureSlot = GL_TEXTURE0 + (GLuint)(textures.size() - 1);
+		textures.back().TextureSlot = GL_TEXTURE0 + (GLuint)(textures.size() - 1);
 	}
 
 	//Pop texture from texture stack
@@ -232,7 +248,7 @@ public:
 	int instanceCount() { return transformations.size(); }
 
 	//Push transformation to transformation array
-	void pushTransformation(glm::mat4 &transform) {
+	void pushTransformation(glm::mat4 transform) {
 		try {
 			transformations.push_back(std::move(transform));
 		}
@@ -262,7 +278,7 @@ public:
 	}
 
 	//Setup transformation for "index" model instance
-	void setTransformation(glm::mat4 &transform, int index = 0) {
+	void setTransformation(glm::mat4 transform, int index = 0) {
 		try {
 			transformations.at(index) = std::move(transform);
 		}
@@ -282,11 +298,32 @@ public:
 
 	//Remove transformations from start index to end index
 	void eraseTransformations(int start = 0, int end = 0) {
-		auto s = transformations.begin(), e = transformations.begin();
-		s += start;
-		e += end;
-		transformations.erase(s, e);
+		auto _start = transformations.begin(), _end = transformations.begin();
+		_start += start;
+		_end += end;
+		transformations.erase(_start, _end);
 	}
+
+	//Load texture from disk to opengl
+	void loadTexture(int index = 0) {
+		textures[index].LoadToGL();
+		//TODO: Add exception handling
+	}
+
+	//Load textures from range [start,end] from disk to opengl
+	void loadTextures(int start = 0, int end = 0) {
+		for (int _index = start; _index <= end; _index++)
+			textures[_index].LoadToGL();
+		//TODO: Add exception handling
+	}
+
+	//Load all textures from disk to opengl
+	void loadAllTextures() {
+		loadTextures(0, textures.size() - 1);
+	}
+
+	//Return curent textures count
+	int texturesCount() { return textures.size(); }
 
 };
 

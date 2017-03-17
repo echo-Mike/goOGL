@@ -12,8 +12,8 @@ uniform mat4 transform;
 
 void main()
 {
-    float s = sin(time) / 2.0;
-    float c = cos(time) / 2.0;
+    //float s = sin(time) / 2.0;
+    //float c = cos(time) / 2.0;
     gl_Position = transform * vec4(position, 1.0);
     ourColor = color;//vec3(position.x + s, position.y + c, position.z - (c+s) / 2.0);
     TexCoord = texCoord;

@@ -55,20 +55,13 @@ public:
 																						HaveMimpmap(applay_mipmap),		SOILLoadType(load_type), 
 																						load_status(EMPTY) {}
 	
-	Texture(const Texture& t) : path(t.path), width(t.width),
-								height(t.height), depth(t.depth),
-								GLId(0), GLTarget(t.GLTarget),
-								GLStoreFormat(t.GLStoreFormat), PixelDataFormat(t.PixelDataFormat),
+	Texture(const Texture& t) : path(t.path),					width(t.width),
+								height(t.height),				depth(t.depth),
+								GLId(0),						GLTarget(t.GLTarget),
+								GLStoreFormat(t.GLStoreFormat),	PixelDataFormat(t.PixelDataFormat),
 								PixelDataType(t.PixelDataType), TextureSlot(t.TextureSlot),
-								HaveMimpmap(t.HaveMimpmap), SOILLoadType(t.SOILLoadType),
-								load_status(t.load_status)
-	{
-		if (load_status == IN_MEMORY || load_status == IN_BOTH) {
-
-		} else if (load_status == IN_OPENGL || load_status == IN_BOTH) {
-
-		}
-	}
+								HaveMimpmap(t.HaveMimpmap),		SOILLoadType(t.SOILLoadType),
+								load_status(EMPTY) {}
 
 	~Texture() {
 		if (load_status == IN_MEMORY || load_status == IN_BOTH)
