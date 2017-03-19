@@ -5,6 +5,10 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+//std::vector
+#include <vector>
+//std::tuple, std::make_tuple
+#include <tuple>
 //GLEW
 //Include glew to get all the required OpenGL headers
 #include <GL/glew.h>
@@ -19,19 +23,131 @@
 #endif
 //Class definition: Shader
 class Shader {
+public:
+	enum uniformTypes {
+		UNIFORM1F,
+		UNIFORM1FV,
+		UNIFORM1I,
+		UNIFORM1IV,
+		UNIFORM1UI,
+		UNIFORM1UIV,
+		UNIFORM2F,
+		UNIFORM2FV,
+		UNIFORM2I,
+		UNIFORM2IV,
+		UNIFORM2UI,
+		UNIFORM2UIV,
+		UNIFORM3F,
+		UNIFORM3FV,
+		UNIFORM3I,
+		UNIFORM3IV,
+		UNIFORM3UI,
+		UNIFORM3UIV,
+		UNIFORM4F,
+		UNIFORM4FV,
+		UNIFORM4I,
+		UNIFORM4IV,
+		UNIFORM4UI,
+		UNIFORM4UIV,
+		UNIFORMMATRIX2FV,
+		UNIFORMMATRIX2X3FV,
+		UNIFORMMATRIX2X4FV,
+		UNIFORMMATRIX3FV,
+		UNIFORMMATRIX3X2FV,
+		UNIFORMMATRIX3X4FV,
+		UNIFORMMATRIX4FV,
+		UNIFORMMATRIX4X2FV,
+		UNIFORMMATRIX4X3FV
+	};
+private:
 	Shader() = delete;
 	Shader(const Shader& s) = delete;
 	Shader(const Shader&& s) = delete;
 	std::string vpath, fpath;
-public:
+	std::vector<std::tuple<std::string, void*, uniformTypes>> uniforms;
 	// The program ID //SPO ID
 	GLuint Program;
+public:
+	//Returns SPO Id
+	GLuint getShaderId() { return Program;  }
+
 	Shader(const GLchar* vertexPath, const GLchar* fragmentPath) : vpath(vertexPath), fpath(fragmentPath), Program(0) { Reload(); }
-	~Shader() { glDeleteProgram(this->Program); }
-	void Use() const { glUseProgram(this->Program); } 
+	
+	~Shader() {
+		//Prevent external values from destructor calls
+		for (auto v : uniforms)
+			std::get<1>(v) = nullptr;
+		glDeleteProgram(this->Program); 
+	}
+
+	//Push uniform value to uniform loader
+	void pushUniform(const char *uniformName, void *value, uniformTypes type) {
+		uniforms.push_back(std::make_tuple(std::string(uniformName), value, type));
+	}
+
+	//Push uniform value to uniform loader
+	void pushUniform(std::string &uniformName, void *value, uniformTypes type) {
+		uniforms.push_back(std::make_tuple(uniformName, value, type));
+	}
+
+	//Pop uniform value from uniform loader
+	void popUniform() {
+		if (!uniforms.empty()) {
+			//Prevent external value from destructor call
+			std::get<1>(uniforms.back()) = nullptr;
+			uniforms.pop_back();
+		}
+	}
+
+	//Set pointer to current value of value
+	void setUniform(void *value, int index = 0) {
+		try {
+			std::get<1>(uniforms.at(index)) = value;
+		}
+		catch (std::length_error e) {
+			#ifdef GEBUG_SHADER
+				DEBUG_OUT << "ERROR::SHADER::setUniform::OUT_OF_RANGE\n\tCan't access uniform by index: "<< index << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "Error string: " << e.what() << DEBUG_NEXT_LINE;
+			#endif
+		}
+		catch (...) {
+			#ifdef GEBUG_SHADER
+				DEBUG_OUT << "ERROR::SHADER::setUniform::UNKONWN"<< DEBUG_NEXT_LINE;
+			#endif
+				throw;
+		}
+	}
+
+	void Use();
+
 	void Reload();
+
 };
 
+//Bind shader program to OpenGL and update all uniforms
+void Shader::Use() {
+	glUseProgram(this->Program);
+	GLint _location = 0;
+	for (auto &_value : uniforms) {
+		_location = glGetUniformLocation(Program, std::get<0>(_value).c_str());
+		if (_location == -1) { //Check if uniform not found
+			#ifdef GEBUG_SHADER
+				DEBUG_OUT << "ERROR::SHADER::Use::UNIFORM_NAME_MISSING\n\tName: " << std::get<0>(_value) << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "\tUniform type: " << std::get<2>(_value) << DEBUG_NEXT_LINE;
+			#endif
+			continue;
+		}
+		switch (std::get<2>(_value)) {
+		case UNIFORMMATRIX4FV:
+			glUniformMatrix4fv(_location, 1, GL_FALSE, glm::value_ptr(*((glm::mat4 *)std::get<1>(_value))));
+			break;
+		default:
+			break;
+		}
+	}
+}
+
+//Reload shader from disk (read, build and link)
 void Shader::Reload() {
 	if (Program)
 		glDeleteProgram(Program);

@@ -41,97 +41,296 @@
 	#define SIMPLEMODEL_TRANSFORM_MATRIX_NAME "transform"
 #endif
 
-//Class definition: SimpleModel
-class SimpleModel {
+#ifndef SIMPLEMODEL_VERTEX_SIZE 
+	//Length of vertex position vector
+	#define SIMPLEMODEL_VERTEX_SIZE 3
+#endif
+
+#ifndef SIMPLEMODEL_COLOR_SIZE
+	//Length of vertex color vector
+	#define SIMPLEMODEL_COLOR_SIZE 3
+#endif
+
+#ifndef SIMPLEMODEL_TEXCOORD_SIZE
+	//Length of vertex texture coordinates vector
+	#define SIMPLEMODEL_TEXCOORD_SIZE 2
+#endif
+
+#ifndef SIMPLEMODEL_NORMAL_SIZE
+	//Length of vertex normal vector
+	#define SIMPLEMODEL_NORMAL_SIZE 3
+#endif
+
+//Class definition: GLBufferHandler
+class GLBufferHandler {
+public: 
+	enum BufferType : int {
+		VERTEX		= 0x01,
+		COLOR		= 0x02,
+		TEXCOORD	= 0x04,
+		NORMAL		= 0x08,
+		ELEMENT		= 0x10,
+		VERTEXARRAY	= 0x20,
+		COMBINED	= 0x40
+	};
+private:
+	//Allocator sorage
+	int allocator;
+
 	//OpenGL internal
 	struct {
-		GLuint vertex;			//VBO
-		GLuint color;
-		GLuint textureCoord;
-		GLuint normal;
-		GLuint element;			//EBO
-		GLuint vertexArray;		//VAO
+		GLuint vertex		= 0;	//VBO
+		GLuint color		= 0;
+		GLuint textureCoord	= 0;
+		GLuint normal		= 0;
+		GLuint element		= 0;	//EBO
+		GLuint vertexArray	= 0;	//VAO
+		GLuint combined		= 0;	//VBO
+
+		GLuint operator[](BufferType index) {
+			switch (index) {
+				case VERTEX:
+					return vertex;
+					break;
+				case COLOR:
+					return color;
+					break;
+				case TEXCOORD:
+					return textureCoord;
+					break;
+				case NORMAL:
+					return normal;
+					break;
+				case ELEMENT:
+					return element;
+					break;
+				case VERTEXARRAY:
+					return vertexArray;
+					break;
+				case COMBINED:
+					return combined;
+					break;
+				default:
+					return 0;
+					break;
+			}
+		}
 	} GLbuffers;
-	//Model internal
-	GLfloat *vertices;
-	const GLfloat *texCoords;
-	const GLfloat *colors;
-	const GLfloat *normals;
-	const GLuint  *elements;
-	GLsizei size;
-	//Our internal
-	Shader *shader;
-	//Texture array, max count: 32
-	std::vector<Texture> textures;
+protected:
+	//Allocate buffers in OpenGL by "alloc" allocator 
+	void allocate(int alloc) {
+		allocator = alloc;
+		if (allocator & VERTEX)
+			glGenBuffers(1, &GLbuffers.vertex);
+		if (allocator & COLOR)
+			glGenBuffers(1, &GLbuffers.color);
+		if (allocator & TEXCOORD)
+			glGenBuffers(1, &GLbuffers.textureCoord);
+		if (allocator & NORMAL)
+			glGenBuffers(1, &GLbuffers.normal);
+		if (allocator & COMBINED)
+			glGenBuffers(1, &GLbuffers.combined);
+		if (allocator & ELEMENT)
+			glGenBuffers(1, &GLbuffers.element);
+		if (allocator & VERTEXARRAY)
+			glGenVertexArrays(1, &GLbuffers.vertexArray);
+	}
+
+	//Bind buffer by type "type" to "target" OpenGL target(std : GL_ARRAY_BUFFER)
+	void bindBuffer(BufferType type, GLuint target = GL_ARRAY_BUFFER) {
+		if (allocator & type) {
+			if (type == VERTEXARRAY) {
+				glBindVertexArray(GLbuffers[VERTEXARRAY]);
+			} else {
+				glBindBuffer(target, GLbuffers[type]);
+			}
+		}
+	}
+public:
+	GLBufferHandler() : allocator(0) {};
+
+	GLBufferHandler(int alloc) : allocator(alloc) {	allocate(alloc); }
+
+	~GLBufferHandler() {
+		glDeleteBuffers(1, &GLbuffers.vertex);
+		glDeleteBuffers(1, &GLbuffers.color);
+		glDeleteBuffers(1, &GLbuffers.textureCoord);
+		glDeleteBuffers(1, &GLbuffers.normal);
+		glDeleteBuffers(1, &GLbuffers.element);
+		glDeleteBuffers(1, &GLbuffers.combined);
+		glDeleteVertexArrays(1, &GLbuffers.vertexArray);
+	}
+};
+
+//Class template definition: InstanceHandler
+template <class Matrix = glm::mat4>
+class InstanceHandler {
 	//Transform matrix array
-	std::vector<glm::mat4> transformations;
+	std::vector<Matrix> transformation_data;
+
+	static GLfloat *stdMatPtr(Matrix m) { return glm::value_ptr(m); }
+
+protected:
+	//Load instance data
+	void bindInstance(int index, const GLuint SPO, GLfloat* (*MatrixPtr)(Matrix) = &stdMatPtr) {
+		if (transformation_data.size() > 0) {
+			GLint _location = glGetUniformLocation(SPO, SIMPLEMODEL_TRANSFORM_MATRIX_NAME);
+				if (_location == -1) { //Check if uniform not found
+					#ifdef GEBUG_SIMPLEMODEL
+						DEBUG_OUT << "ERROR::INSTANCE_HANDLER::bindInstance::UNIFORM_NAME_MISSING" << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tName: " << SIMPLEMODEL_TRANSFORM_MATRIX_NAME << DEBUG_NEXT_LINE;
+					#endif
+					return;
+				}
+			try {
+				glUniformMatrix4fv(_location, 1, GL_FALSE, (*MatrixPtr)(transformation_data.at(index)));
+			}
+			catch (std::out_of_range e) {
+				#ifdef GEBUG_SIMPLEMODEL
+					DEBUG_OUT << "ERROR::SEPARATE_MODEL::drawInstance::OUT_OF_RANGE\n\tIn index: " << index << DEBUG_NEXT_LINE;
+					DEBUG_OUT << "Error string: " << e.what() << DEBUG_NEXT_LINE;
+				#endif
+				return;
+			}
+		}
+	}
+
+public:
+	//Draw one instance of model using instance data
+	virtual void drawInstance(int index) { return; }
+
+	//Draw multiple instances of model using their transform matrices
+	virtual void drawInstances(int start_index = 0, int count = 1) {
+		if (count < 1) {
+			#ifdef GEBUG_SIMPLEMODEL
+				DEBUG_OUT << "ERROR::INSTANCE_HANDLER::drawInstances::INVALID_COUNT: " << count << DEBUG_NEXT_LINE;
+			#endif
+			return;
+		}
+		for (int _index = start_index; _index < start_index + count; _index++)
+			this->drawInstance(_index);
+	}
+
+	//Generate place for "count" instances of model
+	void genInstances(int count = 1) {
+		if (count > 0)
+			for (int _index = 0; _index < count; _index++)
+				pushTransformation(Matrix());
+		//TODO: Add exception handling
+	}
+
+	//Push transformation to transformation array
+	void pushTransformation(Matrix transform) {
+		try {
+			transformation_data.push_back(std::move(transform));
+		}
+		catch (std::length_error e) {
+			#ifdef GEBUG_SIMPLEMODEL
+				DEBUG_OUT << "ERROR::INSTANCE_HANDLER::pushTransformation::OUT_OF_RANGE" << DEBUG_NEXT_LINE; 
+				DEBUG_OUT << "\tCan't push more transformations " << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "\tError string: " << e.what() << DEBUG_NEXT_LINE;
+			#endif
+		}
+		catch (...) {
+			#ifdef GEBUG_SIMPLEMODEL
+				DEBUG_OUT << "ERROR::INSTANCE_HANDLER::pushTransformations::UNKONWN"<< DEBUG_NEXT_LINE;
+			#endif
+				throw;
+		}
+	}
+
+	//Pop last transformation from transformation array
+	void popTransformation() {
+		if (transformation_data.empty()) {
+			#ifdef GEBUG_SIMPLEMODEL
+				DEBUG_OUT << "ERROR::INSTANCE_HANDLER::popTransformation::OUT_OF_RANGE" << DEBUG_NEXT_LINE; 
+				DEBUG_OUT << "\tCan't pop from empty transform array." << DEBUG_NEXT_LINE;
+			#endif
+		} else {
+			transformation_data.pop_back();
+		}
+	}
+
+	//Setup transformation for "index" model instance
+	void setTransformation(Matrix transform, int index = 0) {
+		try {
+			transformation_data.at(index) = std::move(transform);
+		}
+		catch (std::length_error e) {
+			#ifdef GEBUG_SIMPLEMODEL
+				DEBUG_OUT << "ERROR::INSTANCE_HANDLER::setTransformation::OUT_OF_RANGE"<< DEBUG_NEXT_LINE;
+				DEBUG_OUT << "\tCan't access transformation by index: " << index << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "\tError string: " << e.what() << DEBUG_NEXT_LINE;
+			#endif
+		}
+		catch (...) {
+			#ifdef GEBUG_SIMPLEMODEL
+				DEBUG_OUT << "ERROR::INSTANCE_HANDLER::setTransformation::UNKONWN"<< DEBUG_NEXT_LINE;
+			#endif
+				throw;
+		}
+	}
+
+	//Remove transformations from start index to end index
+	void eraseTransformations(int start = 0, int end = 0) {
+		auto _start = transformation_data.begin(), _end = transformation_data.begin();
+		_start += start;
+		_end += end;
+		transformation_data.erase(_start, _end);
+	}
+
+	//Return curent helded instances count
+	int instanceCount() { return transformation_data.size(); }
+};
+
+//Class template definition: TextureHandler
+template <	class TTexture = Texture, class TShader = Shader,
+			void (TTexture::* TextureLoader)(void)	= &TTexture::LoadToGL,
+			void (TTexture::* BindTexture)(void)	= &TTexture::Use,
+			void (TShader::* BindShader)(void)		= &TShader::Use,
+			void (TShader::* ReloadShader)(void)	= &TShader::Reload,
+			GLuint (TShader::* GetShaderID)(void)	= &TShader::getShaderId>
+class TextureHandler {
+	//Texture array, max count: 32
+	std::vector<TTexture> textures;
+protected:
+	//Pointer to shader
+	TShader *shader;
+
+	//Returns shader object id
+	GLuint getShaderId() { return (shader->*GetShaderID)(); }
 
 	//Internal funcion for shader applying
 	void useShader() {
-		shader->Use();
+		(shader->*BindShader)();
 		int _size = textures.size();
 		GLint _location = 0;
 		for (int _index = 0; _index < _size; _index++) {
-			textures[_index].Use();
-			_location = glGetUniformLocation(shader->Program, SIMPLEMODEL_TEXTURE_NAMES[_index]);
+			(textures[_index].*BindTexture)();
+			_location = glGetUniformLocation((shader->*GetShaderID)(), SIMPLEMODEL_TEXTURE_NAMES[_index]);
 			if (_location == -1) {
 				#ifdef GEBUG_SIMPLEMODEL
-					DEBUG_OUT << "ERROR::SIMPLEMODEL::useShader::TEXTURE_NAME_MISSING\n\tName: " << SIMPLEMODEL_TEXTURE_NAMES[_index] << DEBUG_NEXT_LINE;
+					DEBUG_OUT << "ERROR::SIMPLE_MODEL::useShader::TEXTURE_NAME_MISSING\n\tName: " << SIMPLEMODEL_TEXTURE_NAMES[_index] << DEBUG_NEXT_LINE;
 				#endif
 				continue;
 			}
 			glUniform1i(_location, _index);
 		}
 	}
-
 public:
-	SimpleModel(GLsizei meshSize,							GLfloat *verticesArray = nullptr, 
-				const GLfloat *texCoordsArray = nullptr,	const GLfloat *colorsArray = nullptr,
-				const GLfloat *normalsArray = nullptr,		const GLuint *indexesArray = nullptr) :	vertices(verticesArray),	texCoords(texCoordsArray),
-																										colors(colorsArray),		normals(normalsArray), 
-																										elements(indexesArray),		shader(nullptr),
-																										size(meshSize)
-	{
-		if (vertices != nullptr) {
-			glGenBuffers(1, &GLbuffers.vertex);
-		} else {
-			throw std::exception("Vertices array must be defined");
-		}
-		if (colors != nullptr)
-			glGenBuffers(1, &GLbuffers.color);
-		if (texCoords != nullptr)
-			glGenBuffers(1, &GLbuffers.textureCoord);
-		if (normals != nullptr)
-			glGenBuffers(1, &GLbuffers.normal);
-		if (vertices != nullptr) {
-			glGenBuffers(1, &GLbuffers.element);
-		} else {
-			throw std::exception("Element array must be defined");
-		}
-		glGenVertexArrays(1, &GLbuffers.vertexArray);
-	};
+
+	TextureHandler() : shader(nullptr) {}
 	
-	~SimpleModel() {
-		shader = nullptr;
-		glDeleteBuffers(1, &GLbuffers.vertex);
-		if (colors != nullptr)
-			glDeleteBuffers(1, &GLbuffers.color);
-		if (texCoords != nullptr)
-			glDeleteBuffers(1, &GLbuffers.textureCoord);
-		if (normals != nullptr)
-			glDeleteBuffers(1, &GLbuffers.normal);
-		glDeleteBuffers(1, &GLbuffers.element);
-		glDeleteVertexArrays(1, &GLbuffers.vertexArray);
-	}
-	
+	~TextureHandler() { shader = nullptr; }
+
 	//Setup shader
-	void setShader(Shader *s) { shader = s; }
+	void setShader(TShader *s) { shader = s; }
 
 	//Reload shader from disk
-	void reloadShader() { shader->Reload(); }
-	
+	void reloadShader() { (shader->*ReloadShader)(); }
+
 	//Push texture to texture stack
-	void pushTexture(Texture &t) {
+	void pushTexture(TTexture &t) {
 		if (textures.size() == 32)
 			popTexture();
 		try {
@@ -139,13 +338,14 @@ public:
 		}
 		catch (std::length_error e) {
 			#ifdef GEBUG_SIMPLEMODEL
-				DEBUG_OUT << "ERROR::SIMPLEMODEL::pushTexture::OUT_OF_RANGE\n\tCan't push more textures" << DEBUG_NEXT_LINE;
-				DEBUG_OUT << "Error string: " << e.what() << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "ERROR::TEXTURE_HANDLER::pushTexture::OUT_OF_RANGE" << DEBUG_NEXT_LINE; 
+				DEBUG_OUT << "\tCan't push more textures" << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "\tError string: " << e.what() << DEBUG_NEXT_LINE;
 			#endif
 		}
 		catch (...) {
 			#ifdef GEBUG_SIMPLEMODEL
-				DEBUG_OUT << "ERROR::SIMPLEMODEL::pushTexture::UNKONWN" << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "ERROR::TEXTURE_HANDLER::pushTexture::UNKONWN" << DEBUG_NEXT_LINE;
 			#endif
 		}
 		//Setup texture slot
@@ -156,165 +356,39 @@ public:
 	void popTexture() {
 		if (textures.empty()) {
 			#ifdef GEBUG_SIMPLEMODEL
-				DEBUG_OUT << "ERROR::SIMPLE_MODEL::popTexture::OUT_OF_RANGE\n\tCan't pop from empty texture stack." << DEBUG_NEXT_LINE;
+			DEBUG_OUT << "ERROR::TEXTURE_HANDLER::popTexture::OUT_OF_RANGE" << DEBUG_NEXT_LINE; 
+			DEBUG_OUT << "\tCan't pop from empty texture stack." << DEBUG_NEXT_LINE;
 			#endif
 		} else {
-			textures.end()->TextureSlot = GL_TEXTURE0;
+			textures.back().TextureSlot = GL_TEXTURE0;
 			textures.pop_back();
 		}
-	}
-	
-	/*	Fix current model state in VAO
-	 *	Attribute layout:
-	 *	0 : vec3f() : position 
-	 *	1 : vec3f() : color
-	 *	2 : vec2f() : texture coordinates
-	 *	3 : vec3f() : normals
-	 */
-	void Build() {
-		glBindVertexArray(GLbuffers.vertexArray);
-		{
-			// 1. Copy our vertices array in a vertex buffer for OpenGL to use
-			//Position attribute
-			glBindBuffer(GL_ARRAY_BUFFER, GLbuffers.vertex);
-			glBufferData(GL_ARRAY_BUFFER, size, vertices, GL_STATIC_DRAW);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
-			glEnableVertexAttribArray(0);
-			//Color attribute
-			if (colors != nullptr) {
-				glBindBuffer(GL_ARRAY_BUFFER, GLbuffers.color);
-				glBufferData(GL_ARRAY_BUFFER, size, colors, GL_STATIC_DRAW);
-				glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
-				glEnableVertexAttribArray(1);
-			}
-			//Texture coord attribute
-			if (texCoords != nullptr) {
-				glBindBuffer(GL_ARRAY_BUFFER, GLbuffers.textureCoord);
-				glBufferData(GL_ARRAY_BUFFER, size, texCoords, GL_STATIC_DRAW);
-				glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), (GLvoid*)0);
-				glEnableVertexAttribArray(2);
-			}
-			//Normal attribute
-			if (normals != nullptr) {
-				glBindBuffer(GL_ARRAY_BUFFER, GLbuffers.normal);
-				glBufferData(GL_ARRAY_BUFFER, size, normals, GL_STATIC_DRAW);
-				glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
-				glEnableVertexAttribArray(3);
-			}
-			// 2. Copy our index array in a element buffer for OpenGL to use
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, GLbuffers.element);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, elements, GL_STATIC_DRAW);
-		}
-		glBindVertexArray(0);
-	}
-
-	//Draw one instance of model using it transform matrix
-	void drawInstance(int index = 0, GLboolean applay_shader = GL_TRUE) {
-		if (applay_shader == GL_TRUE)
-			useShader();
-		if (transformations.size() > 0) {
-			try {
-				glUniformMatrix4fv( glGetUniformLocation(shader->Program, SIMPLEMODEL_TRANSFORM_MATRIX_NAME), 1,
-									GL_FALSE, glm::value_ptr(transformations.at(index)));
-			}
-			catch (std::out_of_range e) {
-				#ifdef GEBUG_SIMPLEMODEL
-					DEBUG_OUT << "ERROR::SIMPLEMODEL::drawInstance::OUT_OF_RANGE\n\tIn index: " << index << DEBUG_NEXT_LINE;
-					DEBUG_OUT << "Error string: " << e.what() << DEBUG_NEXT_LINE;
-				#endif
-				return;
-			}
-		}
-		glBindVertexArray(GLbuffers.vertexArray);
-		glDrawElements(GL_TRIANGLES, size, GL_UNSIGNED_INT, 0);
-		glBindVertexArray(0);
-	}
-
-	//Draw multiple instances of model using their transform matrices
-	void drawInstances(int index = 0, int count = 1, GLboolean applay_shader = GL_TRUE) {
-		if (applay_shader == GL_TRUE)
-			useShader();
-		if (count < 1) {
-			#ifdef GEBUG_SIMPLEMODEL
-				DEBUG_OUT << "ERROR::SIMPLEMODEL::drawInstances::INVALID_COUNT: " << count << DEBUG_NEXT_LINE;
-			#endif
-			return;
-		}
-		for (int _index = index; _index < index + count; _index++)
-			drawInstance(_index, GL_FALSE);
-	}
-
-	//Return curent helded instances count
-	int instanceCount() { return transformations.size(); }
-
-	//Push transformation to transformation array
-	void pushTransformation(glm::mat4 transform) {
-		try {
-			transformations.push_back(std::move(transform));
-		}
-		catch (std::length_error e) {
-			#ifdef GEBUG_SIMPLEMODEL
-				DEBUG_OUT << "ERROR::SIMPLEMODEL::pushTransformation::OUT_OF_RANGE\n\tCan't push more transformations " << DEBUG_NEXT_LINE;
-				DEBUG_OUT << "Error string: " << e.what() << DEBUG_NEXT_LINE;
-			#endif
-		}
-		catch (...) {
-			#ifdef GEBUG_SIMPLEMODEL
-				DEBUG_OUT << "ERROR::SIMPLEMODEL::pushTransformations::UNKONWN"<< DEBUG_NEXT_LINE;
-			#endif
-				throw;
-		}
-	}
-
-	//Pop last transformation from transformation array
-	void popTransformation() {
-		if (transformations.empty()) {
-			#ifdef GEBUG_SIMPLEMODEL
-				DEBUG_OUT << "ERROR::SIMPLE_MODEL::popTransformation::OUT_OF_RANGE\n\tCan't pop from empty transform array." << DEBUG_NEXT_LINE;
-			#endif
-		} else {
-			transformations.pop_back();
-		}
-	}
-
-	//Setup transformation for "index" model instance
-	void setTransformation(glm::mat4 transform, int index = 0) {
-		try {
-			transformations.at(index) = std::move(transform);
-		}
-		catch (std::length_error e) {
-			#ifdef GEBUG_SIMPLEMODEL
-				DEBUG_OUT << "ERROR::SIMPLEMODEL::setTransformation::OUT_OF_RANGE\n\tCan't access transformation by index: "<< index << DEBUG_NEXT_LINE;
-				DEBUG_OUT << "Error string: " << e.what() << DEBUG_NEXT_LINE;
-			#endif
-		}
-		catch (...) {
-			#ifdef GEBUG_SIMPLEMODEL
-				DEBUG_OUT << "ERROR::SIMPLEMODEL::setTransformation::UNKONWN"<< DEBUG_NEXT_LINE;
-			#endif
-				throw;
-		}
-	}
-
-	//Remove transformations from start index to end index
-	void eraseTransformations(int start = 0, int end = 0) {
-		auto _start = transformations.begin(), _end = transformations.begin();
-		_start += start;
-		_end += end;
-		transformations.erase(_start, _end);
 	}
 
 	//Load texture from disk to opengl
 	void loadTexture(int index = 0) {
-		textures[index].LoadToGL();
-		//TODO: Add exception handling
+		try {
+			(textures.at(index).*TextureLoader)();
+		}
+		catch (std::length_error e) {
+			#ifdef GEBUG_SIMPLEMODEL
+				DEBUG_OUT << "ERROR::TEXTURE_HANDLER::loadTexture::OUT_OF_RANGE"<< DEBUG_NEXT_LINE;
+				DEBUG_OUT << "\tCan't access texture by index: " << index << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "\tError string: " << e.what() << DEBUG_NEXT_LINE;
+			#endif
+		}
+		catch (...) {
+			#ifdef GEBUG_SIMPLEMODEL
+				DEBUG_OUT << "ERROR::TEXTURE_HANDLER::loadTexture::UNKONWN"<< DEBUG_NEXT_LINE;
+			#endif
+				throw;
+		}
 	}
 
 	//Load textures from range [start,end] from disk to opengl
 	void loadTextures(int start = 0, int end = 0) {
 		for (int _index = start; _index <= end; _index++)
-			textures[_index].LoadToGL();
-		//TODO: Add exception handling
+			loadTexture(_index);
 	}
 
 	//Load all textures from disk to opengl
@@ -323,8 +397,245 @@ public:
 	}
 
 	//Return curent textures count
-	int texturesCount() { return textures.size(); }
-
+	int textureCount() { return textures.size(); }
 };
+
+//Class definition: SimpleModel
+class SimpleModel : public GLBufferHandler, public InstanceHandler<>, public TextureHandler<>{
+public:
+	SimpleModel() : GLBufferHandler(), TextureHandler() {}
+
+	//Draw one instance of model using instance data
+	virtual void drawInstance(int index = 0, GLboolean applay_shader = GL_TRUE) { return; };
+
+	//Draw multiple instances of model using their transform matrices
+	void drawInstances(int start_index = 0, int count = 1, GLboolean applay_shader = GL_TRUE) {
+		if (applay_shader == GL_TRUE)
+			useShader();
+		if (count < 1) {
+			#ifdef GEBUG_SIMPLEMODEL
+				DEBUG_OUT << "ERROR::SIMPLE_MODEL::drawInstances::INVALID_COUNT: " << count << DEBUG_NEXT_LINE;
+			#endif
+			return;
+		}
+		for (int _index = start_index; _index < start_index + count; _index++)
+			this->drawInstance(_index, GL_FALSE);
+	}
+
+	virtual void Build() { return; };
+};
+
+//Class definition: SeparateModel
+class SeparateModel : public SimpleModel {
+	const GLfloat *vertices;
+	const GLfloat *colors;
+	const GLfloat *texCoords;
+	const GLfloat *normals;
+	const GLuint  *elements;
+	int vertices_count, indexes_count;
+public:
+	SeparateModel(	int verticesCount,							int indexesCount,
+					const GLfloat *verticesArray = nullptr,		const GLfloat *colorsArray = nullptr,
+					const GLfloat *texCoordsArray = nullptr,	const GLfloat *normalsArray = nullptr,
+					const GLuint  *indexesArray = nullptr) :	vertices_count(verticesCount),	indexes_count(indexesCount),
+																vertices(verticesArray),		colors(colorsArray),
+																texCoords(texCoordsArray),		normals(normalsArray), 
+																elements(indexesArray)
+	{
+		int bufferAlocator = 0;
+		if (vertices != nullptr) {
+			bufferAlocator |= VERTEX;
+		}
+		else {
+			throw std::exception("ERROR::SEPARATE_MODEL::Constructor::Vertices array must be defined");
+		}
+		if (colors != nullptr)
+			bufferAlocator |= COLOR;
+		if (texCoords != nullptr)
+			bufferAlocator |= TEXCOORD;
+		if (normals != nullptr)
+			bufferAlocator |= NORMAL;
+		if (elements != nullptr) {
+			bufferAlocator |= ELEMENT;
+		}
+		else {
+			throw std::exception("ERROR::SEPARATE_MODEL::Constructor::Element array must be defined");
+		}
+		bufferAlocator |= VERTEXARRAY;
+		allocate(bufferAlocator);
+	};
+
+	void drawInstance(int index = 0, GLboolean applay_shader = GL_TRUE) {
+		if (applay_shader == GL_TRUE)
+			useShader();
+		bindInstance(index, getShaderId());
+		bindBuffer(VERTEXARRAY);
+		glDrawElements(GL_TRIANGLES, indexes_count, GL_UNSIGNED_INT, 0);
+		glBindVertexArray(0);
+	}
+
+	void Build();
+};
+
+/*	Fix current model state in VAO
+*	Attribute layout:
+*	0 : vec3f() : position
+*	1 : vec3f() : color
+*	2 : vec2f() : texture coordinates
+*	3 : vec3f() : normals
+*/
+void SeparateModel::Build() {
+	bindBuffer(VERTEXARRAY);
+	{
+		// 1. Copy our vertices array in a vertex buffer for OpenGL to use
+		//Position attribute
+		bindBuffer(VERTEX);
+		glBufferData(GL_ARRAY_BUFFER, vertices_count * sizeof(GLfloat)* SIMPLEMODEL_VERTEX_SIZE, vertices, GL_STATIC_DRAW);
+		glVertexAttribPointer(0, SIMPLEMODEL_VERTEX_SIZE, GL_FLOAT, GL_FALSE, SIMPLEMODEL_VERTEX_SIZE * sizeof(GLfloat), (GLvoid*)0);
+		glEnableVertexAttribArray(0);
+		//Color attribute
+		if (colors != nullptr) {
+			bindBuffer(COLOR);
+			glBufferData(GL_ARRAY_BUFFER, vertices_count * sizeof(GLfloat)* SIMPLEMODEL_COLOR_SIZE, colors, GL_STATIC_DRAW);
+			glVertexAttribPointer(1, SIMPLEMODEL_COLOR_SIZE, GL_FLOAT, GL_FALSE, SIMPLEMODEL_COLOR_SIZE * sizeof(GLfloat), (GLvoid*)0);
+			glEnableVertexAttribArray(1);
+		}
+		//Texture coord attribute
+		if (texCoords != nullptr) {
+			bindBuffer(TEXCOORD);
+			glBufferData(GL_ARRAY_BUFFER, vertices_count * sizeof(GLfloat)* SIMPLEMODEL_TEXCOORD_SIZE, texCoords, GL_STATIC_DRAW);
+			glVertexAttribPointer(2, SIMPLEMODEL_TEXCOORD_SIZE, GL_FLOAT, GL_FALSE, SIMPLEMODEL_TEXCOORD_SIZE * sizeof(GLfloat), (GLvoid*)0);
+			glEnableVertexAttribArray(2);
+		}
+		//Normal attribute
+		if (normals != nullptr) {
+			bindBuffer(NORMAL);
+			glBufferData(GL_ARRAY_BUFFER, vertices_count * sizeof(GLfloat)* SIMPLEMODEL_NORMAL_SIZE, normals, GL_STATIC_DRAW);
+			glVertexAttribPointer(3, SIMPLEMODEL_NORMAL_SIZE, GL_FLOAT, GL_FALSE, SIMPLEMODEL_NORMAL_SIZE * sizeof(GLfloat), (GLvoid*)0);
+			glEnableVertexAttribArray(3);
+		}
+		// 2. Copy our index array in a element buffer for OpenGL to use
+		bindBuffer(ELEMENT, GL_ELEMENT_ARRAY_BUFFER);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexes_count * sizeof(GLuint)* 3, elements, GL_STATIC_DRAW);
+	}
+	glBindVertexArray(0);
+}
+
+//Class definition: CombinedModel
+class CombinedModel : public SimpleModel {
+public:
+	struct Layout {
+		int vertex_offset,		vertex_length;
+		int color_offset,		color_length;
+		int texCoord_offset,	texCoord_length;
+		int normal_offset,		normal_length;
+		int vertices_count,		indexes_count;
+		bool indexed;
+
+		Layout() :  vertex_offset(0),		vertex_length(SIMPLEMODEL_VERTEX_SIZE),
+					color_offset(-1),		color_length(SIMPLEMODEL_COLOR_SIZE),
+					texCoord_offset(-1),	texCoord_length(SIMPLEMODEL_TEXCOORD_SIZE),
+					normal_offset(-1),		normal_length(SIMPLEMODEL_NORMAL_SIZE),
+					vertices_count(0),		indexes_count(0),
+					indexed(true) {}
+
+		Layout( int vo, int vl, int co, int cl, 
+				int to, int tl, int no, int nl, 
+				int vc, int ic, bool ind) : vertex_offset(vo),		vertex_length(vl),
+											color_offset(co),		color_length(cl),
+											texCoord_offset(to),	texCoord_length(tl),
+											normal_offset(no),		normal_length(nl),
+											vertices_count(vc),		indexes_count(ic),
+											indexed(ind) {}
+	};
+private:
+	Layout layout;
+	const GLfloat *data;
+	const GLuint *elements;
+public:
+	CombinedModel(	const Layout _layout, 
+					const GLfloat *dataArray = nullptr,
+					const GLuint *indexesArray = nullptr) : data(dataArray), elements(indexesArray), layout(_layout)
+	{
+		int bufferAlocator = 0;
+		if (layout.vertex_offset > -1) {
+			bufferAlocator |= COMBINED;
+		} else {
+			throw std::exception("ERROR::COMBINED_MODEL::Constructor::Vertices array must be defined");
+		}
+		if (indexesArray != nullptr) {
+			bufferAlocator |= ELEMENT;
+		} else if (layout.indexed) {
+			throw std::exception("ERROR::COMBINED_MODEL::Constructor::Element array must be defined for indexed layout");
+		}
+		bufferAlocator |= VERTEXARRAY;
+		allocate(bufferAlocator);
+	}
+
+	void drawInstance(int index = 0, GLboolean applay_shader = GL_TRUE) {
+		if (applay_shader == GL_TRUE)
+			useShader();
+		bindInstance(index, getShaderId());
+		bindBuffer(VERTEXARRAY);
+		if (layout.indexed) {
+			glDrawElements(GL_TRIANGLES, layout.indexes_count, GL_UNSIGNED_INT, 0);
+		} else {
+			glDrawArrays(GL_TRIANGLES, 0, layout.vertices_count);
+		}
+		glBindVertexArray(0);
+	}
+
+	void Build();
+};
+
+/*	Fix current model state in VAO
+*	Attribute layout:
+*	0 : vec3f() : position
+*	1 : vec3f() : color
+*	2 : vec2f() : texture coordinates
+*	3 : vec3f() : normals
+*/
+void CombinedModel::Build() {
+	bindBuffer(VERTEXARRAY);
+	{
+		// 1. Copy our vertices array in a vertex buffer for OpenGL to use
+		//Position attribute
+		bindBuffer(COMBINED);
+		int stride = layout.vertex_length;
+		if (layout.color_offset > -1)
+			stride += layout.color_length;
+		if (layout.texCoord_offset > -1)
+			stride += layout.texCoord_length;
+		if (layout.normal_offset > -1)
+			stride += layout.normal_length;
+
+		glBufferData(GL_ARRAY_BUFFER, layout.vertices_count * sizeof(GLfloat) * stride, data, GL_STATIC_DRAW);
+
+		glVertexAttribPointer(0, layout.vertex_length, GL_FLOAT, GL_FALSE, stride * sizeof(GLfloat), (GLvoid*)(layout.vertex_offset * sizeof(GLfloat)));
+		glEnableVertexAttribArray(0);
+		//Color attribute
+		if (layout.color_offset > -1) {
+			glVertexAttribPointer(1, layout.color_length, GL_FLOAT, GL_FALSE, stride * sizeof(GLfloat), (GLvoid*)(layout.color_offset * sizeof(GLfloat)));
+			glEnableVertexAttribArray(1);
+		}
+		//Texture coord attribute
+		if (layout.texCoord_offset > -1) {
+			glVertexAttribPointer(2, layout.texCoord_length, GL_FLOAT, GL_FALSE, stride * sizeof(GLfloat), (GLvoid*)(layout.texCoord_offset * sizeof(GLfloat)));
+			glEnableVertexAttribArray(2);
+		}
+		//Normal attribute
+		if (layout.normal_offset > -1) {
+			glVertexAttribPointer(3, layout.normal_length, GL_FLOAT, GL_FALSE, stride * sizeof(GLfloat), (GLvoid*)(layout.normal_offset * sizeof(GLfloat)));
+			glEnableVertexAttribArray(3);
+		}
+		// 2. Copy our index array in a element buffer for OpenGL to use
+		if (layout.indexed) {
+			bindBuffer(ELEMENT, GL_ELEMENT_ARRAY_BUFFER);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, layout.indexes_count * sizeof(GLuint) * 3, elements, GL_STATIC_DRAW);
+		}
+	}
+	glBindVertexArray(0);
+}
+
 
 #endif

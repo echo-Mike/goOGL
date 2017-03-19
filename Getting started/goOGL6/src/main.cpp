@@ -6,9 +6,8 @@ static Shader *shaderProgram;
 static const std::string tpath1("C:\\Users\\123\\Desktop\\OpenGL\\PROJECTS\\GOOPENGL\\goOGL6\\src\\data\\container.jpg");
 static const std::string tpath2("C:\\Users\\123\\Desktop\\OpenGL\\PROJECTS\\GOOPENGL\\goOGL6\\src\\data\\wall.jpg");
 static const std::string tpath3("C:\\Users\\123\\Desktop\\OpenGL\\PROJECTS\\GOOPENGL\\goOGL6\\src\\data\\awesomeface.png");
-static Texture *container, *container2;
-glm::vec3 axis(0.0, 0.0, 0.1);
-static SimpleModel *model;
+static const std::string tpath4("C:\\Users\\123\\Desktop\\OpenGL\\PROJECTS\\GOOPENGL\\goOGL6\\src\\data\\cubelayout.png");
+static CombinedModel *model;
 
 
 int main()
@@ -38,32 +37,42 @@ int main()
 	glViewport(0, 0, width, height);
 
 	//ÄÀÍÍÛÅ
+	GLfloat cube_s = 10.0f;
 
-	GLfloat positions[] = {
-		0.5f, 0.5f, 0.0f,
-		0.5f, -0.5f, 0.0f,
-		-0.5f, -0.5f, 0.0f,
-		-0.5f, 0.5f, 0.0f
+	GLfloat cube[] = {
+		-cube_s, -cube_s,  cube_s,
+		 cube_s, -cube_s,  cube_s,
+		 cube_s,  cube_s,  cube_s,
+		-cube_s,  cube_s,  cube_s,
+		-cube_s, -cube_s, -cube_s,
+		 cube_s, -cube_s, -cube_s,
+		 cube_s,  cube_s, -cube_s,
+		-cube_s,  cube_s, -cube_s
 	};
 	GLfloat colors[] = {
-		1.0f, 0.0f, 0.0f, 
+		1.0f, 0.0f, 0.0f,
 		0.0f, 1.0f, 0.0f, 
 		0.0f, 0.0f, 1.0f, 
 		1.0f, 1.0f, 0.0f
 	};
 	GLfloat texCoords[] = {
+		0.0f, 0.0f, 
 		1.0f, 1.0f,
 		1.0f, 0.0f,
-		0.0f, 0.0f,
+		
 		0.0f, 1.0f
 	};
-	GLuint indices[] = {  // Note that we start from 0!
-		0, 1, 3, // First Triangle
-		1, 2, 3  // Second Triangle
+	GLuint indices[] = {
+		0, 1, 2,  0, 2, 3, //Front 
+		1, 5, 6,  1, 6, 2, //Right 
+		5, 4, 7,  5, 7, 6, //Back 
+		4, 0, 3,  4, 3, 7, //Left 
+		3, 2, 6,  3, 6, 7, //Top 
+		4, 5, 1,  4, 1, 0  //Bottom
 	};
 
 	//ÑÎÇÄÀ¨Ì ÌÎÄÅËÜ
-	model = new SimpleModel(6, positions, texCoords, colors, nullptr, indices);
+	model = new CombinedModel(CombinedModel::Layout(0, 3, -1, 3, 3, 2, -1, 3, 36, 0, false), vertices);
 	//ÑÎÇÄÀ¨Ì ØÅÉÄÅÐ
 	shaderProgram = new Shader(vspath.c_str(), fspath.c_str());
 	model->setShader(shaderProgram);
@@ -74,11 +83,17 @@ int main()
 	model->loadAllTextures();
 	//Áèíäèì äåéñòâèÿ â VAO ìîäåëè
 	model->Build();
-	
+
+
 	GLfloat offset;
-	glm::mat4 trans;
-	model->pushTransformation(trans);
-	model->pushTransformation(trans);
+	//glm::mat4 trans = glm::rotate(glm::mat4(), glm::radians(-55.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	//model->pushTransformation(trans);
+	model->genInstances();
+
+	glm::mat4 view = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, -3.0f));
+	shaderProgram->pushUniform("view", &view, Shader::UNIFORMMATRIX4FV);
+	glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)width / height, 0.1f, 1000.0f);
+	shaderProgram->pushUniform("projection", &projection, Shader::UNIFORMMATRIX4FV);
 
 	//main loop
 	while (!glfwWindowShouldClose(window))
@@ -88,16 +103,9 @@ int main()
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		offset = (float)glfwGetTime();
-
-		trans = glm::translate(glm::mat4(), glm::vec3(0.5, -0.5, 0.0));
-		trans = glm::rotate(trans, glm::radians(offset*10.0f), axis);
-		model->setTransformation(trans);
-		trans = glm::translate(glm::mat4(), glm::vec3(-0.5, 0.5, 0.0));
-		trans = glm::scale(trans, glm::vec3(glm::sin(offset), glm::cos(offset), 0.0));
-		model->setTransformation(trans, 1);
-
-		model->drawInstances(0, 2);
+		//offset = (float)glfwGetTime();
+		model->drawInstance();
+		//DEBUG_OUT << glGetError() << DEBUG_NEXT_LINE;
 
 		glfwSwapBuffers(window);
 	}
