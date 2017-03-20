@@ -162,17 +162,19 @@ public:
 	}
 };
 
+//Helper function for glm::mat4 matrix binding to OpenGL uniform Mat4
+static void stdBindMatrix(GLuint location, glm::mat4 &m) {
+	glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(m));
+}
+
 //Class template definition: InstanceHandler
 template <class Matrix = glm::mat4>
 class InstanceHandler {
 	//Transform matrix array
 	std::vector<Matrix> transformation_data;
-
-	static GLfloat *stdMatPtr(Matrix m) { return glm::value_ptr(m); }
-
 protected:
 	//Load instance data
-	void bindInstance(int index, const GLuint SPO, GLfloat* (*MatrixPtr)(Matrix) = &stdMatPtr) {
+	void bindInstance(int index, const GLuint SPO, void(*BindMatrix)(GLuint, Matrix&) = &stdBindMatrix) {
 		if (transformation_data.size() > 0) {
 			GLint _location = glGetUniformLocation(SPO, SIMPLEMODEL_TRANSFORM_MATRIX_NAME);
 				if (_location == -1) { //Check if uniform not found
@@ -183,7 +185,7 @@ protected:
 					return;
 				}
 			try {
-				glUniformMatrix4fv(_location, 1, GL_FALSE, (*MatrixPtr)(transformation_data.at(index)));
+				(*BindMatrix)(_location, transformation_data.at(index));
 			}
 			catch (std::out_of_range e) {
 				#ifdef GEBUG_SIMPLEMODEL
@@ -194,7 +196,6 @@ protected:
 			}
 		}
 	}
-
 public:
 	//Draw one instance of model using instance data
 	virtual void drawInstance(int index) { return; }
