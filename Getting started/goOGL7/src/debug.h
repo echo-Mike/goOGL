@@ -3,11 +3,20 @@
 //Ctexture.h
 #define DEBUG_TEXTURE
 //CSimpleModel.h
-#define GEBUG_SIMPLEMODEL
+#define DEBUG_SIMPLEMODEL
 //CShader.h
-#define GEBUG_SHADER
+#define DEBUG_SHADER
 //CCamera.h
 #define DEBUG_CAMERA
+//CUniforms.h
+#define DEBUG_UNIFORMS
+//CUniformMatrix.h
+#define DEBUG_UNIFORMMATRIX
+//CUniformTexture.h
+#define DEBUG_UNIFORMTEXTURE
+//CCamera.h
+#define DEBUG_CAMERA
+
 //Log output
 #ifndef DEBUG_OUT
 	#define DEBUG_OUT std::cout

@@ -15,8 +15,13 @@
     <ClInclude Include="src\CShader.h" />
     <ClInclude Include="src\CSimpleModel.h" />
     <ClInclude Include="src\Ctexture.h" />
+    <ClInclude Include="src\CUniformMatrix.h" />
+    <ClInclude Include="src\CUniforms.h" />
+    <ClInclude Include="src\CUniformTexture.h" />
     <ClInclude Include="src\debug.h" />
+    <ClInclude Include="src\ImprovedMath.h" />
     <ClInclude Include="src\main.h" />
+    <ClInclude Include="src\OLD.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp" />

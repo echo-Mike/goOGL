@@ -20,11 +20,15 @@
 
 //Our
 #include "debug.h"
+#include "CUniforms.h"
+#include "ImprovedMath.h"
+#include "CUniformMatrix.h"
+#include "CUniformTexture.h"
 #include "CShader.h"
+#include "CSimpleModel.h"
 #include "Ctexture.h"
 #include "CCamera.h"
-#define SIMPLEMODEL_TRANSFORM_MATRIX_NAME "model"
-#include "CSimpleModel.h"
+
 using std::cout;
 using std::endl;
 

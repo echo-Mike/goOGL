@@ -16,6 +16,7 @@
 		#define DEBUG_NEXT_LINE std::endl
 	#endif
 #endif
+
 //Class definition: Texture
 class Texture {
 	std::string path;
@@ -178,5 +179,4 @@ public:
 		#endif
 	}
 };
-
 #endif

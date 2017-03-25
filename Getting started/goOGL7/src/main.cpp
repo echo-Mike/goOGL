@@ -7,8 +7,7 @@ static const std::string tpath1("C:\\Users\\123\\Desktop\\OpenGL\\PROJECTS\\GOOP
 static const std::string tpath2("C:\\Users\\123\\Desktop\\OpenGL\\PROJECTS\\GOOPENGL\\goOGL7\\src\\data\\wall.jpg");
 static const std::string tpath3("C:\\Users\\123\\Desktop\\OpenGL\\PROJECTS\\GOOPENGL\\goOGL7\\src\\data\\awesomeface.png");
 static const std::string tpath4("C:\\Users\\123\\Desktop\\OpenGL\\PROJECTS\\GOOPENGL\\goOGL7\\src\\data\\cubelayout.png");
-static SimpleModel *model;
-
+static SimpleModel<> *model;
 
 
 //Key handler array
@@ -70,7 +69,7 @@ int main()
 
 
 	//янгдю╗л лндекэ
-	model = new CombinedModel(CombinedModel::Layout(0, 3, -1, 3, 3, 2, -1, 3, 36, 0, false), vertices);
+	model = new CombinedModel<>(CombinedModel<>::Layout(0, 3, -1, 3, 3, 2, -1, 3, 36, 0, false), vertices);
 	//model = new SeparateModel(4, 6, vert, colors, texCoords, nullptr, ind);
 	//янгдю╗л ьеидеп
 	shaderProgram = new Shader(vspath.c_str(), fspath.c_str());
@@ -90,6 +89,8 @@ int main()
 		_transform = glm::rotate(_transform, glm::radians(_index * 20.f), glm::vec3(1.0f, 0.3f, 0.5f));
 		model->pushTransformation(_transform);
 	}
+
+
 
 	glm::mat4 view = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, -3.0f));
 	int viewIndex = shaderProgram->pushUniform("view", &view, Shader::UNIFORMMATRIX4FV);
