@@ -490,4 +490,91 @@ public:
 	};
 private:
 */
+/**
+//Class definition: MatrixHandler
+template<	class TMatrix = glm::mat4, class TShader = Shader,
+			int (TShader::* NewUniform)(const char*, void*, int)	= &TShader::pushUniform,
+			void (TShader::* UpdateUniform)(void*, int)				= &TShader::setUniform>
+class MatrixHandler {
+	TMatrix matrix;
+	TShader *shader;
+	std::string shaderVariableName;
+	int uniformId, uniformType;
+protected:
+	/*
+	//Helper function for derived classes
+	void allocate(	TMatrix _matrix, TShader *_shader, 
+					std::string _svn, int _uniformType) 
+	{
+		matrix = std::move(_matrix);
+		shader = _shader;
+		shaderVariableName = std::move(_svn);
+		uniformType = _uniformType;
+	}
+	/
+	//Bind healded matrix to shader
+	void Build() {
+		if (shader) {
+			uniformId = (shader->*NewUniform)(shaderVariableName.c_str(), &matrix, uniformType);
+		} else { 
+			#ifdef DEBUG_CAMERA
+				DEBUG_OUT << "ERROR::MATRIX_HANDLER::Build::SHADER_MISSING" << DEBUG_NEXT_LINE;
+			#endif		
+		}
+	}
+
+public:
+	MatrixHandler() :	matrix(), shader(nullptr), shaderVariableName(CAMERA_STD_SHADER_VARIABLE_NAME), 
+						uniformId(-1), uniformType(CAMERA_STD_MATRIX_TYPE) { }
+
+	MatrixHandler(	TMatrix _matrix, TShader* _shader = nullptr, 
+					std::string name = std::string(CAMERA_STD_SHADER_VARIABLE_NAME), 
+					int matType = CAMERA_STD_MATRIX_TYPE) : matrix(std::move(_matrix)), shader(_shader),
+															shaderVariableName(name),	uniformId(-1),
+															uniformType(matType) { Build(); }
+
+	MatrixHandler(	TMatrix _matrix, TShader* _shader, const char* name, int matType) : MatrixHandler(_matrix, _shader, std::string(name), matType) { }
+
+	~MatrixHandler() { /*Protect shader from destructor call/	shader = nullptr; }
+
+	//Update content of matrix in shader
+	virtual void loadToShader() {
+		if (shader) {
+			(shader->*UpdateUniform)(&matrix, uniformId);
+		} else { 
+			#ifdef DEBUG_CAMERA
+				DEBUG_OUT << "ERROR::MATRIX_HANDLER::Update::SHADER_MISSING" << DEBUG_NEXT_LINE;
+			#endif		
+		}	
+	}
+
+	//Update matrix with new value
+	void updateMatrix(TMatrix _matrix) { matrix = std::move(_matrix); }
+	
+};
+*/
+
+	/*
+	ProjectionHandler(	float _fov,			float _aspect, 
+						float _near,		float _far,
+						Shader *_shader, int matType = CAMERA_STD_MATRIX_TYPE) : 
+						type(ProjectionType::PERSPECTIVE), 
+						mode(ProjectionMode::MODE_PERSPECTIVE),
+						fov(_fov),			near(_near),
+						aspect(_aspect),	far(_far),
+						MatrixHandler(glm::perspective(_fov, _aspect, _near, _far), 
+						_shader, std::string(CAMERA_STD_PROJECTION_SHADER_VARIABLE_NAME), matType) { }
+
+	ProjectionHandler(	float _left,		float _right,
+						float _bottom,		float _top,
+						float _near,		float _far,
+						Shader *_shader,	int matType = CAMERA_STD_MATRIX_TYPE) : 
+						type(ProjectionType::ORTHO), 
+						mode(ProjectionMode::MODE_ORTHO),
+						left(_left),		right(_right), 
+						bottom(_bottom),	top(_top),
+						near(_near),		far(_far),
+						MatrixHandler(glm::ortho(_left, _right, _bottom, _top, _near, _far), 
+						_shader, std::string(CAMERA_STD_PROJECTION_SHADER_VARIABLE_NAME), matType) { }
+	*/
 #endif

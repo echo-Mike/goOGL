@@ -34,17 +34,29 @@ protected:
 public:
 	//Bind uniform to shader
 	virtual void bindUniform(GLint _location) { return; }
-protected:
-	void Build() {
+
+	//Push to shader handle queue
+	void push() {
 		if (shader) {
 			uniformId = (shader->*NewUniform)(uniformName.c_str(), &(this->bindUniform));
 		} else {
 			#ifdef DEBUG_UNIFORMS
-				DEBUG_OUT << "ERROR::UNIFORM_HANDLER::Build::SHADER_MISSING" << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "ERROR::UNIFORM_HANDLER::push::SHADER_MISSING" << DEBUG_NEXT_LINE;
 			#endif	
 		}
 	}
-public:
+
+	//Pull from shader handle queue
+	void pull() {
+		if (shader) {
+			(shader->*DeleteUniform)(uniformId);
+		} else {
+			#ifdef DEBUG_UNIFORMS
+				DEBUG_OUT << "ERROR::UNIFORM_HANDLER::pull::SHADER_MISSING" << DEBUG_NEXT_LINE;
+			#endif	
+		}
+	}
+
 	UniformHandler() : value(), uniformId(-1), shader(nullptr), uniformName(UNIFORM_HANDLER_STD_SHADER_VARIABLE_NAME) {}
 
 	UniformHandler(	T _value, TShader *_shader = nullptr, 
@@ -52,7 +64,7 @@ public:
 					value(std::move(_value)), shader(_shader), 
 					uniformName(std::move(_uniformName)), uniformId(-1) 
 	{
-		Build();
+		push();
 	}
 
 	UniformHandler(T _value, TShader *_shader, const char* _uniformName) : UniformHandler(_value, _shader, std::string(_uniformName)) { }
@@ -65,7 +77,20 @@ public:
 	}
 
 	//Set new value to handle
-	void newValue(T _value) { value = std::move(_value); }
+	virtual void newValue(T _value) { value = std::move(_value); }
+
+	//Shader pointer setup
+	virtual void setShader(TShader *_shader) { shader = _shader; }
+
+	//Set new in-shader name of variable
+	virtual void setName(const char* newName) { uniformName = std::string(newName); }
+
+	//Set new in-shader name of variable
+	virtual void setName(std::string newName) { uniformName = std::move(newName); }
+
+	//Get in-shader name of variable
+	virtual std::string& getName() { return uniformName.substr(); }
+
 };
 
 #ifndef UNIFORM_LOADER_STD_SHADER_VARIABLE_NAME
@@ -91,11 +116,23 @@ public:
 				value(std::move(_value)), shader(_shader), 
 				dataName(std::move(_dataName)) { }
 
-	UniformLoader(T _value, TShader *_shader, const char* _uniformName) : UniformLoader(_value, _shader, std::string(_uniformName)) { }
+	UniformLoader(T _value, TShader *_shader, const char* _uniformName) : UniformLoader(_value, _shader, std::string(_uniformName)) {}
 
-	~DataHandler() { /*Protect shader from destructor call*/ shader = nullptr; }
+	~UniformLoader() { /*Protect shader from destructor call*/ shader = nullptr; }
 
 	//Set new value to handle
-	void newValue(T _value) { value = std::move(_value); }
+	virtual void newValue(T _value) { value = std::move(_value); }
+
+	//Shader pointer setup
+	virtual void setShader(TShader *_shader) { shader = _shader; }
+
+	//Set new in-shader name of variable
+	virtual void setName(const char* newName) { dataName = std::string(newName); }
+
+	//Set new in-shader name of variable
+	virtual void setName(std::string newName) { dataName = std::move(newName); }
+
+	//Get in-shader name of variable
+	virtual std::string& getName() { return dataName.substr(); }
 };
 #endif

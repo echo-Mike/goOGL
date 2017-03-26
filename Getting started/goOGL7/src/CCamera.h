@@ -4,9 +4,10 @@
 #include <GL/glew.h>
 //GLM
 #include <GLM/glm.hpp>
-#include <GLM/GTC/matrix_transform.hpp>
-#include <GLM/GTC/type_ptr.hpp>
 #include <GLM/GTC/quaternion.hpp>
+//OUR
+#include "CUniformMatrix.h"
+#include "ImprovedMath.h"
 //DEBUG
 #ifdef DEBUG_CAMERA
 	#ifndef DEBUG_OUT
@@ -17,88 +18,15 @@
 	#endif
 #endif
 
-/*
-#ifndef CAMERA_STD_MATRIX_TYPE
-	//In shader type name of matrix
-	#define CAMERA_STD_MATRIX_TYPE Shader::UNIFORMMATRIX4FV
-#endif
-*/
-
-
-#ifndef CAMERA_STD_PROJECTION_SHADER_VARIABLE_NAME
+#ifndef PROJECTION_HANDLER_STD_PROJECTION_SHADER_VARIABLE_NAME
 	//In shader variable name of matrix
-	#define CAMERA_STD_PROJECTION_SHADER_VARIABLE_NAME "projection"
+	#define PROJECTION_HANDLER_STD_PROJECTION_SHADER_VARIABLE_NAME "projection"
 #endif
-
-/**
-//Class definition: MatrixHandler
-template<	class TMatrix = glm::mat4, class TShader = Shader,
-			int (TShader::* NewUniform)(const char*, void*, int)	= &TShader::pushUniform,
-			void (TShader::* UpdateUniform)(void*, int)				= &TShader::setUniform>
-class MatrixHandler {
-	TMatrix matrix;
-	TShader *shader;
-	std::string shaderVariableName;
-	int uniformId, uniformType;
-protected:
-	/*
-	//Helper function for derived classes
-	void allocate(	TMatrix _matrix, TShader *_shader, 
-					std::string _svn, int _uniformType) 
-	{
-		matrix = std::move(_matrix);
-		shader = _shader;
-		shaderVariableName = std::move(_svn);
-		uniformType = _uniformType;
-	}
-	/
-	//Bind healded matrix to shader
-	void Build() {
-		if (shader) {
-			uniformId = (shader->*NewUniform)(shaderVariableName.c_str(), &matrix, uniformType);
-		} else { 
-			#ifdef DEBUG_CAMERA
-				DEBUG_OUT << "ERROR::MATRIX_HANDLER::Build::SHADER_MISSING" << DEBUG_NEXT_LINE;
-			#endif		
-		}
-	}
-
-public:
-	MatrixHandler() :	matrix(), shader(nullptr), shaderVariableName(CAMERA_STD_SHADER_VARIABLE_NAME), 
-						uniformId(-1), uniformType(CAMERA_STD_MATRIX_TYPE) { }
-
-	MatrixHandler(	TMatrix _matrix, TShader* _shader = nullptr, 
-					std::string name = std::string(CAMERA_STD_SHADER_VARIABLE_NAME), 
-					int matType = CAMERA_STD_MATRIX_TYPE) : matrix(std::move(_matrix)), shader(_shader),
-															shaderVariableName(name),	uniformId(-1),
-															uniformType(matType) { Build(); }
-
-	MatrixHandler(	TMatrix _matrix, TShader* _shader, const char* name, int matType) : MatrixHandler(_matrix, _shader, std::string(name), matType) { }
-
-	~MatrixHandler() { /*Protect shader from destructor call/	shader = nullptr; }
-
-	//Update content of matrix in shader
-	virtual void loadToShader() {
-		if (shader) {
-			(shader->*UpdateUniform)(&matrix, uniformId);
-		} else { 
-			#ifdef DEBUG_CAMERA
-				DEBUG_OUT << "ERROR::MATRIX_HANDLER::Update::SHADER_MISSING" << DEBUG_NEXT_LINE;
-			#endif		
-		}	
-	}
-
-	//Update matrix with new value
-	void updateMatrix(TMatrix _matrix) { matrix = std::move(_matrix); }
-	
-};
-*/
 
 //Class definition: ProjectionHandler
-//class ProjectionHandler : virtual public MatrixHandler<> {
-class ProjectionHandler : virtual public MatrixHandler {
+class ProjectionHandler : public MatrixHandler<> {
 public:
-	enum ProjectionType : int {
+	enum State : int {
 		UNINITIALISED	= 0x00,
 		INITIALISED		= 0x01,
 		ORTHO			= 0x03,
@@ -123,6 +51,10 @@ public:
 						float _near,	float _far) : 
 						fov(_fov),		aspect(_aspect), 
 						near(_near),	far(_far) {}
+
+		PerspectiveData(PerspectiveData& _data) : 
+						fov(_data.fov), aspect(_data.aspect),
+						near(_data.near), far(_data.far) {}
 	};
 
 	struct OrthoData {
@@ -142,11 +74,16 @@ public:
 					bottom(_bottom), top(_top),
 					near(_near),	far(_far) {}
 
+		OrthoData(	OrthoData& _data) :
+					left(_data.left),	right(_data.right),
+					bottom(_data.bottom), top(_data.top),
+					near(_data.near), far(_data.far) {}
+
 	};
 private:
 	//State data
-	int type;
-	ProjectionMode mode;
+	int state;
+	ProjectionMode projmode;
 	//Data for orthographical projection
 	float left;
 	float right;
@@ -157,74 +94,75 @@ private:
 	float aspect;
 	//Clip frustum data
 	float near, far;
+	//Hide from SimpleCamera and other derived:
+	MatrixHandler::bindUniform;
+	MatrixHandler::transposeOnLoad;
+	UniformHandler::newValue;
+	UniformHandler::value;
+	UniformHandler::uniformName;
 protected:
-	//MatrixHandler::loadToShader;
+	//Hide from other world:
+	UniformHandler::push;
+	UniformHandler::pull;
+	UniformHandler::setName;
+	UniformHandler::getName;
 public:
 	
-	ProjectionHandler() : type(ProjectionType::UNINITIALISED) {}
-
-	/*
-	ProjectionHandler(	float _fov,			float _aspect, 
-						float _near,		float _far,
-						Shader *_shader, int matType = CAMERA_STD_MATRIX_TYPE) : 
-						type(ProjectionType::PERSPECTIVE), 
-						mode(ProjectionMode::MODE_PERSPECTIVE),
-						fov(_fov),			near(_near),
-						aspect(_aspect),	far(_far),
-						MatrixHandler(glm::perspective(_fov, _aspect, _near, _far), 
-						_shader, std::string(CAMERA_STD_PROJECTION_SHADER_VARIABLE_NAME), matType) { }
-
-	ProjectionHandler(	float _left,		float _right,
-						float _bottom,		float _top,
-						float _near,		float _far,
-						Shader *_shader,	int matType = CAMERA_STD_MATRIX_TYPE) : 
-						type(ProjectionType::ORTHO), 
-						mode(ProjectionMode::MODE_ORTHO),
-						left(_left),		right(_right), 
-						bottom(_bottom),	top(_top),
-						near(_near),		far(_far),
-						MatrixHandler(glm::ortho(_left, _right, _bottom, _top, _near, _far), 
-						_shader, std::string(CAMERA_STD_PROJECTION_SHADER_VARIABLE_NAME), matType) { }
-	*/
+	ProjectionHandler() : state(State::UNINITIALISED), MatrixHandler<>() {}
 
 	ProjectionHandler(	float _fov,			float _aspect, 
 						float _near,		float _far,
 						Shader *_shader) : 
-						type(ProjectionType::PERSPECTIVE), 
-						mode(ProjectionMode::MODE_PERSPECTIVE),
+						state(State::PERSPECTIVE), 
+						projmode(ProjectionMode::MODE_PERSPECTIVE),
 						fov(_fov),			near(_near),
 						aspect(_aspect),	far(_far),
-						MatrixHandler(glm::perspective(_fov, _aspect, _near, _far), 
-						_shader, std::string(CAMERA_STD_PROJECTION_SHADER_VARIABLE_NAME)) { }
+						MatrixHandler(our::perspective(_fov, _aspect, _near, _far), 
+						_shader, std::string(PROJECTION_HANDLER_STD_PROJECTION_SHADER_VARIABLE_NAME)) { }
 
 	ProjectionHandler(	float _left,		float _right,
 						float _bottom,		float _top,
 						float _near,		float _far,
 						Shader *_shader) : 
-						type(ProjectionType::ORTHO), 
-						mode(ProjectionMode::MODE_ORTHO),
+						state(State::ORTHO), 
+						projmode(ProjectionMode::MODE_ORTHO),
 						left(_left),		right(_right), 
 						bottom(_bottom),	top(_top),
 						near(_near),		far(_far),
-						MatrixHandler(glm::ortho(_left, _right, _bottom, _top, _near, _far), 
-						_shader, std::string(CAMERA_STD_PROJECTION_SHADER_VARIABLE_NAME)) { }
+						MatrixHandler(our::ortho(_left, _right, _bottom, _top, _near, _far), 
+						_shader, std::string(PROJECTION_HANDLER_STD_PROJECTION_SHADER_VARIABLE_NAME)) { }
 
-	bool isInitialised() { return (type & ProjectionType::INITIALISED); }
+	//Returns initialisation status
+	bool isInitialised() { return (state & State::INITIALISED); }
 	
-	ProjectionType getType() { return (ProjectionType)type; }
+	//Returns curent state
+	State getState() { return (State)state; }
 
-	PerspectiveData getPrespectiveData() { return (type & ProjectionType::PERSPECTIVE) ? PerspectiveData(fov, aspect, near, far) : PerspectiveData(); }
+	//Returns perpective data if it presented
+	PerspectiveData getPrespectiveData() { return (state & State::PERSPECTIVE) ? PerspectiveData(fov, aspect, near, far) : PerspectiveData(); }
 
+	//Setup perspective data by data stucture
 	void setPerspectiveData(PerspectiveData& data) {
 		aspect = data.aspect;
 		near = data.near;
 		far = data.far;
 		fov = data.fov;
-		type |= ProjectionType::PERSPECTIVE;
+		state |= State::PERSPECTIVE;
 	}
 
-	OrthoData getOrthoData() { return (type & ProjectionType::ORTHO) ? OrthoData(left, right, bottom, top, near, far) : OrthoData(); }
+	//Setup perspective data by data it self
+	void setPerspectiveData(float _fov, float _aspect, float _near, float _far) {
+		aspect = _aspect;
+		near = _near;
+		far = _far;
+		fov = _fov;
+		state |= State::PERSPECTIVE;
+	}
 
+	//Returns ortho data if it presented
+	OrthoData getOrthoData() { return (state & State::ORTHO) ? OrthoData(left, right, bottom, top, near, far) : OrthoData(); }
+
+	//Setup ortho data by data stucture
 	void setOrthoData(OrthoData& data) {
 		bottom = data.bottom;
 		right = data.right;
@@ -232,32 +170,45 @@ public:
 		near = data.near;
 		top = data.top;
 		far = data.far;
-		type |= ProjectionType::ORTHO;
+		state |= State::ORTHO;
 	}
 
-	ProjectionMode getMode() { return mode; }
+	//Setup ortho data by data it self
+	void setOrthoData(float _left, float _right, float _bottom, float _top, float _near, float _far) {
+		bottom = _bottom;
+		right = _right;
+		left = _left;
+		near = _near;
+		top = _top;
+		far = _far;
+		state |= State::ORTHO;
+	}
 
-	void setMode(ProjectionMode _mode) { 
+	//Returns current projection mode
+	ProjectionMode getProjectionMode() { return projmode; }
+
+	//Setup projection mode
+	void setProjectionMode(ProjectionMode _mode) {
 		switch (_mode) {
 			case ProjectionMode::MODE_ORTHO:
-				if (type & ProjectionType::ORTHO) {
-					mode = _mode;
+				if (state & State::ORTHO) {
+					projmode = _mode;
 				} else {
 					#ifdef DEBUG_CAMERA
 						DEBUG_OUT << "ERROR::PROJECTION_HANDLER::setMode" << DEBUG_NEXT_LINE;
 						DEBUG_OUT << "\tMessage: Can't set mode ORTHO on current state." << DEBUG_NEXT_LINE;
-						DEBUG_OUT << "\tState: " << type << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tState: " << state << DEBUG_NEXT_LINE;
 					#endif	
 				}
 				break;
 			case ProjectionMode::MODE_PERSPECTIVE:
-				if (type & ProjectionType::PERSPECTIVE){
-					mode = _mode;
+				if (state & State::PERSPECTIVE){
+					projmode = _mode;
 				} else {
 					#ifdef DEBUG_CAMERA
 						DEBUG_OUT << "ERROR::PROJECTION_HANDLER::setMode" << DEBUG_NEXT_LINE;
 						DEBUG_OUT << "\tMessage: Can't set mode PERSPECTIVE on current state." << DEBUG_NEXT_LINE;
-						DEBUG_OUT << "\tState: " << type << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tState: " << state << DEBUG_NEXT_LINE;
 					#endif	
 				}
 				break;
@@ -270,9 +221,10 @@ public:
 		}
 	}
 
+	//Switch projection mode Ortho<->Perspective
 	void switchMode() { 
-		if (type & ProjectionType::BOTH) {
-			mode = (mode == ProjectionMode::MODE_ORTHO) ? ProjectionMode::MODE_PERSPECTIVE : ProjectionMode::MODE_ORTHO;
+		if (state & State::BOTH) {
+			projmode = (projmode == ProjectionMode::MODE_ORTHO) ? ProjectionMode::MODE_PERSPECTIVE : ProjectionMode::MODE_ORTHO;
 		} else {
 			#ifdef DEBUG_CAMERA
 				DEBUG_OUT << "ERROR::PROJECTION_HANDLER::switchMode::CANT_SWITCH_MODE" << DEBUG_NEXT_LINE;
@@ -280,32 +232,104 @@ public:
 		}
 	}
 
-	//Loade current mode projection matrix to shader
+	//Load current mode projection matrix to shader
 	void updateProjection() { 
-		if (type & ProjectionType::INITIALISED) {
-			this->newValue((mode == ProjectionMode::MODE_ORTHO) ? glm::ortho(left, right, bottom, top, near, far) : glm::perspective(fov, aspect, near, far));
+		if (state & State::INITIALISED) {
+			newValue((projmode == ProjectionMode::MODE_ORTHO) ? our::ortho(left, right, bottom, top, near, far) : our::perspective(fov, aspect, near, far));
 		} else {
 			#ifdef DEBUG_CAMERA
 				DEBUG_OUT << "ERROR::PROJECTION_HANDLER::updateProjection::NOT_INITIALISED" << DEBUG_NEXT_LINE;
-				DEBUG_OUT << "\tMessage: Projection patrix isn't initialised." << DEBUG_NEXT_LINE;
-				DEBUG_OUT << "\tState: " << type << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "\tMessage: Projection matrix isn't initialised." << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "\tState: " << state << DEBUG_NEXT_LINE;
 			#endif	
 		}
 	}
 };
 
+#ifndef SIMPLE_CAMERA_STD_VIEW_SHADER_VARIABLE_NAME
+	//In shader variable name of matrix
+	#define SIMPLE_CAMERA_STD_VIEW_SHADER_VARIABLE_NAME "view"
+#endif
 
 //Class definition: SimpleCamera
 class SimpleCamera : public ProjectionHandler {
-	glm::vec3 position		= glm::vec3(0.0f, 0.0f, 0.0f);
-	glm::vec3 front			= glm::vec3(0.0f, 0.0f, -1.0f);
-	glm::vec3 up			= glm::vec3(0.0f, 1.0f, 0.0f);
-	MatrixHandler view;
+	glm::vec3 position;
+	glm::vec3 front;
+	glm::vec3 up;
+	glm::vec3 right;
+	MatrixHandler<> view;
 public:
-	SimpleCamera() {}
+	GLfloat speed;
+	glm::vec2 sensitivity;
+	enum CameraMode : int {
+		FPS,
+		PLANE
+	};
+	CameraMode mode;
 
-	SimpleCamera() {}
+	SimpleCamera() :	ProjectionHandler(), position(glm::vec3(0.0f, 0.0f, 0.0f)), 
+						front(glm::vec3(0.0f, 0.0f, -1.0f)), up(glm::vec3(0.0f, 1.0f, 0.0f)),
+						right(glm::vec3(-1.0f, 0.0f, 0.0f)), view(), mode(CameraMode::FPS)
+	{
+		view.setName(SIMPLE_CAMERA_STD_VIEW_SHADER_VARIABLE_NAME);
+	}
 
+	//Shader pointer setup
+	void setShader(Shader *_shader) {
+		shader = _shader;
+		view.setShader(_shader);
+	}
+
+	/*Setup all parameters for OpenGL draw calls excluding shader
+	* setShader need to be called first
+	*/
+	void Setup() {
+		updateProjection();
+		push();
+		view.newValue(our::lookAt(position, position + front, up));
+		view.push();
+	}
+
+	/*Setup all parameters for OpenGL draw calls including shader
+	* No need to call setShader first
+	*/
+	void Setup(Shader *_shader) {
+		shader = _shader;
+		view.setShader(_shader);
+		updateProjection();
+		push();
+		view.newValue(our::lookAt(position, position + front, up));
+		view.push();
+	}
+
+	//Periodic update function
+	void Update() {
+		view.newValue(our::lookAt(position, position + front, up));
+	}
+
+	/* Control camera view by deltaX and deltaY parameters.
+	* In FPS mode: deltaX - turn around, deltaY - look up and down
+	* In PLANE mode: deltaX - roll angle, deltaY - pitch angle
+	*/
+	void controlView(GLfloat &deltaTime, float &deltaX, float &deltaY) {
+		right = glm::cross(front, up);
+		glm::quat temp = glm::angleAxis(sensitivity.y * deltaY * deltaTime, right) * glm::angleAxis(sensitivity.x * deltaX * deltaTime, (mode) ? front : -up);
+		front = glm::normalize(temp * front);
+		up = glm::normalize(temp * up);
+	}
+
+	//TODO: redo this function by accepting only general direction vector 
+	//Control camera movement by 4-way derection
+	void controlMovement(GLfloat &deltaTime, bool &forward, bool &backward, bool &left, bool &right) {
+		GLfloat realSpeed = speed * deltaTime;
+		if (forward)
+			position += realSpeed * front;
+		if (backward)
+			position -= realSpeed * front;
+		if (left)
+			position -= glm::normalize(glm::cross(front, up)) * realSpeed;
+		if (right)
+			position += glm::normalize(glm::cross(front, up)) * realSpeed;
+	}
 };
-
 #endif

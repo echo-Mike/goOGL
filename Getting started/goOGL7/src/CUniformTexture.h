@@ -100,7 +100,7 @@ public:
 template < class TTexture = Texture, class TShader = Shader >
 class MultipleTextureHandler {
 	//Texture array, max count: 32
-	std::vector<TextureHandler<TTexture, TShader>> textures;
+	std::vector<TextureHandler<TTexture, TShader> > textures;
 	//Pointer to shader
 	TShader *shader;
 protected:

@@ -33,11 +33,11 @@ public:
 
 	MatrixHandler() : UniformHandler(glm::mat4(), nullptr, MATRIX_HANDLER_STD_SHADER_VARIABLE_NAME) {}
 
-	MatrixHandler(	glm::mat4 _matrix, TShader* _shader,
+	MatrixHandler(	TMatrix _matrix, TShader* _shader,
 					const char* _name = MATRIX_HANDLER_STD_SHADER_VARIABLE_NAME) :
 					UniformHandler(_matrix, _shader, _name) {}
 
-	MatrixHandler(	glm::mat4 _matrix, TShader* _shader,
+	MatrixHandler(	TMatrix _matrix, TShader* _shader,
 					std::string _name = std::string(MATRIX_HANDLER_STD_SHADER_VARIABLE_NAME)) :
 					UniformHandler(_matrix, _shader, _name) {}
 	

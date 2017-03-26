@@ -145,7 +145,7 @@ public:
 				}
 			}
 		} else {
-			#ifdef GEBUG_SIMPLEMODEL
+			#ifdef DEBUG_SIMPLEMODEL
 				DEBUG_OUT << "ERROR::MULTIPLE_INSTANCE_LOADER::genInstances::INVALID_COUNT" << DEBUG_NEXT_LINE; 
 				DEBUG_OUT << "\tMessege: Can't generate count: " << count << " instances." << DEBUG_NEXT_LINE;
 			#endif
@@ -158,14 +158,14 @@ public:
 			instances.push_back(std::move(_tuple));
 		}
 		catch (std::length_error e) {
-			#ifdef GEBUG_SIMPLEMODEL
+			#ifdef DEBUG_SIMPLEMODEL
 				DEBUG_OUT << "ERROR::MULTIPLE_INSTANCE_LOADER::pushInstance::OUT_OF_RANGE" << DEBUG_NEXT_LINE; 
 				DEBUG_OUT << "\tCan't push more instance data." << DEBUG_NEXT_LINE;
 				DEBUG_OUT << "\tError string: " << e.what() << DEBUG_NEXT_LINE;
 			#endif
 		}
 		catch (...) {
-			#ifdef GEBUG_SIMPLEMODEL
+			#ifdef DEBUG_SIMPLEMODEL
 				DEBUG_OUT << "ERROR::MULTIPLE_INSTANCE_LOADER::pushInstance::UNKONWN"<< DEBUG_NEXT_LINE;
 			#endif
 				throw;
@@ -181,7 +181,7 @@ public:
 	//Pop last instance data from instance array
 	void popInstance() {
 		if (instances.empty()) {
-			#ifdef GEBUG_SIMPLEMODEL
+			#ifdef DEBUG_SIMPLEMODEL
 				DEBUG_OUT << "ERROR::MULTIPLE_INSTANCE_LOADER::popInstance::OUT_OF_RANGE" << DEBUG_NEXT_LINE; 
 				DEBUG_OUT << "\tCan't pop from empty instance array." << DEBUG_NEXT_LINE;
 			#endif
@@ -191,19 +191,19 @@ public:
 	}
 
 	//Setup instance data for "index" model instance
-	void setInstance(InstanceData _tuple, int _index = 0) {
+	void setInstance(int _index, InstanceData _tuple) {
 		try {
 			instances.at(_index) = std::move(_tuple);
 		}
 		catch (std::length_error e) {
-			#ifdef GEBUG_SIMPLEMODEL
+			#ifdef DEBUG_SIMPLEMODEL
 				DEBUG_OUT << "ERROR::MULTIPLE_INSTANCE_LOADER::setInstance::OUT_OF_RANGE"<< DEBUG_NEXT_LINE;
 				DEBUG_OUT << "\tCan't access transformation by index: " << _index << DEBUG_NEXT_LINE;
 				DEBUG_OUT << "\tError string: " << e.what() << DEBUG_NEXT_LINE;
 			#endif
 		}
 		catch (...) {
-			#ifdef GEBUG_SIMPLEMODEL
+			#ifdef DEBUG_SIMPLEMODEL
 				DEBUG_OUT << "ERROR::MULTIPLE_INSTANCE_LOADER::setInstance::UNKONWN"<< DEBUG_NEXT_LINE;
 			#endif
 				throw;
@@ -211,8 +211,8 @@ public:
 	}
 
 	//Setup instance data for "index" model instance
-	void setInstance(Types ... _data, , int _index = 0) {
-		try { setInstance(std::make_tuple(_data ...), _index); }
+	void setInstance(int _index, Types ... _data) {
+		try { setInstance(_index, std::make_tuple(_data ...)); }
 		catch (...) { throw; }
 	}
 
@@ -234,7 +234,7 @@ protected:
 				std::get<_index>(instances.at(index)).bindData();
 		}
 		catch (std::out_of_range e) {
-			#ifdef GEBUG_SIMPLEMODEL
+			#ifdef DEBUG_SIMPLEMODEL
 				DEBUG_OUT << "ERROR::MULTIPLE_INSTANCE_LOADER::bindInstance::OUT_OF_RANGE" << DEBUG_NEXT_LINE;
 				DEBUG_OUT << "\tIn index: " << index << DEBUG_NEXT_LINE;
 				DEBUG_OUT << "Error string: " << e.what() << DEBUG_NEXT_LINE;
@@ -242,7 +242,7 @@ protected:
 			return;
 		}
 		catch (...) {
-			#ifdef GEBUG_SIMPLEMODEL
+			#ifdef DEBUG_SIMPLEMODEL
 				DEBUG_OUT << "ERROR::MULTIPLE_INSTANCE_LOADER::bindInstance::UNKONWN"<< DEBUG_NEXT_LINE;
 			#endif
 			throw;
@@ -255,7 +255,7 @@ public:
 	//Draw multiple instances of model using their data
 	virtual void drawInstances(int start_index = 0, int count = 1) {
 		if (count < 1) {
-			#ifdef GEBUG_SIMPLEMODEL
+			#ifdef DEBUG_SIMPLEMODEL
 				DEBUG_OUT << "ERROR::MULTIPLE_INSTANCE_LOADER::drawInstances::INVALID_COUNT: " << count << DEBUG_NEXT_LINE;
 			#endif
 			return;
@@ -266,7 +266,7 @@ public:
 };
 
 //Class template definition: SimpleModel
-template<	class TShader = Shader, class TTexture = Texture, class TMatrix = our::mat4 
+template<	class TShader = Shader, class TTexture = Texture, class TMatrix = MatrixLoader<our::mat4, TShader>, 
 			void (TShader::* ApplyShader)(void) = &TShader::Use>
 class SimpleModel : public GLBufferHandler, public MultipleInstanceLoader<TMatrix>, public MultipleTextureHandler<TTexture, TShader> {
 	//Pointer to shader
@@ -287,7 +287,7 @@ public:
 		if (applay_shader == GL_TRUE)
 			(shader->*ApplyShader)();
 		if (count < 1) {
-			#ifdef GEBUG_SIMPLEMODEL
+			#ifdef DEBUG_SIMPLEMODEL
 				DEBUG_OUT << "ERROR::SIMPLE_MODEL::drawInstances::INVALID_COUNT: " << count << DEBUG_NEXT_LINE;
 			#endif
 			return;
@@ -320,7 +320,7 @@ public:
 #endif
 
 //Class template definition: SeparateModel
-template<	class TShader = Shader, class TTexture = Texture, class TMatrix = our::mat4
+template<	class TShader = Shader, class TTexture = Texture, class TMatrix = MatrixLoader<our::mat4, TShader>,
 			void (TShader::* ApplyShader)(void) = &TShader::Use>
 class SeparateModel : public SimpleModel<TShader, TTexture, TMatrix> {
 	const GLfloat *vertices;
@@ -380,7 +380,7 @@ public:
 *	2 : vec2f() : texture coordinates
 *	3 : vec3f() : normals
 */
-template< class TShader = Shader, class TTexture = Texture, class TMatrix = our::mat4 >
+template< class TShader = Shader, class TTexture = Texture, class TMatrix = MatrixLoader<our::mat4, TShader> >
 void SeparateModel<TShader, TTexture, TMatrix>::Build() {
 	bindBuffer(VERTEXARRAY);
 	{
@@ -419,7 +419,7 @@ void SeparateModel<TShader, TTexture, TMatrix>::Build() {
 }
 
 //Class template definition: CombinedModel
-template<	class TShader = Shader, class TTexture = Texture, class TMatrix = our::mat4
+template<	class TShader = Shader, class TTexture = Texture, class TMatrix = MatrixLoader<our::mat4, TShader>,
 			void (TShader::* ApplyShader)(void) = &TShader::Use>
 class CombinedModel : public SimpleModel<TShader, TTexture, TMatrix> {
 public:
@@ -494,7 +494,7 @@ public:
 *	2 : vec2f() : texture coordinates
 *	3 : vec3f() : normals
 */
-template< class TShader = Shader, class TTexture = Texture, class TMatrix = our::mat4 >
+template< class TShader = Shader, class TTexture = Texture, class TMatrix = MatrixLoader<our::mat4, TShader> >
 void CombinedModel<TShader, TTexture, TMatrix>::Build() {
 	bindBuffer(VERTEXARRAY);
 	{
