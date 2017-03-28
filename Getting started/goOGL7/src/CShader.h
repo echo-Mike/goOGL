@@ -11,6 +11,8 @@
 #include <utility>
 //GLEW
 #include <GL/glew.h>
+//OUR
+#include "CUniforms.h"
 //DEBUG
 #ifdef DEBUG_SHADER
 	#ifndef DEBUG_OUT
@@ -25,7 +27,7 @@
 class Shader {
 public:
 	//Type for uniform update function
-	typedef void(*const UpdateFunction)(GLuint);
+	//typedef void(*UpdateFunction)(GLuint);
 private:	
 	//NO STDCONSTRUCT, NO MOVECONSTRUCT, NO COPYCONSTRUCT
 	Shader() = delete;
@@ -34,7 +36,7 @@ private:
 	//Vertex and Fragment shader paths
 	std::string vpath, fpath;
 	//Uniform container
-	std::map<int, std::pair<std::string, UpdateFunction>> uniforms;
+	std::map<int, std::pair<std::string, const UniformHandlerInteface*>> uniforms;
 	// The program ID //SPO ID
 	GLuint Program;
 	//NOT SAFE SOLUTION: OVERFLOW
@@ -60,14 +62,15 @@ public:
 	Shader(const GLchar* vertexPath, const GLchar* fragmentPath) : vpath(vertexPath), fpath(fragmentPath), Program(0) { Reload(); }
 	
 	~Shader() {
+		//WEAK DESISION: destructor calls on const ptr?
 		//Prevent external values from destructor calls
 		//for (auto v : uniforms)
 			//v.second = nullptr;
 		glDeleteProgram(this->Program); 
 	}
 
-	int newUniform(const char* _uniformName, UpdateFunction _update) {
-		uniforms[incrementId] = std::move(std::make_pair(std::string(_uniformName), _update));
+	int newUniform(const char* _uniformName, const UniformHandlerInteface* _handler) {
+		uniforms[incrementId] = std::move(std::make_pair(std::string(_uniformName), _handler));
 		return incrementId++;
 	}
 
@@ -144,7 +147,10 @@ void Shader::Use() {
 			#endif
 			continue;
 		}
-		(*_value.second.second)(_location);
+		_value.second.second->bindUniform(_location);
+		//(std::get<1>(_value.second)->*std::get<2>(_value.second))(_location);
+		//(*std::get<2>(_value.second))(std::get<1>(_value.second), _location);
+		//(*_value.second.second)(_location);
 	}
 }
 

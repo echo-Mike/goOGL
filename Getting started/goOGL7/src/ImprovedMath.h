@@ -30,6 +30,10 @@ namespace our {
 			//Solution from GTC/type_ptr.inl
 			return &(value[0].x);
 		}
+
+		operator glm::mat4() {
+			return value;
+		}
 		//TODO: make all available operators for glm::mat4, then make value private
 	};
 
@@ -49,6 +53,36 @@ namespace our {
 	//Our lookAt matrix builder
 	mat4 lookAt(glm::vec3 &eye, glm::vec3 &center, glm::vec3 &up) {
 		return mat4(glm::lookAt(eye, center, up));
+	}
+
+	//Our rotate with our::mat4 as argument
+	mat4 rotate(mat4 const &m, float angle, glm::vec3 const &axis) {
+		return glm::rotate(m.value, angle, axis);
+	}
+
+	//Our rotate with glm::mat4 as argument
+	mat4 rotate(glm::mat4 const &m, float angle, glm::vec3 const &axis) {
+		return glm::rotate(m, angle, axis);
+	}
+
+	//Our translate with our::mat4 as argument
+	mat4 translate(mat4 const &m, glm::vec3 const &v) {
+		return glm::translate(m.value, v);
+	}
+
+	//Our translate with glm::mat4 as argument
+	mat4 translate(glm::mat4 const &m, glm::vec3 const &v) {
+		return glm::translate(m, v);
+	}
+
+	//Our scale with our::mat4 as argument
+	mat4 scale(mat4 const &m, glm::vec3 const &v) {
+		return glm::scale(m.value, v);
+	}
+
+	//Our scale with glm::mat4 as argument
+	mat4 scale(glm::mat4 const &m, glm::vec3 const &v) {
+		return glm::scale(m, v);
 	}
 }
 

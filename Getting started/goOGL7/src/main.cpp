@@ -79,13 +79,17 @@ int main()
 	//Биндим действия в VAO модели
 	model->Build();
 
+	//InstanceDataInterface* instances[10] = new InstanceData()[10];
+
+	std::array<InstanceData, 10> instances;
+
 	GLfloat offset;
 	for (int _index = 0; _index < 10; _index++) {
 		glm::mat4 _transform;
 		_transform = glm::translate(_transform, cubePositions[_index]);
 		_transform = glm::rotate(_transform, glm::radians(_index * 20.f), glm::vec3(1.0f, 0.3f, 0.5f));
-		MatrixLoader<> _loader(our::mat4(_transform), shaderProgram, "model");
-		model->pushInstance(_loader);
+		instances[_index](our::mat4(_transform), shaderProgram, "model");
+		model->pushInstance(&instances[_index]);
 	}
 	
 	camera = new SimpleCamera();
@@ -105,9 +109,7 @@ int main()
 		camera->Update();
 
 		offset = (float)glfwGetTime();
-		
-		MatrixLoader<> _loader(our::mat4(glm::rotate(glm::mat4(), glm::radians(10.0f * offset), glm::vec3(1.0f, 0.3f, 0.5f))), shaderProgram, "model");
-		model->setInstance(0, _loader);
+		model->accessInstance().modelMatrix.newValue(our::rotate(glm::mat4(), glm::radians(10.0f * offset), glm::vec3(1.0f, 0.3f, 0.5f)));
 		model->drawInstances(0, 10);
 		//DEBUG_OUT << glGetError() << DEBUG_NEXT_LINE;
 

@@ -122,23 +122,24 @@ public:
 	}
 };
 
-//Class variadic template definition: SimpleModel
-template< typename ... Types>
+//Interface class for InstanceData declaration
+class InstanceDataInterface {
+public:
+	//Bind instance data to shader
+	virtual void bindData();
+};
+
+//Class definition: SimpleModel
 class MultipleInstanceLoader {
-public:
-	typedef std::tuple<Types ...> InstanceData;
-private:
 	//Instannce data container
-	std::vector<InstanceData> instances;
+	std::vector<InstanceDataInterface*> instances;
 public:
-	const int dataPerInstance = std::tuple_size<InstanceData>;
-	
-	//Generate place for "count" instances of model
+	/*Generate place for "count" instances of model
 	void genInstances(int count = 1) {
 		if (count > 0) {
 			for (int _index = 0; _index < count; _index++) {
 				try {
-					pushInstance(std::make_tuple(Types() ...));
+					pushInstance(InstanceData());
 				}
 				catch (...) {
 					throw;
@@ -151,11 +152,11 @@ public:
 			#endif
 		}
 	}
-
+	*/
 	//Push instance data to instance array
-	void pushInstance(InstanceData _tuple) {
+	void pushInstance(InstanceDataInterface* _data) {
 		try {
-			instances.push_back(std::move(_tuple));
+			instances.push_back(_data);
 		}
 		catch (std::length_error e) {
 			#ifdef DEBUG_SIMPLEMODEL
@@ -172,12 +173,6 @@ public:
 		}
 	}
 	
-	//Push instance data to instance array
-	void pushInstance(Types ... _data) { 
-		try { pushInstance(std::make_tuple(_data ...)); }
-		catch (...) { throw; }
-	}
-	
 	//Pop last instance data from instance array
 	void popInstance() {
 		if (instances.empty()) {
@@ -191,14 +186,14 @@ public:
 	}
 
 	//Setup instance data for "index" model instance
-	void setInstance(int _index, InstanceData _tuple) {
+	void setInstance(int _index, InstanceDataInterface *_data) {
 		try {
-			instances.at(_index) = std::move(_tuple);
+			instances.at(_index) = _data;
 		}
 		catch (std::length_error e) {
 			#ifdef DEBUG_SIMPLEMODEL
 				DEBUG_OUT << "ERROR::MULTIPLE_INSTANCE_LOADER::setInstance::OUT_OF_RANGE"<< DEBUG_NEXT_LINE;
-				DEBUG_OUT << "\tCan't access transformation by index: " << _index << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "\tCan't access instance by index: " << _index << DEBUG_NEXT_LINE;
 				DEBUG_OUT << "\tError string: " << e.what() << DEBUG_NEXT_LINE;
 			#endif
 		}
@@ -210,28 +205,40 @@ public:
 		}
 	}
 
-	//Setup instance data for "index" model instance
-	void setInstance(int _index, Types ... _data) {
-		try { setInstance(_index, std::make_tuple(_data ...)); }
-		catch (...) { throw; }
-	}
+	/*Access instance data 
+	InstanceDataInterface* accessInstance(int _index = 0) {
+		try {
+			return instances.at(_index);
+		}
+		catch (std::length_error e) {
+			#ifdef DEBUG_SIMPLEMODEL
+				DEBUG_OUT << "ERROR::MULTIPLE_INSTANCE_LOADER::accessInstance::OUT_OF_RANGE"<< DEBUG_NEXT_LINE;
+				DEBUG_OUT << "\tCan't access instance by index: " << _index << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "\tError string: " << e.what() << DEBUG_NEXT_LINE;
+			#endif
+		}
+		catch (...) {
+			#ifdef DEBUG_SIMPLEMODEL
+				DEBUG_OUT << "ERROR::MULTIPLE_INSTANCE_LOADER::accessInstance::UNKONWN"<< DEBUG_NEXT_LINE;
+			#endif
+				throw;
+		}
+	}*/
 
 	//Remove instances from start index to end index
 	void eraseInstance(int start = 0, int end = 0) {
-		auto _start = data.begin(), _end = data.begin();
+		auto _start = instances.begin(), _end = instances.begin();
 		_start += start;
 		_end += end;
-		data.erase(_start, _end);
+		instances.erase(_start, _end);
 	}
 protected:
 	/* Load instance data
-	* All instance data expected to have loader function "bindData" 
-	* a.e. to be UniformLoader or derived classes 
+	*  Instance data expected to be derived from InstanceDataInterface
 	*/
 	void bindInstance(int index) {
 		try {
-			for (int _index = 0; _index < dataPerInstance; _index++)
-				std::get<_index>(instances.at(index)).bindData();
+			instances.at(index)->bindData();
 		}
 		catch (std::out_of_range e) {
 			#ifdef DEBUG_SIMPLEMODEL
@@ -268,7 +275,8 @@ public:
 //Class template definition: SimpleModel
 template<	class TShader = Shader, class TTexture = Texture, class TMatrix = MatrixLoader<our::mat4, TShader>, 
 			void (TShader::* ApplyShader)(void) = &TShader::Use>
-class SimpleModel : public GLBufferHandler, public MultipleInstanceLoader<TMatrix>, public MultipleTextureHandler<TTexture, TShader> {
+class SimpleModel : public GLBufferHandler, public MultipleInstanceLoader, public MultipleTextureHandler<TTexture, TShader> {
+protected:
 	//Pointer to shader
 	TShader *shader;
 public:
@@ -380,8 +388,9 @@ public:
 *	2 : vec2f() : texture coordinates
 *	3 : vec3f() : normals
 */
-template< class TShader = Shader, class TTexture = Texture, class TMatrix = MatrixLoader<our::mat4, TShader> >
-void SeparateModel<TShader, TTexture, TMatrix>::Build() {
+template<	class TShader = Shader, class TTexture = Texture, class TMatrix = MatrixLoader<our::mat4, TShader>,
+			void (TShader::* ApplyShader)(void) = &TShader::Use>
+void SeparateModel<TShader, TTexture, TMatrix, ApplyShader>::Build() {
 	bindBuffer(VERTEXARRAY);
 	{
 		// 1. Copy our vertices array in a vertex buffer for OpenGL to use
@@ -494,8 +503,9 @@ public:
 *	2 : vec2f() : texture coordinates
 *	3 : vec3f() : normals
 */
-template< class TShader = Shader, class TTexture = Texture, class TMatrix = MatrixLoader<our::mat4, TShader> >
-void CombinedModel<TShader, TTexture, TMatrix>::Build() {
+template<	class TShader = Shader, class TTexture = Texture, class TMatrix = MatrixLoader<our::mat4, TShader>,
+			void (TShader::* ApplyShader)(void) = &TShader::Use>
+void CombinedModel<TShader, TTexture, TMatrix, ApplyShader>::Build() {
 	bindBuffer(VERTEXARRAY);
 	{
 		// 1. Copy our vertices array in a vertex buffer for OpenGL to use

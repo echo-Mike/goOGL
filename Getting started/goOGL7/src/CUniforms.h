@@ -5,7 +5,7 @@
 //GLEW
 #include <GL/glew.h>
 //OUR
-#include "CShader.h"
+//#include "CShader.h"
 //DEBUG
 #ifdef DEBUG_UNIFORMS
 	#ifndef DEBUG_OUT
@@ -21,11 +21,19 @@
 	#define UNIFORM_HANDLER_STD_SHADER_VARIABLE_NAME "value"
 #endif
 
+class Shader;
+
+class UniformHandlerInteface {
+public:
+	//Bind uniform to shader
+	virtual void bindUniform(GLint _location) const { return; }
+};
+
 //Class template definition: UniformHandler
 template <	class T, class TShader = Shader,
-			int (TShader::* NewUniform)(const char*, void(*)(GLuint)) = &TShader::newUniform,
+			int (TShader::* NewUniform)(const char*, const UniformHandlerInteface*) = &TShader::newUniform,
 			void (TShader::* DeleteUniform)(int) = &TShader::deleteUniform>
-class UniformHandler {
+class UniformHandler : public UniformHandlerInteface {
 	int uniformId;
 protected:
 	T value;
@@ -33,12 +41,12 @@ protected:
 	std::string uniformName;
 public:
 	//Bind uniform to shader
-	virtual void bindUniform(GLint _location) { return; }
+	//virtual void bindUniform(GLint _location) { return; }
 
-	//Push to shader handle queue
+	//Push to shader uniform handle queue of current saved shader
 	void push() {
 		if (shader) {
-			uniformId = (shader->*NewUniform)(uniformName.c_str(), &(this->bindUniform));
+			uniformId = (shader->*NewUniform)(uniformName.c_str(), this);
 		} else {
 			#ifdef DEBUG_UNIFORMS
 				DEBUG_OUT << "ERROR::UNIFORM_HANDLER::push::SHADER_MISSING" << DEBUG_NEXT_LINE;
@@ -46,7 +54,20 @@ public:
 		}
 	}
 
-	//Pull from shader handle queue
+	/*Push to shader uniform handle queue of shader defined by pointer
+	* Returns uniforId from _shader
+	*/
+	int push(TShader *_shader) {
+		if (_shader) {
+			return (_shader->*NewUniform)(uniformName.c_str(), &(this->bindUniform));
+		} else {
+			#ifdef DEBUG_UNIFORMS
+				DEBUG_OUT << "ERROR::UNIFORM_HANDLER::push::SHADER_MISSING" << DEBUG_NEXT_LINE;
+			#endif	
+		}
+	}
+
+	//Pull from shader uniform handle queue of current saved shader
 	void pull() {
 		if (shader) {
 			(shader->*DeleteUniform)(uniformId);
@@ -89,7 +110,7 @@ public:
 	virtual void setName(std::string newName) { uniformName = std::move(newName); }
 
 	//Get in-shader name of variable
-	virtual std::string& getName() { return uniformName.substr(); }
+	virtual std::string getName() { return uniformName.substr(); }
 
 };
 
@@ -133,6 +154,6 @@ public:
 	virtual void setName(std::string newName) { dataName = std::move(newName); }
 
 	//Get in-shader name of variable
-	virtual std::string& getName() { return dataName.substr(); }
+	virtual std::string getName() { return dataName.substr(); }
 };
 #endif

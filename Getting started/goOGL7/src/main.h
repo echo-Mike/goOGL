@@ -1,6 +1,7 @@
 //STD
 #include <iostream>
 #include <string>
+#include <array>
 
 //GLEW
 //satic linking for GLEW lib
@@ -39,7 +40,23 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 //Scroll callback for GLFW
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
-//void do_movement();
+//Declaration of used InstanceData class
+class InstanceData : InstanceDataInterface {
+public:
+	MatrixLoader<> modelMatrix;
+
+	InstanceData() : modelMatrix() {}
+
+	InstanceData(our::mat4 _matrix, Shader *_shader, const char* _name) : modelMatrix(_matrix, _shader, _name) {}
+
+	void bindData() {
+		modelMatrix.bindData();
+	}
+
+	void operator() (our::mat4 _matrix, Shader *_shader, const char* _name) {
+		modelMatrix = MatrixLoader<>(_matrix, _shader, _name);
+	}
+};
 
 GLfloat vertices[] = {
     -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,

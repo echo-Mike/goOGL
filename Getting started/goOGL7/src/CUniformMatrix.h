@@ -42,7 +42,7 @@ public:
 					UniformHandler(_matrix, _shader, _name) {}
 	
 	//Bind matrix to shader
-	void bindUniform(GLuint _location) {
+	void bindUniform(GLuint _location) const {
 		glUniformMatrix4fv(_location, 1, transposeOnLoad, (value.*_getValuePtr)());
 	}
 };

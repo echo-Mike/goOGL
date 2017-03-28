@@ -2,6 +2,7 @@
 #define UNIFORMTEXTURE_H
 //STD
 #include <string>
+#include <vector>
 //GLEW
 #include <GL/glew.h>
 //OUR
@@ -45,6 +46,14 @@ public:
 					UniformHandler(_texture, _shader, _name),
 					textureSlot(_textureSlot), textureUnit(_textureUnit) {}
 
+	TextureHandler(TextureHandler& other) {
+		throw std::exception("ERROR::TEXTURE_HANDLER::copyConstructor::NOT_COPY_CONSTUCTABLE");
+	}
+
+	TextureHandler& operator=(TextureHandler& other) {
+		throw std::exception("ERROR::TEXTURE_HANDLER::copyAssignment::NOT_COPY_ASSIGNABLE");
+	}
+
 	//Load texture from disk to opengl
 	void LoadTexture() { (value.*TextureLoader)(); }
 
@@ -74,7 +83,7 @@ public:
 		} else {
 			#ifdef DEBUG_UNIFORMTEXTURE
 				DEBUG_OUT << "ERROR::TEXTURE_HANDLER::setTextureUnit::INVALID_TEXTURE_UNIT" << DEBUG_NEXT_LINE;
-				DEBUG_OUT << "\tSlot: " << newUnit << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "\tUnit: " << newUnit << DEBUG_NEXT_LINE;
 				DEBUG_OUT << "\tRange: 0 : 31" << DEBUG_NEXT_LINE;
 			#endif
 		}
@@ -99,8 +108,9 @@ public:
 //Class template definition: MultipleTextureHandler
 template < class TTexture = Texture, class TShader = Shader >
 class MultipleTextureHandler {
+	//typedef TextureHandler<TTexture, TShader> TH;
 	//Texture array, max count: 32
-	std::vector<TextureHandler<TTexture, TShader> > textures;
+	std::vector<TextureHandler<TTexture, TShader>> textures;
 	//Pointer to shader
 	TShader *shader;
 protected:
@@ -117,14 +127,14 @@ public:
 		int _size = textures.size();
 		if (_size == 32) {
 			popTexture();
-			size--;
+			_size--;
 		}
 		try {
 			textures.push_back(TextureHandler<TTexture, TShader>(t, shader, 0, 0, MULTIPLE_TEXTURE_HANDLER_TEXTURE_NAMES[_size]));
 		}
 		catch (std::length_error e) {
 			#ifdef DEBUG_UNIFORMTEXTURE
-				DEBUG_OUT << "ERROR::TEXTURE_HANDLER::pushTexture::OUT_OF_RANGE" << DEBUG_NEXT_LINE; 
+				DEBUG_OUT << "ERROR::MULTIPLE_TEXTURE_HANDLER::pushTexture::OUT_OF_RANGE" << DEBUG_NEXT_LINE; 
 				DEBUG_OUT << "\tMessege: Can't push more textures" << DEBUG_NEXT_LINE;
 				DEBUG_OUT << "\tError string: " << e.what() << DEBUG_NEXT_LINE;
 			#endif
@@ -132,7 +142,7 @@ public:
 		}
 		catch (...) {
 			#ifdef DEBUG_UNIFORMTEXTURE
-				DEBUG_OUT << "ERROR::TEXTURE_HANDLER::pushTexture::UNKONWN" << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "ERROR::MULTIPLE_TEXTURE_HANDLER::pushTexture::UNKONWN" << DEBUG_NEXT_LINE;
 			#endif
 			return;
 		}
@@ -145,7 +155,7 @@ public:
 	void popTexture() {
 		if (textures.empty()) {
 			#ifdef DEBUG_UNIFORMTEXTURE
-				DEBUG_OUT << "ERROR::TEXTURE_HANDLER::popTexture::OUT_OF_RANGE" << DEBUG_NEXT_LINE; 
+				DEBUG_OUT << "ERROR::MULTIPLE_TEXTURE_HANDLER::popTexture::OUT_OF_RANGE" << DEBUG_NEXT_LINE; 
 				DEBUG_OUT << "\tMessege: Can't pop from empty texture stack." << DEBUG_NEXT_LINE;
 			#endif
 		} else {
@@ -160,14 +170,14 @@ public:
 		}
 		catch (std::length_error e) {
 			#ifdef DEBUG_UNIFORMTEXTURE
-				DEBUG_OUT << "ERROR::TEXTURE_HANDLER::loadTexture::OUT_OF_RANGE"<< DEBUG_NEXT_LINE;
+				DEBUG_OUT << "ERROR::MULTIPLE_TEXTURE_HANDLER::loadTexture::OUT_OF_RANGE"<< DEBUG_NEXT_LINE;
 				DEBUG_OUT << "\tMesseg: Can't access texture by index: " << index << DEBUG_NEXT_LINE;
 				DEBUG_OUT << "\tError string: " << e.what() << DEBUG_NEXT_LINE;
 			#endif
 		}
 		catch (...) {
 			#ifdef DEBUG_UNIFORMTEXTURE
-				DEBUG_OUT << "ERROR::TEXTURE_HANDLER::loadTexture::UNKONWN"<< DEBUG_NEXT_LINE;
+				DEBUG_OUT << "ERROR::MULTIPLE_TEXTURE_HANDLER::loadTexture::UNKONWN"<< DEBUG_NEXT_LINE;
 			#endif
 			throw;
 		}
