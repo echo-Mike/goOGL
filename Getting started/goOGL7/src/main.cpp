@@ -94,6 +94,7 @@ int main()
 	
 	camera = new SimpleCamera();
 	camera->setPerspectiveData(glm::radians(45.0f), (float)width / height, 0.1f, 1000.0f);
+	camera->setProjectionMode(SimpleCamera::ProjectionMode::MODE_PERSPECTIVE);
 	camera->Setup(shaderProgram);
 
 	//main loop
@@ -109,7 +110,7 @@ int main()
 		camera->Update();
 
 		offset = (float)glfwGetTime();
-		model->accessInstance().modelMatrix.newValue(our::rotate(glm::mat4(), glm::radians(10.0f * offset), glm::vec3(1.0f, 0.3f, 0.5f)));
+		instances[0](our::rotate(glm::mat4(), glm::radians(10.0f * offset), glm::vec3(1.0f, 0.3f, 0.5f)));
 		model->drawInstances(0, 10);
 		//DEBUG_OUT << glGetError() << DEBUG_NEXT_LINE;
 

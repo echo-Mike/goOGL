@@ -18,10 +18,10 @@ namespace our {
 		Matrix4GLMHelper() : value(glm::mat4()) {}
 
 		//Copy constructor
-		Matrix4GLMHelper(Matrix4GLMHelper& _helper) : value(_helper.value) {}
+		Matrix4GLMHelper(Matrix4GLMHelper& other) : value(other.value) {}
 
 		//Move constructor
-		Matrix4GLMHelper(Matrix4GLMHelper&& _helper) : value(std::move(_helper.value)) {}
+		Matrix4GLMHelper(Matrix4GLMHelper&& other) : value(std::move(other.value)) {}
 
 		Matrix4GLMHelper(glm::mat4 _matrix) : value(std::move(_matrix)) {}
 
@@ -42,17 +42,17 @@ namespace our {
 	
 	//Our perspective matrix builder
 	mat4 perspective(float fovy, float aspect, float near, float far) {
-		return mat4(glm::perspective(fovy, aspect, near, far));
+		return glm::perspective(fovy, aspect, near, far);
 	}
 
 	//Our otho matrix builder
 	mat4 ortho(float left, float right, float bottom, float top, float near, float far) {
-		return mat4(glm::ortho(left, right, bottom, top, near, far));
+		return glm::ortho(left, right, bottom, top, near, far);
 	}
 
 	//Our lookAt matrix builder
 	mat4 lookAt(glm::vec3 &eye, glm::vec3 &center, glm::vec3 &up) {
-		return mat4(glm::lookAt(eye, center, up));
+		return glm::lookAt(eye, center, up);
 	}
 
 	//Our rotate with our::mat4 as argument

@@ -108,7 +108,9 @@ protected:
 	UniformHandler::getName;
 public:
 	
-	ProjectionHandler() : state(State::UNINITIALISED), MatrixHandler<>() {}
+	ProjectionHandler() : state(State::UNINITIALISED), MatrixHandler<>() {
+		setName(PROJECTION_HANDLER_STD_PROJECTION_SHADER_VARIABLE_NAME);
+	}
 
 	ProjectionHandler(	float _fov,			float _aspect, 
 						float _near,		float _far,
@@ -118,7 +120,7 @@ public:
 						fov(_fov),			near(_near),
 						aspect(_aspect),	far(_far),
 						MatrixHandler(our::perspective(_fov, _aspect, _near, _far), 
-						_shader, std::string(PROJECTION_HANDLER_STD_PROJECTION_SHADER_VARIABLE_NAME)) { }
+						_shader, std::string(PROJECTION_HANDLER_STD_PROJECTION_SHADER_VARIABLE_NAME)) {}
 
 	ProjectionHandler(	float _left,		float _right,
 						float _bottom,		float _top,
@@ -130,7 +132,7 @@ public:
 						bottom(_bottom),	top(_top),
 						near(_near),		far(_far),
 						MatrixHandler(our::ortho(_left, _right, _bottom, _top, _near, _far), 
-						_shader, std::string(PROJECTION_HANDLER_STD_PROJECTION_SHADER_VARIABLE_NAME)) { }
+						_shader, std::string(PROJECTION_HANDLER_STD_PROJECTION_SHADER_VARIABLE_NAME)) {}
 
 	//Returns initialisation status
 	bool isInitialised() { return (state & State::INITIALISED); }

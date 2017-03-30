@@ -45,7 +45,7 @@ public:
 					std::string _name = std::string(TEXTURE_HANDLER_STD_SHADER_VARIABLE_NAME)) :
 					UniformHandler(_texture, _shader, _name),
 					textureSlot(_textureSlot), textureUnit(_textureUnit) {}
-
+	/*
 	TextureHandler(TextureHandler& other) {
 		throw std::exception("ERROR::TEXTURE_HANDLER::copyConstructor::NOT_COPY_CONSTUCTABLE");
 	}
@@ -53,6 +53,7 @@ public:
 	TextureHandler& operator=(TextureHandler& other) {
 		throw std::exception("ERROR::TEXTURE_HANDLER::copyAssignment::NOT_COPY_ASSIGNABLE");
 	}
+	*/
 
 	//Load texture from disk to opengl
 	void LoadTexture() { (value.*TextureLoader)(); }
@@ -113,9 +114,6 @@ class MultipleTextureHandler {
 	std::vector<TextureHandler<TTexture, TShader>> textures;
 	//Pointer to shader
 	TShader *shader;
-protected:
-	//Internal function for shader pointer setup
-	void setShader(TShader *_shader) { shader = _shader; }
 public:
 
 	MultipleTextureHandler() : shader(nullptr) {}
@@ -197,5 +195,8 @@ public:
 
 	//Return curent textures count
 	int textureCount() { return textures.size(); }
+
+	//Internal function for shader pointer setup
+	void setShader(TShader *_shader) { shader = _shader; }
 };
 #endif

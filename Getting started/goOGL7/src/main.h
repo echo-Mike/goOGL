@@ -40,8 +40,13 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 //Scroll callback for GLFW
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
-//Declaration of used InstanceData class
-class InstanceData : InstanceDataInterface {
+#ifndef INSTANCE_DATA_STD_SHADER_VARIABLE_NAME
+	//In shader variable name of value
+	#define INSTANCE_DATA_STD_SHADER_VARIABLE_NAME "value"
+#endif
+
+//Declaration of InstanceData class
+class InstanceData : public InstanceDataInterface {
 public:
 	MatrixLoader<> modelMatrix;
 
@@ -49,13 +54,17 @@ public:
 
 	InstanceData(our::mat4 _matrix, Shader *_shader, const char* _name) : modelMatrix(_matrix, _shader, _name) {}
 
-	void bindData() {
-		modelMatrix.bindData();
-	}
+	void bindData() { modelMatrix.bindData(); }
 
 	void operator() (our::mat4 _matrix, Shader *_shader, const char* _name) {
-		modelMatrix = MatrixLoader<>(_matrix, _shader, _name);
+		modelMatrix.newValue(_matrix);
+		modelMatrix.setName(_name);
+		modelMatrix.setShader(_shader);
+		//MEMO LEAK
+		//modelMatrix = MatrixLoader<>(_matrix, _shader, _name);
 	}
+
+	void operator() (our::mat4 _matrix) { modelMatrix.newValue(_matrix); }
 };
 
 GLfloat vertices[] = {

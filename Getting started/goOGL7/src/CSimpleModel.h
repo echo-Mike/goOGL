@@ -126,7 +126,7 @@ public:
 class InstanceDataInterface {
 public:
 	//Bind instance data to shader
-	virtual void bindData();
+	virtual void bindData() {}
 };
 
 //Class definition: SimpleModel
@@ -285,7 +285,10 @@ public:
 	~SimpleModel() { shader = nullptr; }
 
 	//Setup pointer to shader
-	void setShader(TShader *_shader) { shader = _shader; }
+	void setShader(TShader *_shader) {
+		shader = _shader;
+		dynamic_cast<MultipleTextureHandler<TTexture, TShader>*>(this)->setShader(_shader);
+	}
 
 	//Draw one instance of model using instance data
 	virtual void drawInstance(int index = 0, GLboolean applay_shader = GL_TRUE) { return; };
