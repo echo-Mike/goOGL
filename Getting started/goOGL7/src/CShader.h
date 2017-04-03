@@ -36,12 +36,12 @@ private:
 	//Vertex and Fragment shader paths
 	std::string vpath, fpath;
 	//Uniform container
-	std::map<int, std::pair<std::string, const UniformHandlerInteface*>> uniforms;
+	std::map<int, std::pair<std::string, UniformHandlerInteface*>> uniforms;
 	// The program ID //SPO ID
 	GLuint Program;
 	//NOT SAFE SOLUTION: OVERFLOW
 	//Id counter for current shader
-	int incrementId = 0;
+	int incrementId;
 public:
 	//Returns SPO Id
 	GLuint getShaderId() { return Program; }
@@ -59,7 +59,7 @@ public:
 		return _location;
 	}
 
-	Shader(const GLchar* vertexPath, const GLchar* fragmentPath) : vpath(vertexPath), fpath(fragmentPath), Program(0) { Reload(); }
+	Shader(const GLchar* vertexPath, const GLchar* fragmentPath) : vpath(vertexPath), fpath(fragmentPath), Program(0), incrementId(0) { Reload(); }
 	
 	~Shader() {
 		//WEAK DESISION: destructor calls on const ptr?
@@ -69,7 +69,7 @@ public:
 		glDeleteProgram(this->Program); 
 	}
 
-	int newUniform(const char* _uniformName, const UniformHandlerInteface* _handler) {
+	int newUniform(const char* _uniformName, UniformHandlerInteface* _handler) {
 		uniforms[incrementId] = std::move(std::make_pair(std::string(_uniformName), _handler));
 		return incrementId++;
 	}

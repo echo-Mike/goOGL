@@ -255,12 +255,12 @@ public:
 
 //Class definition: SimpleCamera
 class SimpleCamera : public ProjectionHandler {
-	glm::vec3 position;
 	glm::vec3 front;
 	glm::vec3 up;
 	glm::vec3 right;
 	MatrixHandler<> view;
 public:
+	glm::vec3 position;
 	GLfloat speed;
 	glm::vec2 sensitivity;
 	enum CameraMode : int {

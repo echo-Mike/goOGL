@@ -26,12 +26,12 @@ class Shader;
 class UniformHandlerInteface {
 public:
 	//Bind uniform to shader
-	virtual void bindUniform(GLint _location) const { return; }
+	virtual void bindUniform(GLint _location) = 0;
 };
 
 //Class template definition: UniformHandler
 template <	class T, class TShader = Shader,
-			int (TShader::* NewUniform)(const char*, const UniformHandlerInteface*) = &TShader::newUniform,
+			int (TShader::* NewUniform)(const char*, UniformHandlerInteface*) = &TShader::newUniform,
 			void (TShader::* DeleteUniform)(int) = &TShader::deleteUniform>
 class UniformHandler : public UniformHandlerInteface {
 	int uniformId;
@@ -40,8 +40,10 @@ protected:
 	TShader *shader;
 	std::string uniformName;
 public:
-	//Bind uniform to shader
-	//virtual void bindUniform(GLint _location) { return; }
+	//Type of handled value
+	typedef T ValueType;
+	//Type of handeled shader
+	typedef TShader ShaderType;
 
 	//Push to shader uniform handle queue of current saved shader
 	void push() {
@@ -59,7 +61,7 @@ public:
 	*/
 	int push(TShader *_shader) {
 		if (_shader) {
-			return (_shader->*NewUniform)(uniformName.c_str(), &(this->bindUniform));
+			return (_shader->*NewUniform)(uniformName.c_str(), this);
 		} else {
 			#ifdef DEBUG_UNIFORMS
 				DEBUG_OUT << "ERROR::UNIFORM_HANDLER::push::SHADER_MISSING" << DEBUG_NEXT_LINE;
@@ -88,13 +90,55 @@ public:
 		push();
 	}
 
-	UniformHandler(T _value, TShader *_shader, const char* _uniformName) : UniformHandler(_value, _shader, std::string(_uniformName)) { }
+	UniformHandler(	T _value, TShader *_shader = nullptr,
+					const char* _uniformName = UNIFORM_HANDLER_STD_SHADER_VARIABLE_NAME) : 
+					value(std::move(_value)), shader(_shader),
+					uniformName(_uniformName), uniformId(-1)
+	{
+		push();
+	}
+
+	UniformHandler(const UniformHandler &other) :	value(other.value),				shader(other.shader), 
+													uniformName(other.uniformName),	uniformId(-1) 
+	{
+		push();
+	}
+
+	UniformHandler(UniformHandler &&other) :	value(std::move(other.value)), 
+												shader(std::move(other.shader)),
+												uniformName(std::move(other.uniformName)),
+												uniformId(std::move(other.uniformId)) 
+	{
+		//Negate the resource acquisition in shader in other that will be deleted soon
+		other.uniformId = -1;
+	}
 
 	~UniformHandler() {
 		//Clear shader callback for this uniform
-		(shader->*DeleteUniform)(uniformId);
+		if (uniformId >= 0)
+			pull();
 		//Protect shader from destructor call
 		shader = nullptr; 
+	}
+
+	UniformHandler& operator=(UniformHandler other) {
+		if (&other == this)
+			return *this;
+		std::swap(shader, other.shader);
+		std::swap(uniformName, other.uniformName);
+		value = other.value;
+		uniformId = -1;
+		std::swap(uniformId, other.uniformId);
+		return *this;
+	}
+
+	UniformHandler& operator=(UniformHandler &&other) {
+		shader = std::move(other.shader);
+		uniformName = std::move(other.uniformName);
+		value = std::move(other.value);
+		uniformId = std::move(other.uniformId);
+		other.uniformId = -1;
+		return *this;
 	}
 
 	//Set new value to handle
@@ -119,27 +163,62 @@ public:
 	#define UNIFORM_LOADER_STD_SHADER_VARIABLE_NAME "value"
 #endif
 
+class UniformLoaderInteface {
+public:
+	//Bind uniform to shader
+	virtual void bindData() = 0;
+};
+
 //Class template definition: UniformLoader
 template< class T, class TShader = Shader>
-class UniformLoader {
+class UniformLoader : public UniformLoaderInteface {
 protected:
 	T value;
 	TShader *shader;
 	std::string dataName;
 public:
-	//Bind data to shader
-	virtual void bindData() { return; }
+	//Type of handled value
+	typedef T ValueType;
+	//Type of handeled shader
+	typedef TShader ShaderType;
 
 	UniformLoader() : value(), shader(nullptr), dataName(UNIFORM_LOADER_STD_SHADER_VARIABLE_NAME) {}
 
-	UniformLoader(T _value, TShader *_shader = nullptr,
-				std::string _dataName = std::string(UNIFORM_LOADER_STD_SHADER_VARIABLE_NAME)) :
-				value(std::move(_value)), shader(_shader), 
-				dataName(std::move(_dataName)) { }
+	UniformLoader(	T _value, TShader *_shader = nullptr,
+					std::string _dataName = std::string(UNIFORM_LOADER_STD_SHADER_VARIABLE_NAME)) :
+					value(std::move(_value)), shader(_shader), 
+					dataName(std::move(_dataName)) {}
 
-	UniformLoader(T _value, TShader *_shader, const char* _uniformName) : UniformLoader(_value, _shader, std::string(_uniformName)) {}
+	UniformLoader(	T _value, TShader *_shader = nullptr, 
+					const char* _dataName = UNIFORM_LOADER_STD_SHADER_VARIABLE_NAME) :
+					value(std::move(_value)), shader(_shader),
+					dataName(_dataName) {}
+	
+	UniformLoader(const UniformLoader &other) : value(other.value),
+												shader(other.shader), 
+												uniformName(other.uniformName) {}
+
+	UniformLoader(UniformLoader &&other) :	value(std::move(other.value)),
+											shader(std::move(other.shader)),
+											uniformName(std::move(other.uniformName)) {}
 
 	~UniformLoader() { /*Protect shader from destructor call*/ shader = nullptr; }
+	
+	UniformLoader& operator=(UniformLoader other) {
+		if (&other == this)
+			return *this;
+		std::swap(shader, other.shader);
+		std::swap(uniformName, other.uniformName);
+		value = other.value;
+		return *this;
+	}
+
+	UniformLoader& operator=(UniformLoader &&other) {
+		shader = std::move(other.shader);
+		uniformName = std::move(other.uniformName);
+		value = std::move(other.value);
+		return *this;
+	}
 
 	//Set new value to handle
 	virtual void newValue(T _value) { value = std::move(_value); }

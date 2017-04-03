@@ -79,8 +79,6 @@ int main()
 	//Биндим действия в VAO модели
 	model->Build();
 
-	//InstanceDataInterface* instances[10] = new InstanceData()[10];
-
 	std::array<InstanceData, 10> instances;
 
 	GLfloat offset;
@@ -96,6 +94,10 @@ int main()
 	camera->setPerspectiveData(glm::radians(45.0f), (float)width / height, 0.1f, 1000.0f);
 	camera->setProjectionMode(SimpleCamera::ProjectionMode::MODE_PERSPECTIVE);
 	camera->Setup(shaderProgram);
+	camera->speed = 0.7f;
+	camera->sensitivity.x = 0.1f;
+	camera->sensitivity.y = 0.1f;
+	camera->position.z = 3.0f;
 
 	//main loop
 	while (!glfwWindowShouldClose(window))

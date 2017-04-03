@@ -35,7 +35,6 @@ public:
 	GLuint GLStoreFormat;
 	GLuint PixelDataFormat;
 	GLuint PixelDataType;
-	GLuint TextureSlot;
 	/*
 	GLuint WarpingS;
 	GLuint WarpingT;
@@ -54,23 +53,38 @@ public:
 																						height(-1),						depth(-1),
 																						GLId(0),						GLTarget(target),
 																						GLStoreFormat(how_to_store),	PixelDataFormat(pixel_load_format),
-																						PixelDataType(pixel_load_type),	TextureSlot(texture_slot),
-																						HaveMimpmap(applay_mipmap),		SOILLoadType(load_type), 
-																						load_status(EMPTY) {}
+																						PixelDataType(pixel_load_type),	HaveMimpmap(applay_mipmap),	
+																						SOILLoadType(load_type),		load_status(EMPTY) {}
 	
 	Texture(const Texture& t) : path(t.path),					width(t.width),
 								height(t.height),				depth(t.depth),
 								GLId(0),						GLTarget(t.GLTarget),
 								GLStoreFormat(t.GLStoreFormat),	PixelDataFormat(t.PixelDataFormat),
-								PixelDataType(t.PixelDataType), TextureSlot(t.TextureSlot),
-								HaveMimpmap(t.HaveMimpmap),		SOILLoadType(t.SOILLoadType),
-								load_status(EMPTY) {}
+								PixelDataType(t.PixelDataType), HaveMimpmap(t.HaveMimpmap),		
+								SOILLoadType(t.SOILLoadType),	load_status(EMPTY) {}
 
 	~Texture() {
 		if (load_status == IN_MEMORY || load_status == IN_BOTH)
 			SOIL_free_image_data(image_data);
 		if (GLId)
 			glDeleteTextures(1, &GLId);
+	}
+
+	Texture& operator=(Texture other) {
+		if (&other == this)
+			return *this;
+		std::swap(path, other.path);
+		std::swap(width, other.width);
+		std::swap(height, other.height);
+		std::swap(depth, other.depth);
+		std::swap(GLStoreFormat, other.GLStoreFormat);
+		std::swap(PixelDataFormat, other.PixelDataFormat);
+		std::swap(PixelDataType, other.PixelDataType);
+		std::swap(HaveMimpmap, other.HaveMimpmap);
+		std::swap(SOILLoadType, other.SOILLoadType);
+		load_status = EMPTY;
+		GLId = 0;
+		return *this;
 	}
 
 	//Load image data from disk to memory
@@ -146,7 +160,6 @@ public:
 	//Bind texture to OpenGL
 	void Use() { 
 		if (load_status == IN_OPENGL || load_status == IN_BOTH || !GLId) {
-			//glActiveTexture(TextureSlot);
 			glBindTexture(GLTarget, GLId);
 		} else {
 			#ifdef DEBUG_TEXTURE
