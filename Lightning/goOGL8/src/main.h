@@ -31,6 +31,7 @@
 #include "assets/model/CCombinedModel.h"
 #include "assets/textures/Ctexture.h"
 #include "scene/CCamera.h"
+#include "data.h"
 
 using std::cout;
 using std::endl;
@@ -62,46 +63,26 @@ public:
 	void operator() (our::mat4 _matrix) { modelMatrix.setValue(_matrix); }
 };
 
-GLfloat vertices[] = {
-    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-     0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+#ifndef VEC3_HANDLER_STD_SHADER_VARIABLE_NAME
+	//In shader variable name of matrix
+#define VEC3_HANDLER_STD_SHADER_VARIABLE_NAME "vector3"
+#endif
 
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+template <	class TVector = glm::vec3, class TShader = Shader >
+class Vec3Handler : public UniformHandler<TVector, TShader> {
+public:
+	Vec3Handler() : UniformHandler(TVector(), nullptr, VEC3_HANDLER_STD_SHADER_VARIABLE_NAME) {}
 
-    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-    -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+	Vec3Handler(TVector _vector, TShader* _shader,
+				const char* _name = VEC3_HANDLER_STD_SHADER_VARIABLE_NAME) :
+				UniformHandler(_vector, _shader, _name) {}
 
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-
-    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+	Vec3Handler(TVector _vector, TShader* _shader,
+				std::string _name = std::string(VEC3_HANDLER_STD_SHADER_VARIABLE_NAME)) :
+				UniformHandler(_vector, _shader, _name) {}
+	
+	//Bind vec3 to shader
+	void bindUniform(GLint _location) {
+		glUniform3f(_location, value.x, value.y, value.z);
+	}
 };

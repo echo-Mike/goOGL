@@ -35,7 +35,14 @@ public:
 					normal_offset(-1),		normal_length(SIMPLEMODEL_NORMAL_SIZE),
 					vertices_count(0),		indexes_count(0),
 					indexed(true) {}
-
+		/*
+		vertex_offset,   vertex_length,
+		color_offset,	 color_length,
+		texCoord_offset, texCoord_length,
+		normal_offset,   normal_length,
+		vertices_count,  indexes_count,
+		indexed
+		*/
 		Layout( int vo, int vl, int co, int cl, 
 				int to, int tl, int no, int nl, 
 				int vc, int ic, bool ind) : vertex_offset(vo),		vertex_length(vl),

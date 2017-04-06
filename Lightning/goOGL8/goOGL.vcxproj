@@ -78,6 +78,7 @@
     <ClInclude Include="src\assets\shader\CUniforms.h" />
     <ClInclude Include="src\assets\textures\CTexture.h" />
     <ClInclude Include="src\assets\textures\CUniformTexture.h" />
+    <ClInclude Include="src\data.h" />
     <ClInclude Include="src\debug.h" />
     <ClInclude Include="src\general\CUniformMatrix.h" />
     <ClInclude Include="src\general\ImprovedMath.h" />

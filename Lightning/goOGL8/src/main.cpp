@@ -1,13 +1,29 @@
 #include "main.h"
 
+/*
+static SimpleModel<> *model;
+static Shader *shaderProgram;
 static const std::string vspath(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\goOGL8\src\GLSL\shader.vs)");
 static const std::string fspath(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\goOGL8\src\GLSL\shader.fs)");
-static Shader *shaderProgram;
 static const std::string tpath1(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\goOGL8\data\container.jpg)");
-static const std::string tpath2(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\goOGL8\data\wall.jpg)");
-static const std::string tpath3(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\goOGL8\data\awesomeface.png)");
-static const std::string tpath4(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\goOGL8\data\cubelayout.png)");
-static SimpleModel<> *model;
+*/
+
+static SimpleModel<> *WorldOrigin;
+static Shader *WorldOriginShader;
+static const std::string WorldOriginVSP(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\goOGL8\src\GLSL\cuboid.vs)");
+static const std::string WorldOriginFSP(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\goOGL8\src\GLSL\cuboid.fs)");
+static const std::string WorldOriginTPath(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\goOGL8\data\cubelayout.png)");
+
+static SimpleModel<> *cube;
+static Shader *cubeShader;
+static const std::string cubeVSP(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\goOGL8\src\GLSL\cube.vs)");
+static const std::string cubeFSP(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\goOGL8\src\GLSL\cube.fs)");
+
+static SimpleModel<> *lightCube;
+static Shader *lightCubeShader;
+static const std::string lightCubeVSP(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\goOGL8\src\GLSL\lightCube.vs)");
+static const std::string lightCubeFSP(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\goOGL8\src\GLSL\lightCube.fs)");
+
 static SimpleCamera *camera;
 
 //Key handler array
@@ -52,52 +68,56 @@ int main()
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	//ДАННЫЕ
-	glm::vec3 cubePositions[] = {
-		glm::vec3( 0.0f,  0.0f,  0.0f), 
-		glm::vec3( 2.0f,  5.0f, -15.0f), 
-		glm::vec3(-1.5f, -2.2f, -2.5f),  
-		glm::vec3(-3.8f, -2.0f, -12.3f),  
-		glm::vec3( 2.4f, -0.4f, -3.5f),  
-		glm::vec3(-1.7f,  3.0f, -7.5f),  
-		glm::vec3( 1.3f, -2.0f, -2.5f),  
-		glm::vec3( 1.5f,  2.0f, -2.5f), 
-		glm::vec3( 1.5f,  0.2f, -1.5f), 
-		glm::vec3(-1.3f,  1.0f, -1.5f)  
-	};
 
 	//СОЗДАЁМ МОДЕЛЬ
-	model = new CombinedModel<>(CombinedModel<>::Layout(0, 3, -1, 3, 3, 2, -1, 3, 36, 0, false), vertices);
-	//model = new SeparateModel(4, 6, vert, colors, texCoords, nullptr, ind);
+	WorldOrigin = new CombinedModel<>(CombinedModel<>::Layout(0, 3, 5, 3, 3, 2, -1, 3, 36, 0, false), WorldOriginV);
+	cube = new SeparateModel<>(8, 36, cubeV, nullptr, nullptr, nullptr, cubeI);
+	lightCube = new SeparateModel<>(8, 36, cubeV, nullptr, nullptr, nullptr, cubeI);
 	//СОЗДАЁМ ШЕЙДЕР
-	shaderProgram = new Shader(vspath.c_str(), fspath.c_str());
-	model->setShader(shaderProgram);
-	//Передаём текстуры
-	model->pushTexture(Texture(tpath1.c_str()));
-	model->pushTexture(Texture(tpath3.c_str()));
-	//Загружаем текстуры
-	model->loadAllTextures();
-	//Биндим действия в VAO модели
-	model->Build();
+	WorldOriginShader = new Shader(WorldOriginVSP.c_str(), WorldOriginFSP.c_str());
+	cubeShader = new Shader(cubeVSP.c_str(), cubeFSP.c_str());
+	lightCubeShader = new Shader(lightCubeVSP.c_str(), lightCubeFSP.c_str());
 
-	std::array<InstanceData, 10> instances;
+	WorldOrigin->setShader(WorldOriginShader);
+	cube->setShader(cubeShader);
+	lightCube->setShader(lightCubeShader);
+	//Передаём текстуры
+	WorldOrigin->pushTexture(Texture(WorldOriginTPath.c_str()));
+	//Загружаем текстуры
+	WorldOrigin->loadAllTextures();
+	//Биндим действия в VAO модели
+	WorldOrigin->Build();
+	cube->Build();
+	lightCube->Build();
+
+	std::array<InstanceData, 3> instances;
 
 	GLfloat offset;
-	for (int _index = 0; _index < 10; _index++) {
-		glm::mat4 _transform;
-		_transform = glm::translate(_transform, cubePositions[_index]);
-		_transform = glm::rotate(_transform, glm::radians(_index * 20.f), glm::vec3(1.0f, 0.3f, 0.5f));
-		instances[_index](our::mat4(_transform), shaderProgram, "model");
-		model->pushInstance(&instances[_index]);
-	}
 	
+	instances[0](our::mat4(), WorldOriginShader, "model");
+	WorldOrigin->pushInstance(&instances[0]);
+
+	instances[1](our::translate(glm::mat4(), glm::vec3(0.0f, 5.0f, 0.0f)), cubeShader, "model");
+	cube->pushInstance(&instances[1]);
+	Vec3Handler<> cubeColor(glm::vec3(1.0f, 0.5f, 0.31f), cubeShader, "objectColor");
+
+	instances[2](our::translate(glm::mat4(), glm::vec3(5.0f, 5.0f, 0.0f)), lightCubeShader, "model");
+	lightCube->pushInstance(&instances[2]);
+	Vec3Handler<> lightColor(glm::vec3(1.0f, 1.0f, 1.0f), lightCubeShader, "lightColor");
+	lightColor.push(cubeShader);
+
+
 	camera = new SimpleCamera();
 	camera->setPerspectiveData(glm::radians(45.0f), (float)width / height, 0.1f, 1000.0f);
 	camera->setProjectionMode(SimpleCamera::ProjectionMode::MODE_PERSPECTIVE);
-	camera->Setup(shaderProgram);
+	camera->Setup(WorldOriginShader);
+	camera->Setup(cubeShader);
+	camera->Setup(lightCubeShader);
 	camera->speed = 1.0f;
 	camera->sensitivity.x = 0.1f;
 	camera->sensitivity.y = 0.1f;
-	camera->position.z = 3.0f;
+	camera->position.z = 5.0f;
+	camera->position.y = 6.0f;
 
 	//main loop
 	while (!glfwWindowShouldClose(window))
@@ -112,8 +132,9 @@ int main()
 		camera->Update();
 
 		offset = (float)glfwGetTime();
-		instances[0](our::rotate(glm::mat4(), glm::radians(10.0f * offset), glm::vec3(1.0f, 0.3f, 0.5f)));
-		model->drawInstances(0, 10);
+		WorldOrigin->drawInstance();
+		cube->drawInstance();
+		lightCube->drawInstance();
 		//DEBUG_OUT << glGetError() << DEBUG_NEXT_LINE;
 
 		glfwSwapBuffers(window);
@@ -137,7 +158,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 			glfwSetWindowShouldClose(window, GL_TRUE);
 			break;
 		case GLFW_KEY_R:
-			shaderProgram->Reload();
+			//shaderProgram->Reload();
 			break;
 		}
 	}

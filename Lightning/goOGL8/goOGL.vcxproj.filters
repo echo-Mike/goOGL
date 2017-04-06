@@ -84,6 +84,9 @@
     <ClInclude Include="src\assets\textures\CTexture.h">
       <Filter>Заголовочные файлы\assets\textures</Filter>
     </ClInclude>
+    <ClInclude Include="src\data.h">
+      <Filter>Заголовочные файлы</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">

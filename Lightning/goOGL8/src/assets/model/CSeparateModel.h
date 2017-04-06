@@ -18,7 +18,7 @@
 	//Length of vertex position vector
 	#define SEPARATEMODEL_VERTEX_SIZE 3
 #endif
-
+ 
 #ifndef SEPARATEMODEL_COLOR_SIZE
 	//Length of vertex color vector
 	#define SEPARATEMODEL_COLOR_SIZE 3
