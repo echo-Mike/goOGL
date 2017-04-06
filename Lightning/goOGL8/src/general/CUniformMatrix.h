@@ -13,7 +13,7 @@
 //GLEW
 #include <GL/glew.h>
 //OUR
-#include "CUniforms.h"
+#include "assets/shader/CUniforms.h"
 #include "ImprovedMath.h"
 //DEBUG
 #ifdef DEBUG_UNIFORMMATRIX

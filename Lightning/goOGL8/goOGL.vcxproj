@@ -10,35 +10,9 @@
       <Platform>Win32</Platform>
     </ProjectConfiguration>
   </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="src\CCamera.h" />
-    <ClInclude Include="src\CCombinedModel.h" />
-    <ClInclude Include="src\CGLBufferHandler.h" />
-    <ClInclude Include="src\CInstanceLoader.h" />
-    <ClInclude Include="src\CSeparateModel.h" />
-    <ClInclude Include="src\CShader.h" />
-    <ClInclude Include="src\CSimpleModel.h" />
-    <ClInclude Include="src\Ctexture.h" />
-    <ClInclude Include="src\CUniformMatrix.h" />
-    <ClInclude Include="src\CUniforms.h" />
-    <ClInclude Include="src\CUniformTexture.h" />
-    <ClInclude Include="src\debug.h" />
-    <ClInclude Include="src\ImprovedMath.h" />
-    <ClInclude Include="src\main.h" />
-    <ClInclude Include="src\OLD.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="src\CShader.cpp" />
-    <ClCompile Include="src\main.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="src\shaders\shader.fs" />
-    <None Include="src\shaders\shader.vs" />
-  </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{1CC5AFED-01BE-439F-BF2E-EB088FD70573}</ProjectGuid>
-    <RootNamespace>goOGL2</RootNamespace>
-    <ProjectName>goOGL</ProjectName>
+    <ProjectGuid>{68805F8E-C4E2-460A-A5E6-427F11F10044}</ProjectGuid>
+    <RootNamespace>goOGL</RootNamespace>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -65,7 +39,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>C:\Users\123\Desktop\OpenGL\EXTERNAL\Include;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\goOGL8\src;C:\Users\123\Desktop\OpenGL\EXTERNAL\Include;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Users\123\Desktop\OpenGL\EXTERNAL\Libs;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -73,7 +47,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>C:\Users\123\Desktop\OpenGL\EXTERNAL\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\goOGL8\src;C:\Users\123\Desktop\OpenGL\EXTERNAL\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -95,6 +69,31 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
   </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="src\assets\model\CCombinedModel.h" />
+    <ClInclude Include="src\assets\model\CInstanceLoader.h" />
+    <ClInclude Include="src\assets\model\CSeparateModel.h" />
+    <ClInclude Include="src\assets\model\CSimpleModel.h" />
+    <ClInclude Include="src\assets\shader\CShader.h" />
+    <ClInclude Include="src\assets\shader\CUniforms.h" />
+    <ClInclude Include="src\assets\textures\CTexture.h" />
+    <ClInclude Include="src\assets\textures\CUniformTexture.h" />
+    <ClInclude Include="src\debug.h" />
+    <ClInclude Include="src\general\CUniformMatrix.h" />
+    <ClInclude Include="src\general\ImprovedMath.h" />
+    <ClInclude Include="src\main.h" />
+    <ClInclude Include="src\ogl\CGLBufferHandler.h" />
+    <ClInclude Include="src\OLD.h" />
+    <ClInclude Include="src\scene\CCamera.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\assets\shader\CShader.cpp" />
+    <ClCompile Include="src\main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="src\GLSL\shader.fs" />
+    <None Include="src\GLSL\shader.vs" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

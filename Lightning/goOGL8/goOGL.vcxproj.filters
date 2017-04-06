@@ -1,0 +1,104 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Файлы исходного кода">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Заголовочные файлы">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Файлы ресурсов">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Заголовочные файлы\ogl">
+      <UniqueIdentifier>{6e66ff46-f79f-4ccf-9508-dfe16d683faa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Заголовочные файлы\scene">
+      <UniqueIdentifier>{4ceea86b-0d64-40c7-b4af-e772da8e1ccd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Заголовочные файлы\general">
+      <UniqueIdentifier>{57ba0628-66e0-43bc-a46b-432427fc17ec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Заголовочные файлы\assets">
+      <UniqueIdentifier>{6ebe1611-4c00-4760-8440-84fba1890928}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Заголовочные файлы\assets\model">
+      <UniqueIdentifier>{7b818b97-c333-4b59-80fd-af385f23021c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Заголовочные файлы\assets\shader">
+      <UniqueIdentifier>{b3462755-425f-49ae-9c0b-db518349abe2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Заголовочные файлы\assets\textures">
+      <UniqueIdentifier>{584035d3-2a6c-4bcd-a677-1105eabcc60d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Файлы ресурсов\GLSL">
+      <UniqueIdentifier>{07a8f6ed-de8e-4d58-960a-b77275a01123}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\debug.h">
+      <Filter>Заголовочные файлы</Filter>
+    </ClInclude>
+    <ClInclude Include="src\main.h">
+      <Filter>Заголовочные файлы</Filter>
+    </ClInclude>
+    <ClInclude Include="src\OLD.h">
+      <Filter>Заголовочные файлы</Filter>
+    </ClInclude>
+    <ClInclude Include="src\scene\CCamera.h">
+      <Filter>Заголовочные файлы\scene</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ogl\CGLBufferHandler.h">
+      <Filter>Заголовочные файлы\ogl</Filter>
+    </ClInclude>
+    <ClInclude Include="src\general\ImprovedMath.h">
+      <Filter>Заголовочные файлы\general</Filter>
+    </ClInclude>
+    <ClInclude Include="src\general\CUniformMatrix.h">
+      <Filter>Заголовочные файлы\general</Filter>
+    </ClInclude>
+    <ClInclude Include="src\assets\model\CCombinedModel.h">
+      <Filter>Заголовочные файлы\assets\model</Filter>
+    </ClInclude>
+    <ClInclude Include="src\assets\model\CInstanceLoader.h">
+      <Filter>Заголовочные файлы\assets\model</Filter>
+    </ClInclude>
+    <ClInclude Include="src\assets\model\CSeparateModel.h">
+      <Filter>Заголовочные файлы\assets\model</Filter>
+    </ClInclude>
+    <ClInclude Include="src\assets\model\CSimpleModel.h">
+      <Filter>Заголовочные файлы\assets\model</Filter>
+    </ClInclude>
+    <ClInclude Include="src\assets\shader\CShader.h">
+      <Filter>Заголовочные файлы\assets\shader</Filter>
+    </ClInclude>
+    <ClInclude Include="src\assets\shader\CUniforms.h">
+      <Filter>Заголовочные файлы\assets\shader</Filter>
+    </ClInclude>
+    <ClInclude Include="src\assets\textures\CUniformTexture.h">
+      <Filter>Заголовочные файлы\assets\textures</Filter>
+    </ClInclude>
+    <ClInclude Include="src\assets\textures\CTexture.h">
+      <Filter>Заголовочные файлы\assets\textures</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\main.cpp">
+      <Filter>Файлы исходного кода</Filter>
+    </ClCompile>
+    <ClCompile Include="src\assets\shader\CShader.cpp">
+      <Filter>Заголовочные файлы\assets\shader</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="src\GLSL\shader.fs">
+      <Filter>Файлы ресурсов\GLSL</Filter>
+    </None>
+    <None Include="src\GLSL\shader.vs">
+      <Filter>Файлы ресурсов\GLSL</Filter>
+    </None>
+  </ItemGroup>
+</Project>

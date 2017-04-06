@@ -1,12 +1,12 @@
 #include "main.h"
 
-static const std::string vspath("C:\\Users\\123\\Desktop\\OpenGL\\PROJECTS\\GOOPENGL\\goOGL7\\src\\shaders\\shader.vs");
-static const std::string fspath("C:\\Users\\123\\Desktop\\OpenGL\\PROJECTS\\GOOPENGL\\goOGL7\\src\\shaders\\shader.fs");
+static const std::string vspath(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\goOGL8\src\GLSL\shader.vs)");
+static const std::string fspath(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\goOGL8\src\GLSL\shader.fs)");
 static Shader *shaderProgram;
-static const std::string tpath1("C:\\Users\\123\\Desktop\\OpenGL\\PROJECTS\\GOOPENGL\\goOGL7\\src\\data\\container.jpg");
-static const std::string tpath2("C:\\Users\\123\\Desktop\\OpenGL\\PROJECTS\\GOOPENGL\\goOGL7\\src\\data\\wall.jpg");
-static const std::string tpath3("C:\\Users\\123\\Desktop\\OpenGL\\PROJECTS\\GOOPENGL\\goOGL7\\src\\data\\awesomeface.png");
-static const std::string tpath4("C:\\Users\\123\\Desktop\\OpenGL\\PROJECTS\\GOOPENGL\\goOGL7\\src\\data\\cubelayout.png");
+static const std::string tpath1(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\goOGL8\data\container.jpg)");
+static const std::string tpath2(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\goOGL8\data\wall.jpg)");
+static const std::string tpath3(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\goOGL8\data\awesomeface.png)");
+static const std::string tpath4(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\goOGL8\data\cubelayout.png)");
 static SimpleModel<> *model;
 static SimpleCamera *camera;
 

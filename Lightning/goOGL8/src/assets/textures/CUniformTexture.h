@@ -15,8 +15,8 @@
 //GLEW
 #include <GL/glew.h>
 //OUR
-#include "CUniforms.h"
-#include "Ctexture.h"
+#include "assets/shader/CUniforms.h"
+#include "CTexture.h"
 //DEBUG
 #ifdef DEBUG_UNIFORMTEXTURE
 	#ifndef DEBUG_OUT

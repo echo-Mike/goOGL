@@ -11,10 +11,10 @@
 //GLEW
 #include <GL/glew.h>
 //OUR
-#include "CShader.h"
-#include "Ctexture.h"
-#include "CUniformTexture.h"
-#include "CGLBufferHandler.h"
+#include "assets/shader/CShader.h"
+#include "assets/textures/CTexture.h"
+#include "assets/textures/CUniformTexture.h"
+#include "ogl/CGLBufferHandler.h"
 #include "CInstanceLoader.h"
 //DEBUG
 #ifdef DEBUG_SIMPLEMODEL

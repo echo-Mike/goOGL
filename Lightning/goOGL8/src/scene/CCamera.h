@@ -14,8 +14,8 @@
 #include <GLM/glm.hpp>
 #include <GLM/GTC/quaternion.hpp>
 //OUR
-#include "CUniformMatrix.h"
-#include "ImprovedMath.h"
+#include "general/CUniformMatrix.h"
+#include "general/ImprovedMath.h"
 //DEBUG
 #ifdef DEBUG_CAMERA
 	#ifndef DEBUG_OUT

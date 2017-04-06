@@ -21,16 +21,16 @@
 
 //OUR
 #include "debug.h"
-#include "CUniforms.h"
-#include "ImprovedMath.h"
-#include "CUniformMatrix.h"
-#include "CUniformTexture.h"
-#include "CShader.h"
-#include "CSimpleModel.h"
-#include "CSeparateModel.h"
-#include "CCombinedModel.h"
-#include "Ctexture.h"
-#include "CCamera.h"
+#include "assets/shader/CUniforms.h"
+#include "general/ImprovedMath.h"
+#include "general/CUniformMatrix.h"
+#include "assets/textures/CUniformTexture.h"
+#include "assets/shader/CShader.h"
+#include "assets/model/CSimpleModel.h"
+#include "assets/model/CSeparateModel.h"
+#include "assets/model/CCombinedModel.h"
+#include "assets/textures/Ctexture.h"
+#include "scene/CCamera.h"
 
 using std::cout;
 using std::endl;
@@ -41,11 +41,6 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 //Scroll callback for GLFW
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-
-#ifndef INSTANCE_DATA_STD_SHADER_VARIABLE_NAME
-	//In shader variable name of value
-	#define INSTANCE_DATA_STD_SHADER_VARIABLE_NAME "value"
-#endif
 
 //Declaration of InstanceData class
 class InstanceData : public InstanceDataInterface {
