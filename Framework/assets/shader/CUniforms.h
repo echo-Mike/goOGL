@@ -1,5 +1,5 @@
 #ifndef UNIFORMS_H
-#define UNIFORMS_H "[0.0.1@CUniforms.h]"
+#define UNIFORMS_H "[0.0.2@CUniforms.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of in-shader uniform value handling classes and templates.
@@ -30,70 +30,48 @@ class Shader;
 	#define UNIFORM_STD_SHADER_VARIABLE_NAME "UniformValue"
 #endif
 
-/* Common storage class for future UniformHandler and UniformLoader
-*  Class template definition: UniformValue
+/* Base class for future UniformStorage and UniformObserver
+*  Class template definition: UniformStorage
 */
-template < class T, class TShader = Shader >
-class UniformValue {
+template < class TShader = Shader >
+class UniformBase {
 protected:
-	T value;
 	TShader *shader;
 	std::string uniformName;
 public:
-	//Type of handled value
-	typedef T ValueType;
-	//Type of pointer to handled value
-	typedef T* ValueTypePtr;
-	//Type of handeled shader
-	typedef TShader ShaderType;
+	UniformBase() : shader(nullptr), uniformName(UNIFORM_STD_SHADER_VARIABLE_NAME) {}
 
-	UniformValue() : value(), shader(nullptr), uniformName(UNIFORM_STD_SHADER_VARIABLE_NAME) {}
+	UniformBase(TShader *_shader,
+				std::string _uniformName = std::string(UNIFORM_STD_SHADER_VARIABLE_NAME)) :
+				shader(_shader), uniformName(std::move(_uniformName)) {}
 
-	UniformValue(	T &_value, TShader *_shader = nullptr,
-					std::string _uniformName = std::string(UNIFORM_STD_SHADER_VARIABLE_NAME)) :
-					value(_value), shader(_shader), 
-					uniformName(std::move(_uniformName)) {}
+	UniformBase(TShader *_shader,
+				const char* _uniformName = UNIFORM_STD_SHADER_VARIABLE_NAME) : 
+				shader(_shader), uniformName(_uniformName) {}
 
-	UniformValue(	T &_value, TShader *_shader = nullptr,
-					const char* _uniformName = UNIFORM_STD_SHADER_VARIABLE_NAME) : 
-					value(_value), shader(_shader),
-					uniformName(_uniformName) {}
+	UniformBase(const UniformBase &other) : shader(other.shader),
+											uniformName(other.uniformName) {}
 
-	UniformValue(const UniformValue &other) :	value(other.value), 
-												shader(other.shader),
-												uniformName(other.uniformName) {}
+	UniformBase(UniformBase &&other) : 	shader(std::move(other.shader)),
+										uniformName(std::move(other.uniformName)) {}
 
-	UniformValue(UniformValue &&other) :	value(std::move(other.value)),
-											shader(std::move(other.shader)),
-											uniformName(std::move(other.uniformName)) {}
-
-	~UniformValue() { /*Protect shader from destructor call*/ shader = nullptr; }
+	~UniformBase() { /*Protect shader from destructor call*/ shader = nullptr; }
 
 	//Copy-and_swap idiom copy-assign operator
-	UniformValue& operator=(UniformValue other) {
+	UniformBase& operator=(UniformBase other) {
 		if (&other == this)
 			return *this;
 		std::swap(shader, other.shader);
 		std::swap(uniformName, other.uniformName);
-		//Trigger copy-assign of value type
-		value = other.value;
 		return *this;
 	}
 
-	UniformValue& operator=(UniformValue &&other) {
+	UniformBase& operator=(UniformBase &&other) {
 		shader = nullptr;
 		shader = std::move(other.shader);
 		uniformName = std::move(other.uniformName);
-		//Trigger move-assign of value type
-		value = std::move(other.value);
 		return *this;
 	}
-
-	//Get copy of current healed value
-	virtual T getValue() { return value; }
-
-	//Set new value to handle
-	virtual void setValue(T _value) { value = std::move(_value); }
 
 	//Shader pointer setup
 	virtual void setShader(TShader *_shader) { shader = _shader; }
@@ -108,29 +86,139 @@ public:
 	virtual std::string getName() { return uniformName.substr(); }
 };
 
-/* Common interface for all Uniform handlers.
-*  Class abstract definition: UniformHandlerInteface
+/* Common storage class for future UniformAutomaticStorage and UniformManualStorage
+*  Class template definition: UniformStorage
 */
-class UniformHandlerInteface {
+template < class T, class TShader = Shader >
+class UniformStorage : public UniformBase<TShader> {
+protected:
+	T value;
+public:
+	//Type of handled value
+	typedef T ValueType;
+	//Type of pointer to handled value
+	typedef T* ValueTypePtr;
+	//Type of handeled shader
+	typedef TShader ShaderType;
+
+	UniformStorage() : UniformBase(), value() {}
+
+	UniformStorage(	T *_value, TShader *_shader = nullptr,
+					std::string _uniformName = std::string(UNIFORM_STD_SHADER_VARIABLE_NAME)) :
+					UniformBase(_shader, _uniformName), value(*_value) {}
+
+	UniformStorage(	T *_value, TShader *_shader = nullptr,
+					const char* _uniformName = UNIFORM_STD_SHADER_VARIABLE_NAME) : 
+					UniformBase(_shader, _uniformName), value(*_value) {}
+
+	UniformStorage(const UniformStorage &other) : UniformBase(other), value(other.value) {}
+
+	UniformStorage(UniformStorage &&other) : UniformBase(other), value(std::move(other.value)) {}
+
+	~UniformStorage() {}
+
+	//Copy-and_swap idiom copy-assign operator
+	UniformStorage& operator=(UniformStorage other) {
+		if (&other == this)
+			return *this;
+		UniformBase::operator=(other);
+		//Trigger copy-assign of value type
+		value = other.value;
+		return *this;
+	}
+
+	UniformStorage& operator=(UniformStorage &&other) {
+		UniformBase::operator=(other);
+		//Trigger move-assign of value type
+		value = std::move(other.value);
+		return *this;
+	}
+
+	//Get copy of current healed value
+	virtual T getValue() { return value; }
+
+	//Set new value to handle
+	virtual void setValue(T _value) { value = std::move(_value); }
+};
+
+/* Common observer class for future UniformAutomaticObserver and UniformManualObserver
+*  Class template definition: UniformObserver
+*/
+template < class T, class TShader = Shader >
+class UniformObserver : public UniformBase<TShader> {
+protected:
+	const T* valueptr;
+public:
+	//Type of handled value
+	typedef T ValueType;
+	//Type of pointer to handled value
+	typedef T* ValueTypePtr;
+	//Type of handeled shader
+	typedef TShader ShaderType;
+
+	UniformObserver() : UniformBase(), valueptr(nullptr) {}
+
+	UniformObserver(T* _valueptr, TShader *_shader = nullptr,
+					std::string _uniformName = std::string(UNIFORM_STD_SHADER_VARIABLE_NAME)) :
+					UniformBase(_shader, _uniformName), valueptr(_valueptr) {}
+
+	UniformObserver(T* _valueptr, TShader *_shader = nullptr,
+					const char* _uniformName = UNIFORM_STD_SHADER_VARIABLE_NAME) :
+					UniformBase(_shader, _uniformName), valueptr(_valueptr) {}
+
+	UniformObserver(const UniformObserver &other) : UniformBase(other), valueptr(other.valueptr) {}
+
+	UniformObserver(UniformObserver &&other) : UniformBase(other), valueptr(std::move(other.valueptr)) {}
+
+	~UniformObserver() { /*Protect value from destructor call*/ valueptr = nullptr; }
+
+	//Copy-and_swap idiom copy-assign operator
+	UniformObserver& operator=(UniformObserver other) {
+		if (&other == this)
+			return *this;
+		UniformBase::operator=(other);
+		std::swap(valueptr, other.valueptr);
+		return *this;
+	}
+
+	UniformObserver& operator=(UniformObserver &&other) {
+		UniformBase::operator=(other);
+		valueptr = nullptr;
+		valueptr = std::move(other.valueptr);
+		return *this;
+	}
+
+	//Get const ptr to currently observed value
+	virtual const T* getValue() { return valueptr; }
+
+	//Set new value to observe
+	virtual void setValue(T* _valueptr) { valueptr = std::move(_valueptr); }
+};
+
+/* Common interface for all automatic Uniform handlers.
+*  Class abstract definition: UniformAutomaticInteface
+*/
+class UniformAutomaticInteface {
 public:
 	//Bind uniform to shader
 	virtual void bindUniform(GLint _location) = 0;
 };
 
-/* The automatic storage for uniform in-shader value.
-*  Class template definition: UniformHandler
+/* Common base class for all automatic Uniform handlers.
+*  Class template definition: UniformAutomatic
 */
-template <	class T, class TShader = Shader,
-			int (TShader::* NewUniform)(const char*, UniformHandlerInteface*) = &TShader::newUniform,
-			void (TShader::* DeleteUniform)(int) = &TShader::deleteUniform>
-class UniformHandler : public UniformHandlerInteface, public UniformValue<T, TShader> {
+template <	template<class, class> class TBase, class T, class TShader = Shader,
+			int (TShader::* NewUniform)(const char*, UniformAutomaticInteface*) = &TShader::newUniform,
+			void (TShader::* DeleteUniform)(int) = &TShader::deleteUniform >
+class UniformAutomatic : public UniformAutomaticInteface, public TBase<T, TShader> {
 	int uniformId;
+	typedef TBase<T, TShader> Base;
 public:
 	//Push to shader uniform handle queue of current saved shader
 	void push() {
 		if (uniformId >= 0) {
 			#ifdef DEBUG_UNIFORMS
-				DEBUG_OUT << "WARNING::UNIFORM_HANDLER::push::ALREADY_BINDED" << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "WARNING::UNIFORM_AUTOMATIC::push::ALREADY_BINDED" << DEBUG_NEXT_LINE;
 				DEBUG_OUT << "\tMessage: Uniform handler alredy helds binding with other shader." << DEBUG_NEXT_LINE;
 				DEBUG_OUT << "\tLast Id: " << uniformId << DEBUG_NEXT_LINE;
 			#endif	
@@ -139,7 +227,7 @@ public:
 			uniformId = (shader->*NewUniform)(uniformName.c_str(), this);
 		} else {
 			#ifdef DEBUG_UNIFORMS
-				DEBUG_OUT << "ERROR::UNIFORM_HANDLER::push::SHADER_MISSING" << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "ERROR::UNIFORM_AUTOMATIC::push::SHADER_MISSING" << DEBUG_NEXT_LINE;
 			#endif	
 		}
 	}
@@ -152,7 +240,7 @@ public:
 			return (_shader->*NewUniform)(uniformName.c_str(), this);
 		} else {
 			#ifdef DEBUG_UNIFORMS
-				DEBUG_OUT << "ERROR::UNIFORM_HANDLER::push::SHADER_MISSING" << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "ERROR::UNIFORM_AUTOMATIC::push::SHADER_MISSING" << DEBUG_NEXT_LINE;
 			#endif
 			return -1;
 		}
@@ -164,91 +252,116 @@ public:
 			(shader->*DeleteUniform)(uniformId);
 		} else {
 			#ifdef DEBUG_UNIFORMS
-				DEBUG_OUT << "ERROR::UNIFORM_HANDLER::pull::SHADER_MISSING" << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "ERROR::UNIFORM_AUTOMATIC::pull::SHADER_MISSING" << DEBUG_NEXT_LINE;
 			#endif	
 		}
 	}
 
-	UniformHandler() : UniformValue(), uniformId(-1) {}
+	UniformAutomatic() : Base(), uniformId(-1) {}
 
-	UniformHandler(	T &_value, TShader *_shader = nullptr, 
-					std::string _uniformName = std::string(UNIFORM_STD_SHADER_VARIABLE_NAME)) :
-					UniformValue(_value, _shader, _uniformName), uniformId(-1)
+	UniformAutomatic(	T *_value, TShader *_shader = nullptr,
+						std::string _uniformName = std::string(UNIFORM_STD_SHADER_VARIABLE_NAME)) :
+						Base(_value, _shader, _uniformName), uniformId(-1)
 	{
 		push();
 	}
 	
-	UniformHandler(	T &_value, TShader *_shader = nullptr, 
-					const char* _uniformName = UNIFORM_STD_SHADER_VARIABLE_NAME) :
-					UniformValue(_value, _shader, _uniformName), uniformId(-1)
+	UniformAutomatic(	T *_value, TShader *_shader = nullptr,
+						const char* _uniformName = UNIFORM_STD_SHADER_VARIABLE_NAME) :
+						Base(_value, _shader, _uniformName), uniformId(-1)
 	{
 		push();
 	}
 
-	UniformHandler(const UniformHandler &other) : UniformValue(other), uniformId(-1) 
+	UniformAutomatic(const UniformAutomatic &other) : Base(other), uniformId(-1)
 	{
 		push();
 	}
 
-	UniformHandler(UniformHandler &&other) :	UniformValue(other),
-												uniformId(std::move(other.uniformId)) 
+	UniformAutomatic(UniformAutomatic &&other) :	Base(other),
+													uniformId(std::move(other.uniformId)) 
 	{
 		//Negate the shader resource acquisition in "other" that will be deleted soon
 		other.uniformId = -1;
 	}
 
-	~UniformHandler() {
+	~UniformAutomatic() {
 		//Clear shader callback for this uniform
 		if (uniformId >= 0)
 			pull();
 	}
 
-	UniformHandler& operator=(UniformHandler other) {
+	UniformAutomatic& operator=(UniformAutomatic other) {
 		if (&other == this)
 			return *this;
-		UniformValue::operator=(other);
+		Base::operator=(other);
 		uniformId = -1;
 		std::swap(uniformId, other.uniformId);
 		return *this;
 	}
 
-	UniformHandler& operator=(UniformHandler &&other) {
-		UniformValue::operator=(other);
+	UniformAutomatic& operator=(UniformAutomatic &&other) {
+		Base::operator=(other);
 		uniformId = std::move(other.uniformId);
 		other.uniformId = -1;
 		return *this;
 	}
 };
 
-/* Common interface for all Uniform loaders.
-*  Class abstract definition: UniformLoaderInteface
+/* The automatic storage for uniform in-shader value.
+*  Class template definition: UniformAutomaticStorage
 */
-class UniformLoaderInteface {
+template < class T, class TShader = Shader >
+using UniformAutomaticStorage = UniformAutomatic<UniformStorage, T, TShader>;
+
+/* The automatic observer for uniform in-shader value.
+*  Class template definition: UniformAutomaticObserver
+*/
+template < class T, class TShader = Shader >
+using UniformAutomaticObserver = UniformAutomatic<UniformObserver, T, TShader>;
+
+/* Common interface for all manual Uniform handlers.
+*  Class abstract definition: UniformManualInteface
+*/
+class UniformManualInteface {
 public:
 	//Bind uniform to shader
 	virtual void bindData() = 0;
 };
 
-/* The manual storage for uniform in-shader value.
-*  Class template definition: UniformLoader
+/* Common base class for all manual Uniform handlers.
+*  Class template definition: UniformManual
 */
-template< class T, class TShader = Shader>
-class UniformLoader : public UniformLoaderInteface, public UniformValue<T, TShader> {
+template < template<class, class> class TBase, class T, class TShader = Shader >
+class UniformManual : public UniformManualInteface, public TBase<T, TShader> {
+	typedef TBase<T, TShader> Base;
 public:
-	UniformLoader() : UniformValue() {}
+	UniformManual() : Base() {}
 
-	UniformLoader(	T &_value, TShader *_shader = nullptr,
+	UniformManual(	T *_value, TShader *_shader = nullptr,
 					std::string _dataName = std::string(UNIFORM_STD_SHADER_VARIABLE_NAME)) :
-					UniformValue(_value, _shader, _dataName) {}
+					Base(_value, _shader, _dataName) {}
 
-	UniformLoader(	T &_value, TShader *_shader = nullptr, 
+	UniformManual(	T *_value, TShader *_shader = nullptr, 
 					const char* _dataName = UNIFORM_STD_SHADER_VARIABLE_NAME) :
-					UniformValue(_value, _shader, _dataName) {}
+					Base(_value, _shader, _dataName) {}
 	
-	UniformLoader(const UniformLoader &other) : UniformLoader(other) {}
+	UniformManual(const UniformManual &other) : Base(other) {}
 
-	UniformLoader(UniformLoader &&other) : UniformLoader(other) {}
+	UniformManual(UniformManual &&other) : Base(other) {}
 
-	~UniformLoader() {}
+	~UniformManual() {}
 };
+
+/* The anual storage for uniform in-shader value.
+*  Class template definition: UniformManualStorage
+*/
+template < class T, class TShader = Shader >
+using UniformManualStorage = UniformManual<UniformStorage, T, TShader>;
+
+/* The manual observer for uniform in-shader value.
+*  Class template definition: UniformManualObserver
+*/
+template < class T, class TShader = Shader >
+using UniformManualObserver = UniformManual<UniformObserver, T, TShader>;
 #endif

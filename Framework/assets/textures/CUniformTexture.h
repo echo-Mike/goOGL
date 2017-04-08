@@ -1,5 +1,5 @@
 #ifndef UNIFORMTEXTURE_H
-#define UNIFORMTEXTURE_H "[0.0.1@CUniformTexture.h]"
+#define UNIFORMTEXTURE_H "[0.0.2@CUniformTexture.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of in-shader uniform samplaer2D 
@@ -33,55 +33,56 @@
 #endif
 
 /* The automatic storage for uniform samplaer2D in-shader value.
-*  Class template definition: TextureHandler
+*  Class template definition: TextureAutomaticStorage
 */
 template <	class TTexture = Texture, class TShader = Shader,
 			void (TTexture::* TextureLoader)(void)	= &TTexture::LoadToGL,
 			void (TTexture::* BindTexture)(void)	= &TTexture::Use >
-class TextureHandler : public UniformHandler<TTexture, TShader> {
+class TextureAutomaticStorage : public UniformAutomaticStorage<TTexture, TShader> {
+	typedef UniformAutomaticStorage<TTexture, TShader> Base;
 	GLuint textureSlot;
 	int textureUnit;
 public:
 
-	TextureHandler() :	UniformHandler(TTexture(), nullptr, TEXTURE_HANDLER_STD_SHADER_VARIABLE_NAME), 
-						textureSlot(GL_TEXTURE0), 
-						textureUnit(0) {}
+	TextureAutomaticStorage() : Base(TTexture(), nullptr, TEXTURE_HANDLER_STD_SHADER_VARIABLE_NAME),
+								textureSlot(GL_TEXTURE0), 
+								textureUnit(0) {}
 
-	TextureHandler(	TTexture &_texture, TShader *_shader,
-					GLuint _textureSlot = GL_TEXTURE0, int _textureUnit = 0,
-					const char* _name = TEXTURE_HANDLER_STD_SHADER_VARIABLE_NAME) :
-					UniformHandler(_texture, _shader, _name), 
-					textureSlot(_textureSlot), textureUnit(_textureUnit) {}
+	TextureAutomaticStorage(TTexture *_texture, TShader *_shader,
+							GLuint _textureSlot = GL_TEXTURE0, int _textureUnit = 0,
+							const char* _name = TEXTURE_HANDLER_STD_SHADER_VARIABLE_NAME) :
+							Base(_texture, _shader, _name), 
+							textureSlot(_textureSlot), textureUnit(_textureUnit) {}
 
-	TextureHandler(	TTexture &_texture, TShader *_shader,
-					GLuint _textureSlot = GL_TEXTURE0, int _textureUnit = 0,
-					std::string _name = std::string(TEXTURE_HANDLER_STD_SHADER_VARIABLE_NAME)) :
-					UniformHandler(_texture, _shader, _name),
-					textureSlot(_textureSlot), textureUnit(_textureUnit) {}
+	TextureAutomaticStorage(TTexture *_texture, TShader *_shader,
+							GLuint _textureSlot = GL_TEXTURE0, int _textureUnit = 0,
+							std::string _name = std::string(TEXTURE_HANDLER_STD_SHADER_VARIABLE_NAME)) :
+							Base(_texture, _shader, _name),
+							textureSlot(_textureSlot), textureUnit(_textureUnit) {}
 	
-	TextureHandler(const TextureHandler& other) :	UniformHandler(other), 
-													textureSlot(other.textureSlot), 
-													textureUnit(other.textureUnit) {}
+	TextureAutomaticStorage(const TextureAutomaticStorage& other) : Base(other),
+																	textureSlot(other.textureSlot), 
+																	textureUnit(other.textureUnit) {}
 
-	TextureHandler(TextureHandler &&other) :	UniformHandler(other),
-												textureSlot(std::move(other.textureSlot)), 
-												textureUnit(std::move(other.textureUnit)) {}
+	TextureAutomaticStorage(TextureAutomaticStorage &&other) :	Base(other),
+																textureSlot(std::move(other.textureSlot)), 
+																textureUnit(std::move(other.textureUnit)) {}
 
-	~TextureHandler() = default;
+	~TextureAutomaticStorage() = default;
 
-	TextureHandler& operator=(TextureHandler other) {
+	TextureAutomaticStorage& operator=(TextureAutomaticStorage other) {
 		if (&other == this)
 			return *this;
 		std::swap(textureSlot, other.textureSlot);
 		std::swap(textureUnit, other.textureUnit);
-		UniformHandler<TTexture, TShader>::operator=(other);
+		Base::operator=(other);
 		return *this;
 	}
 
-	TextureHandler& operator=(TextureHandler &&other) {
+	TextureAutomaticStorage& operator=(TextureAutomaticStorage &&other) {
 		textureSlot = std::move(other.textureSlot);
 		textureUnit = std::move(other.textureUnit);
-		UniformHandler<TTexture, TShader>::operator=(other);
+		Base::operator=(other);
 		return *this;
 	}
 
@@ -142,7 +143,7 @@ public:
 template < class TTexture = Texture, class TShader = Shader >
 class MultipleTextureHandler {
 	//Texture array, max count: 32
-	std::vector<TextureHandler<TTexture, TShader>> textures;
+	std::vector<TextureAutomaticStorage<TTexture, TShader>> textures;
 	//Pointer to shader
 	TShader *shader;
 public:
@@ -152,13 +153,13 @@ public:
 	~MultipleTextureHandler() { shader = nullptr; }
 
 	//Push texture to texture stack
-	void pushTexture(TTexture &t) {
+	void pushTexture(TTexture* t) {
 		int _size = textures.size();
 		if (_size == 32) {
 			popTexture();
 			_size--;
 		}
-		TextureHandler<TTexture, TShader> _handler(t, shader, 0, 0, MULTIPLE_TEXTURE_HANDLER_TEXTURE_NAMES[_size]);
+		TextureAutomaticStorage<TTexture, TShader> _handler(t, shader, 0, 0, MULTIPLE_TEXTURE_HANDLER_TEXTURE_NAMES[_size]);
 		try {
 			textures.push_back(_handler);
 		}

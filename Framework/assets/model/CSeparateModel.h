@@ -1,5 +1,5 @@
 #ifndef SEPARATEMODEL_H
-#define SEPARATEMODEL_H "[0.0.1@CSeparateModel.h]"
+#define SEPARATEMODEL_H "[0.0.2@CSeparateModel.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of model storage.

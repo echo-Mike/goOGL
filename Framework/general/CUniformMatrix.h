@@ -1,5 +1,5 @@
 #ifndef UNIFORMMATRIX_H
-#define UNIFORMMATRIX_H "[0.0.1@CUniformMatrix.h]"
+#define UNIFORMMATRIX_H "[0.0.2@CUniformMatrix.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of in-shader uniform matrix4f handling classes and templates based on uniform handling.
@@ -25,31 +25,32 @@
 	#endif
 #endif
 
-#ifndef MATRIX_HANDLER_STD_SHADER_VARIABLE_NAME
+#ifndef MATRIX_STD_SHADER_VARIABLE_NAME
 	//In shader variable name of matrix
-	#define MATRIX_HANDLER_STD_SHADER_VARIABLE_NAME "matrix"
+	#define MATRIX_STD_SHADER_VARIABLE_NAME "matrix"
 #endif
 
 /* The automatic storage for uniform matrix4f in-shader value.
-*  Class template definition: MatrixHandler
+*  Class template definition: MatrixAutomaticStorage
 */
 template <	class TMatrix = our::mat4, class TShader = Shader,
 			GLfloat* (TMatrix::* _getValuePtr)(void) = &TMatrix::getValuePtr>
-class MatrixHandler : public UniformHandler<TMatrix, TShader> {
+class MatrixAutomaticStorage : public UniformAutomaticStorage<TMatrix, TShader> {
+	typedef UniformAutomaticStorage<TMatrix, TShader> Base;
 public:
 	//NOT SAFE SOLUTION: Direct member access
 	//Control over transpose operation on matrix loading
 	GLuint transposeOnLoad = GL_FALSE;
 
-	MatrixHandler() : UniformHandler(TMatrix(), nullptr, MATRIX_HANDLER_STD_SHADER_VARIABLE_NAME) {}
+	MatrixAutomaticStorage() : Base(&(TMatrix()), nullptr, MATRIX_STD_SHADER_VARIABLE_NAME) {}
 
-	MatrixHandler(	TMatrix _matrix, TShader* _shader,
-					const char* _name = MATRIX_HANDLER_STD_SHADER_VARIABLE_NAME) :
-					UniformHandler(_matrix, _shader, _name) {}
+	MatrixAutomaticStorage(	TMatrix* _matrix, TShader* _shader,
+							const char* _name = MATRIX_STD_SHADER_VARIABLE_NAME) :
+							Base(_matrix, _shader, _name) {}
 
-	MatrixHandler(	TMatrix _matrix, TShader* _shader,
-					std::string _name = std::string(MATRIX_HANDLER_STD_SHADER_VARIABLE_NAME)) :
-					UniformHandler(_matrix, _shader, _name) {}
+	MatrixAutomaticStorage(	TMatrix* _matrix, TShader* _shader,
+							std::string _name = std::string(MATRIX_STD_SHADER_VARIABLE_NAME)) :
+							Base(_matrix, _shader, _name) {}
 	
 	//Bind matrix to shader
 	void bindUniform(GLint _location) {
@@ -57,32 +58,28 @@ public:
 	}
 };
 
-#ifndef MATRIX_LOADER_STD_SHADER_VARIABLE_NAME
-	//In shader variable name of matrix
-	#define MATRIX_LOADER_STD_SHADER_VARIABLE_NAME "matrix"
-#endif
-
 /* The manual storage for uniform matrix4f in-shader value.
-*  Class template definition: MatrixLoader
+*  Class template definition: MatrixManualStorage
 */
 template <	class TMatrix = our::mat4, class TShader = Shader,
 			GLfloat* (TMatrix::* _getValuePtr)(void) = &TMatrix::getValuePtr,
 			GLint (TShader::* _getUniformLocation)(const char*) = &TShader::getUniformLocation>
-class MatrixLoader : public UniformLoader<TMatrix, TShader> {
+class MatrixManualStorage : public UniformManualStorage<TMatrix, TShader> {
+	typedef UniformManualStorage<TMatrix, TShader> Base;
 public:
 	//NOT SAFE SOLUTION: Direct member access
 	//Control over transpose operation on matrix loading
 	GLuint transposeOnLoad = GL_FALSE;
 
-	MatrixLoader() : UniformLoader(TMatrix(), nullptr, MATRIX_LOADER_STD_SHADER_VARIABLE_NAME) {}
+	MatrixManualStorage() : Base(&(TMatrix()), nullptr, MATRIX_STD_SHADER_VARIABLE_NAME) {}
 
-	MatrixLoader(	TMatrix _matrix, TShader* _shader,
-					const char* _name = MATRIX_LOADER_STD_SHADER_VARIABLE_NAME) :
-					UniformLoader(_matrix, _shader, _name) {}
+	MatrixManualStorage(TMatrix* _matrix, TShader* _shader,
+						const char* _name = MATRIX_STD_SHADER_VARIABLE_NAME) :
+						Base(_matrix, _shader, _name) {}
 
-	MatrixLoader(	TMatrix _matrix, TShader* _shader,
-					std::string _name = std::string(MATRIX_LOADER_STD_SHADER_VARIABLE_NAME)) :
-					UniformLoader(_matrix, _shader, _name) {}
+	MatrixManualStorage(TMatrix* _matrix, TShader* _shader,
+						std::string _name = std::string(MATRIX_STD_SHADER_VARIABLE_NAME)) :
+						Base(_matrix, _shader, _name) {}
 	
 	//Bind matrix to shader
 	void bindData() {

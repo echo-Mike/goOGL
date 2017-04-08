@@ -1,5 +1,5 @@
 #ifndef GLBUFFERHANDLER_H
-#define GLBUFFERHANDLER_H "[0.0.1@CGLBufferHandler.h]"
+#define GLBUFFERHANDLER_H "[0.0.2@CGLBufferHandler.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of OpenGL buffer handler class.

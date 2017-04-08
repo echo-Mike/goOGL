@@ -1,5 +1,5 @@
 #ifndef CAMERA_H
-#define CAMERA_H "[0.0.1@CCamera.h]"
+#define CAMERA_H "[0.0.2@CCamera.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of camera controller class.
@@ -32,7 +32,7 @@
 #endif
 
 //Class definition: ProjectionHandler
-class ProjectionHandler : public MatrixHandler<> {
+class ProjectionHandler : public MatrixAutomaticStorage<> {
 public:
 	enum State : int {
 		UNINITIALISED	= 0x00,
@@ -103,20 +103,20 @@ private:
 	//Clip frustum data
 	float near, far;
 	//Hide from SimpleCamera and other derived:
-	MatrixHandler::bindUniform;
-	MatrixHandler::transposeOnLoad;
-	UniformHandler::setValue;
-	UniformHandler::value;
-	UniformHandler::uniformName;
+	MatrixAutomaticStorage::bindUniform;
+	MatrixAutomaticStorage::transposeOnLoad;
+	MatrixAutomaticStorage::setValue;
+	MatrixAutomaticStorage::value;
+	MatrixAutomaticStorage::uniformName;
 protected:
 	//Hide from other world:
-	UniformHandler::push;
-	UniformHandler::pull;
-	UniformHandler::setName;
-	UniformHandler::getName;
+	MatrixAutomaticStorage::push;
+	MatrixAutomaticStorage::pull;
+	MatrixAutomaticStorage::setName;
+	MatrixAutomaticStorage::getName;
 public:
 	
-	ProjectionHandler() : state(State::UNINITIALISED), MatrixHandler<>() {
+	ProjectionHandler() : state(State::UNINITIALISED), MatrixAutomaticStorage<>() {
 		setName(PROJECTION_HANDLER_STD_PROJECTION_SHADER_VARIABLE_NAME);
 	}
 
@@ -127,7 +127,7 @@ public:
 						projmode(ProjectionMode::MODE_PERSPECTIVE),
 						fov(_fov),			near(_near),
 						aspect(_aspect),	far(_far),
-						MatrixHandler(our::perspective(_fov, _aspect, _near, _far), 
+						MatrixAutomaticStorage(&our::perspective(_fov, _aspect, _near, _far),
 						_shader, std::string(PROJECTION_HANDLER_STD_PROJECTION_SHADER_VARIABLE_NAME)) {}
 
 	ProjectionHandler(	float _left,		float _right,
@@ -139,7 +139,7 @@ public:
 						left(_left),		right(_right), 
 						bottom(_bottom),	top(_top),
 						near(_near),		far(_far),
-						MatrixHandler(our::ortho(_left, _right, _bottom, _top, _near, _far), 
+						MatrixAutomaticStorage(&our::ortho(_left, _right, _bottom, _top, _near, _far),
 						_shader, std::string(PROJECTION_HANDLER_STD_PROJECTION_SHADER_VARIABLE_NAME)) {}
 
 	//Returns initialisation status
@@ -266,7 +266,7 @@ class SimpleCamera : public ProjectionHandler {
 	glm::vec3 front;
 	glm::vec3 up;
 	glm::vec3 right;
-	MatrixHandler<> view;
+	MatrixAutomaticStorage<> view;
 public:
 	glm::vec3 position;
 	GLfloat speed;

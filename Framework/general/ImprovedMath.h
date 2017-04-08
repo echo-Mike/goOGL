@@ -1,5 +1,5 @@
 #ifndef IMPROVEDMATH_H
-#define IMPROVEDMATH_H "[0.0.1@ImprovedMath.h]"
+#define IMPROVEDMATH_H "[0.0.2@ImprovedMath.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of standart glm::mat4 helper 

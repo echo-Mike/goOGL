@@ -1,5 +1,5 @@
 #ifndef SHADER_H
-#define SHADER_H "[0.0.1@CShader.h]"
+#define SHADER_H "[0.0.2@CShader.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of shader class.
@@ -41,7 +41,7 @@ class Shader {
 	//Vertex and Fragment shader paths
 	std::string vpath, fpath;
 	//Uniform container
-	std::map<int, std::pair<std::string, UniformHandlerInteface*>> uniforms;
+	std::map<int, std::pair<std::string, UniformAutomaticInteface*>> uniforms;
 	//The program ID //SPO ID
 	GLuint Program;
 	//NOT SAFE SOLUTION: OVERFLOW
@@ -80,7 +80,7 @@ public:
 		glDeleteProgram(this->Program); 
 	}
 
-	int newUniform(const char* _uniformName, UniformHandlerInteface* _handler) {
+	int newUniform(const char* _uniformName, UniformAutomaticInteface* _handler) {
 		uniforms[incrementId] = std::move(std::make_pair(std::string(_uniformName), _handler));
 		return incrementId++;
 	}

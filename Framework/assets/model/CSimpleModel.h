@@ -1,5 +1,5 @@
 #ifndef SIMPLEMODEL_H
-#define SIMPLEMODEL_H "[0.0.1@CSimpleModel.h]"
+#define SIMPLEMODEL_H "[0.0.2@CSimpleModel.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of model base class.

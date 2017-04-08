@@ -1,5 +1,5 @@
 #ifndef TEXTURE_H
-#define TEXTURE_H "[0.0.1@CTexture.h]"
+#define TEXTURE_H "[0.0.2@CTexture.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of texture class.

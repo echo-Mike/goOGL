@@ -1,5 +1,5 @@
 #ifndef INSTANCELOADER_H
-#define INSTANCELOADER_H "[0.0.1@CInstanceLoader.h]"
+#define INSTANCELOADER_H "[0.0.2@CInstanceLoader.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of model instance loader class 
