@@ -76,4 +76,36 @@ public:
 		glUniform3f(_location, valueptr->x, valueptr->y, valueptr->z);
 	}
 };
+
+/* The manual storage for uniform vec3f in-shader value.
+*  Class template definition: Vec3ManualStorage
+*/
+template <	class TVector = glm::vec3, class TShader = Shader,
+			GLint(TShader::* _getUniformLocation)(const char*) = &TShader::getUniformLocation >
+class Vec3ManualStorage : public UniformManualStorage<TVector, TShader> {
+	typedef UniformManualStorage<TVector, TShader> Base;
+public:
+	Vec3ManualStorage() : Base(nullptr, nullptr, VEC3_STD_SHADER_VARIABLE_NAME) {}
+
+	Vec3ManualStorage(	TVector* _vector, TShader* _shader,
+						const char* _name = VEC3_STD_SHADER_VARIABLE_NAME) :
+						Base(_vector, _shader, _name) {}
+
+	Vec3ManualStorage(	TVector* _vector, TShader* _shader,
+						std::string _name = std::string(VEC3_STD_SHADER_VARIABLE_NAME)) :
+						Base(_vector, _shader, _name) {}
+	
+	//Bind vec3 to shader
+	void bindData() {
+		GLint _location = (shader->*_getUniformLocation)(uniformName.c_str());
+		if (_location == -1) { //Check if uniform not found
+			#ifdef DEBUG_UNIFORMMATRIX
+				DEBUG_OUT << "ERROR::VEC3_MANUAL_STORAGE::bindData::UNIFORM_NAME_MISSING" << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "\tName: " << uniformName.c_str() << DEBUG_NEXT_LINE;
+			#endif
+			return;
+		}
+		glUniform3f(_location, value.x, value.y, value.z);
+	}
+};
 #endif

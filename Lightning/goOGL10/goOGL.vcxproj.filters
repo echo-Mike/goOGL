@@ -37,6 +37,9 @@
     <Filter Include="Заголовочные файлы\assets\model">
       <UniqueIdentifier>{47617f75-d962-48c0-bd73-cf382f979288}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Заголовочные файлы\assets\material">
+      <UniqueIdentifier>{cf1a25e9-4284-4dfb-9840-257bb83f962a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="src\GLSL\cube.fs">
@@ -123,6 +126,30 @@
     </ClInclude>
     <ClInclude Include="..\..\Framework\ogl\CGLBufferHandler.h">
       <Filter>Заголовочные файлы\ogl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Framework\assets\shader\CUniformStruct.h">
+      <Filter>Заголовочные файлы\assets\shader</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Framework\general\CUniformNumber.h">
+      <Filter>Заголовочные файлы\general</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Framework\general\CUniformStructCollection.h">
+      <Filter>Заголовочные файлы\general</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Framework\assets\material\SMetals.h">
+      <Filter>Заголовочные файлы\assets\material</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Framework\assets\material\SJewelry.h">
+      <Filter>Заголовочные файлы\assets\material</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Framework\assets\material\SPlastic.h">
+      <Filter>Заголовочные файлы\assets\material</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Framework\assets\material\SRubber.h">
+      <Filter>Заголовочные файлы\assets\material</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Framework\assets\material\HMaterialCollection.h">
+      <Filter>Заголовочные файлы\assets\material</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

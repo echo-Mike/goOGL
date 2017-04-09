@@ -86,7 +86,7 @@ public:
 		GLint _location = (shader->*_getUniformLocation)(uniformName.c_str());
 		if (_location == -1) { //Check if uniform not found
 			#ifdef DEBUG_UNIFORMMATRIX
-				DEBUG_OUT << "ERROR::MATRIX_LOADER::bindData::UNIFORM_NAME_MISSING" << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "ERROR::MATRIX_MANUAL_STORAGE::bindData::UNIFORM_NAME_MISSING" << DEBUG_NEXT_LINE;
 				DEBUG_OUT << "\tName: " << uniformName.c_str() << DEBUG_NEXT_LINE;
 			#endif
 			return;

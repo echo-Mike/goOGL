@@ -202,6 +202,8 @@ class UniformAutomaticInteface {
 public:
 	//Bind uniform to shader
 	virtual void bindUniform(GLint _location) = 0;
+	//Push uniform to shader queue
+	virtual void push() = 0;
 };
 
 /* Common base class for all automatic Uniform handlers.
@@ -250,6 +252,7 @@ public:
 	void pull() {
 		if (shader) {
 			(shader->*DeleteUniform)(uniformId);
+			uniformId = -1;
 		} else {
 			#ifdef DEBUG_UNIFORMS
 				DEBUG_OUT << "ERROR::UNIFORM_AUTOMATIC::pull::SHADER_MISSING" << DEBUG_NEXT_LINE;
@@ -306,6 +309,14 @@ public:
 		other.uniformId = -1;
 		return *this;
 	}
+
+	//Shader pointer setup
+	void setShader(TShader* _shader) {
+		if (shader && uniformId >= 0)
+			pull();
+		Base::setShader(_shader);
+		push();
+	}
 };
 
 /* The automatic storage for uniform in-shader value.
@@ -353,7 +364,7 @@ public:
 	~UniformManual() {}
 };
 
-/* The anual storage for uniform in-shader value.
+/* The manual storage for uniform in-shader value.
 *  Class template definition: UniformManualStorage
 */
 template < class T, class TShader = Shader >

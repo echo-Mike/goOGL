@@ -1,231 +1,107 @@
 #ifdef OLD_H
-	/* The automatic storage for uniform in-shader value.
-*  Class template definition: UniformAutomaticStorage
+/* The manual storage for in-shader struct that represents lightsource.
+*  Struct definition: LightsourceManualStorage
 */
-template <	class T, class TShader = Shader,
-			int (TShader::* NewUniform)(const char*, UniformAutomaticInteface*) = &TShader::newUniform,
-			void (TShader::* DeleteUniform)(int) = &TShader::deleteUniform>
-class UniformAutomaticStorage : public UniformAutomaticInteface, public UniformStorage<T, TShader> {
-	int uniformId;
-public:
-	//Push to shader uniform handle queue of current saved shader
-	void push() {
-		if (uniformId >= 0) {
-			#ifdef DEBUG_UNIFORMS
-				DEBUG_OUT << "WARNING::UNIFORM_HANDLER::push::ALREADY_BINDED" << DEBUG_NEXT_LINE;
-				DEBUG_OUT << "\tMessage: Uniform handler alredy helds binding with other shader." << DEBUG_NEXT_LINE;
-				DEBUG_OUT << "\tLast Id: " << uniformId << DEBUG_NEXT_LINE;
-			#endif	
-		}
-		if (shader) {
-			uniformId = (shader->*NewUniform)(uniformName.c_str(), this);
-		} else {
-			#ifdef DEBUG_UNIFORMS
-				DEBUG_OUT << "ERROR::UNIFORM_HANDLER::push::SHADER_MISSING" << DEBUG_NEXT_LINE;
-			#endif	
-		}
-	}
-
-	/*Push to uniform handle queue of shader defined by pointer
-	* Returns uniforId from _shader
-	*/
-	int push(TShader *_shader) {
-		if (_shader) {
-			return (_shader->*NewUniform)(uniformName.c_str(), this);
-		} else {
-			#ifdef DEBUG_UNIFORMS
-				DEBUG_OUT << "ERROR::UNIFORM_HANDLER::push::SHADER_MISSING" << DEBUG_NEXT_LINE;
-			#endif
-			return -1;
-		}
-	}
-
-	//Pull from shader uniform handle queue of current saved shader
-	void pull() {
-		if (shader) {
-			(shader->*DeleteUniform)(uniformId);
-		} else {
-			#ifdef DEBUG_UNIFORMS
-				DEBUG_OUT << "ERROR::UNIFORM_HANDLER::pull::SHADER_MISSING" << DEBUG_NEXT_LINE;
-			#endif	
-		}
-	}
-
-	UniformAutomaticStorage() : UniformStorage(), uniformId(-1) {}
-
-	UniformAutomaticStorage(T &_value, TShader *_shader = nullptr,
-							std::string _uniformName = std::string(UNIFORM_STD_SHADER_VARIABLE_NAME)) :
-							UniformStorage(_value, _shader, _uniformName), uniformId(-1)
+struct LightsourceManualStorage : public StructManualContainer {
+	LightsourceManualStorage(	glm::vec3 position, glm::vec3 ambient,
+								glm::vec3 diffuse,	glm::vec3 specular, 
+								Shader* _shader, std::string _structName) 
 	{
-		push();
-	}
-	
-	UniformAutomaticStorage(T &_value, TShader *_shader = nullptr,
-							const char* _uniformName = UNIFORM_STD_SHADER_VARIABLE_NAME) :
-							UniformStorage(_value, _shader, _uniformName), uniformId(-1)
-	{
-		push();
+		structName = std::move(_structName);
+		Vec3ManualStorage<> _position(&position, _shader, structName.substr().append(".position"));
+		newElement<Vec3ManualStorage<>>(_position);
+
+		Vec3ManualStorage<> _ambient(&ambient, _shader, structName.substr().append(".ambient"));
+		newElement<Vec3ManualStorage<>>(_ambient);
+
+		Vec3ManualStorage<> _diffuse(&diffuse, _shader, structName.substr().append(".diffuse"));
+		newElement<Vec3ManualStorage<>>(_diffuse);
+
+		Vec3ManualStorage<> _specular(&specular, _shader, structName.substr().append(".specular"));
+		newElement<Vec3ManualStorage<>>(_specular);
 	}
 
-	UniformAutomaticStorage(const UniformAutomaticStorage &other) : UniformStorage(other), uniformId(-1)
-	{
-		push();
+	LightsourceManualStorage(	LightsourcePOD _light, Shader* _shader, std::string _structName) :
+								LightsourceManualStorage(	_light.position, _light.ambient,
+															_light.diffuse, _light.specular, 
+															_shader, _structName) {}
+
+	LightsourceManualStorage() : LightsourceManualStorage(glm::vec3(), glm::vec3(), glm::vec3(), glm::vec3(), nullptr, "light") {}
+
+	LightsourceManualStorage(const LightsourceManualStorage& other) {
+		structName = other.structName.substr();
+		UniformManualInteface* _buff = nullptr;
+		_buff = other.data[0];
+		newElement<Vec3ManualStorage<>>(dynamic_cast<Vec3ManualStorage<>*>(_buff));
+		_buff = other.data[1];
+		newElement<Vec3ManualStorage<>>(dynamic_cast<Vec3ManualStorage<>*>(_buff));
+		_buff = other.data[2];
+		newElement<Vec3ManualStorage<>>(dynamic_cast<Vec3ManualStorage<>*>(_buff));
+		_buff = other.data[3];
+		newElement<Vec3ManualStorage<>>(dynamic_cast<Vec3ManualStorage<>*>(_buff));
 	}
 
-	UniformAutomaticStorage(UniformAutomaticStorage &&other) :	UniformStorage(other),
-																uniformId(std::move(other.uniformId)) 
-	{
-		//Negate the shader resource acquisition in "other" that will be deleted soon
-		other.uniformId = -1;
-	}
-
-	~UniformAutomaticStorage() {
-		//Clear shader callback for this uniform
-		if (uniformId >= 0)
-			pull();
-	}
-
-	UniformAutomaticStorage& operator=(UniformAutomaticStorage other) {
+	LightsourceManualStorage& operator=(LightsourceManualStorage other) {
 		if (&other == this)
 			return *this;
-		UniformStorage::operator=(other);
-		uniformId = -1;
-		std::swap(uniformId, other.uniformId);
+		StructManualContainer::operator=(other);
 		return *this;
 	}
 
-	UniformAutomaticStorage& operator=(UniformAutomaticStorage &&other) {
-		UniformStorage::operator=(other);
-		uniformId = std::move(other.uniformId);
-		other.uniformId = -1;
-		return *this;
+	void operator() (LightsourcePOD _light, Shader* _shader, std::string _structName) {
+		structName = std::move(_structName);
+		UniformManualInteface* _buff = nullptr;
+		_buff = data[0];
+		dynamic_cast<Vec3ManualStorage<>*>(_buff)->setValue(_light.position);
+		dynamic_cast<Vec3ManualStorage<>*>(_buff)->setShader(_shader);
+		dynamic_cast<Vec3ManualStorage<>*>(_buff)->setName(structName.substr().append(".position"));
+		_buff = data[1];
+		dynamic_cast<Vec3ManualStorage<>*>(_buff)->setValue(_light.ambient);
+		dynamic_cast<Vec3ManualStorage<>*>(_buff)->setShader(_shader);
+		dynamic_cast<Vec3ManualStorage<>*>(_buff)->setName(structName.substr().append(".ambient"));
+		_buff = data[2];
+		dynamic_cast<Vec3ManualStorage<>*>(_buff)->setValue(_light.diffuse);
+		dynamic_cast<Vec3ManualStorage<>*>(_buff)->setShader(_shader);
+		dynamic_cast<Vec3ManualStorage<>*>(_buff)->setName(structName.substr().append(".diffuse"));
+		_buff = data[3];
+		dynamic_cast<Vec3ManualStorage<>*>(_buff)->setValue(_light.specular);
+		dynamic_cast<Vec3ManualStorage<>*>(_buff)->setShader(_shader);
+		dynamic_cast<Vec3ManualStorage<>*>(_buff)->setName(structName.substr().append(".specular"));
+		
+	}
+
+	void operator() (LightsourcePOD _light) {
+		UniformManualInteface* _buff = nullptr;
+		_buff = data[0];
+		dynamic_cast<Vec3ManualStorage<>*>(_buff)->setValue(_light.position);
+		_buff = data[1];
+		dynamic_cast<Vec3ManualStorage<>*>(_buff)->setValue(_light.ambient);
+		_buff = data[2];
+		dynamic_cast<Vec3ManualStorage<>*>(_buff)->setValue(_light.diffuse);
+		_buff = data[3];
+		dynamic_cast<Vec3ManualStorage<>*>(_buff)->setValue(_light.specular);
+	}
+
+	void operator() (Shader* _shader) {
+		UniformManualInteface* _buff = nullptr;
+		_buff = data[0];
+		dynamic_cast<Vec3ManualStorage<>*>(_buff)->setShader(_shader);
+		_buff = data[1];
+		dynamic_cast<Vec3ManualStorage<>*>(_buff)->setShader(_shader);
+		_buff = data[2];
+		dynamic_cast<Vec3ManualStorage<>*>(_buff)->setShader(_shader);
+		_buff = data[3];
+		dynamic_cast<Vec3ManualStorage<>*>(_buff)->setShader(_shader);
+	}
+
+	void operator() (glm::vec3 _vector, int _index = 0) {
+		UniformManualInteface* _buff = nullptr;
+		_buff = data.at(_index);
+		dynamic_cast<Vec3ManualStorage<>*>(_buff)->setValue(_vector);
 	}
 };
 
-/* The automatic observer for uniform in-shader value.
-*  Class template definition: UniformAutomaticObserver
-*/
-template <	class T, class TShader = Shader,
-			int (TShader::* NewUniform)(const char*, UniformAutomaticInteface*) = &TShader::newUniform,
-			void (TShader::* DeleteUniform)(int) = &TShader::deleteUniform>
-class UniformAutomaticObserver : public UniformAutomaticInteface, public UniformObserver<T, TShader> {
-	int uniformId;
-public:
-	//Push to shader uniform handle queue of current saved shader
-	void push() {
-		if (uniformId >= 0) {
-			#ifdef DEBUG_UNIFORMS
-				DEBUG_OUT << "WARNING::UNIFORM_HANDLER::push::ALREADY_BINDED" << DEBUG_NEXT_LINE;
-				DEBUG_OUT << "\tMessage: Uniform handler alredy helds binding with other shader." << DEBUG_NEXT_LINE;
-				DEBUG_OUT << "\tLast Id: " << uniformId << DEBUG_NEXT_LINE;
-			#endif	
-		}
-		if (shader) {
-			uniformId = (shader->*NewUniform)(uniformName.c_str(), this);
-		} else {
-			#ifdef DEBUG_UNIFORMS
-				DEBUG_OUT << "ERROR::UNIFORM_HANDLER::push::SHADER_MISSING" << DEBUG_NEXT_LINE;
-			#endif	
-		}
-	}
+struct LightsourceAutomaticStorage : public StructAutomaticContainer {
 
-	/*Push to uniform handle queue of shader defined by pointer
-	* Returns uniforId from _shader
-	*/
-	int push(TShader *_shader) {
-		if (_shader) {
-			return (_shader->*NewUniform)(uniformName.c_str(), this);
-		} else {
-			#ifdef DEBUG_UNIFORMS
-				DEBUG_OUT << "ERROR::UNIFORM_HANDLER::push::SHADER_MISSING" << DEBUG_NEXT_LINE;
-			#endif
-			return -1;
-		}
-	}
-
-	//Pull from shader uniform handle queue of current saved shader
-	void pull() {
-		if (shader) {
-			(shader->*DeleteUniform)(uniformId);
-		} else {
-			#ifdef DEBUG_UNIFORMS
-				DEBUG_OUT << "ERROR::UNIFORM_HANDLER::pull::SHADER_MISSING" << DEBUG_NEXT_LINE;
-			#endif	
-		}
-	}
-
-	UniformAutomaticObserver() : UniformObserver(), uniformId(-1) {}
-
-	UniformAutomaticObserver(T &_value, TShader *_shader = nullptr,
-							std::string _uniformName = std::string(UNIFORM_STD_SHADER_VARIABLE_NAME)) :
-							UniformObserver(_value, _shader, _uniformName), uniformId(-1)
-	{
-		push();
-	}
-	
-	UniformAutomaticObserver(T &_value, TShader *_shader = nullptr,
-							const char* _uniformName = UNIFORM_STD_SHADER_VARIABLE_NAME) :
-							UniformObserver(_value, _shader, _uniformName), uniformId(-1)
-	{
-		push();
-	}
-
-	UniformAutomaticObserver(const UniformAutomaticObserver &other) : UniformObserver(other), uniformId(-1)
-	{
-		push();
-	}
-
-	UniformAutomaticObserver(UniformAutomaticObserver &&other) : UniformObserver(other),
-																uniformId(std::move(other.uniformId)) 
-	{
-		//Negate the shader resource acquisition in "other" that will be deleted soon
-		other.uniformId = -1;
-	}
-
-	~UniformAutomaticObserver() {
-		//Clear shader callback for this uniform
-		if (uniformId >= 0)
-			pull();
-	}
-
-	UniformAutomaticObserver& operator=(UniformAutomaticObserver other) {
-		if (&other == this)
-			return *this;
-		UniformObserver::operator=(other);
-		uniformId = -1;
-		std::swap(uniformId, other.uniformId);
-		return *this;
-	}
-
-	UniformAutomaticObserver& operator=(UniformAutomaticObserver &&other) {
-		UniformObserver::operator=(other);
-		uniformId = std::move(other.uniformId);
-		other.uniformId = -1;
-		return *this;
-	}
-};
-
-
-/* The manual storage for uniform in-shader value.
-*  Class template definition: UniformLoader
-*/
-template< class T, class TShader = Shader>
-class UniformLoader : public UniformLoaderInteface, public UniformValue<T, TShader> {
-public:
-	UniformLoader() : UniformValue() {}
-
-	UniformLoader(	T &_value, TShader *_shader = nullptr,
-					std::string _dataName = std::string(UNIFORM_STD_SHADER_VARIABLE_NAME)) :
-					UniformValue(_value, _shader, _dataName) {}
-
-	UniformLoader(	T &_value, TShader *_shader = nullptr, 
-					const char* _dataName = UNIFORM_STD_SHADER_VARIABLE_NAME) :
-					UniformValue(_value, _shader, _dataName) {}
-	
-	UniformLoader(const UniformLoader &other) : UniformLoader(other) {}
-
-	UniformLoader(UniformLoader &&other) : UniformLoader(other) {}
-
-	~UniformLoader() {}
 };
 #endif

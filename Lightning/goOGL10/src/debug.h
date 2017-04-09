@@ -10,10 +10,16 @@
 #define DEBUG_CAMERA
 //CUniforms.h
 #define DEBUG_UNIFORMS
+//CUniformStruct.h
+#define DEBUG_UNIFORMSTRUCT
+//CUniformStructCollection.h
+#define DEBUG_UNIFORMSTRUCTCOLLECTION
 //CUniformMatrix.h
 #define DEBUG_UNIFORMMATRIX
 //CUniformVec3.h
 #define DEBUG_UNIFORMVEC3
+//CUniformNumber.h
+#define DEBUG_UNIFORMNUMBER
 //CUniformTexture.h
 #define DEBUG_UNIFORMTEXTURE
 //CCamera.h

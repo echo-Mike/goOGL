@@ -1,4 +1,6 @@
 #include <GLFW/glfw3.h>
+#include <GLM/glm.hpp>
+#include "assets/material/HMaterialCollection.h"
 
 //ƒ¿ÕÕ€≈
 
@@ -123,4 +125,111 @@ GLuint cubeI[] = {
 	4, 5, 6,  4, 6, 7, //-Z
 	7, 6, 1,  7, 1, 0, //-X
 	7, 0, 3,  7, 3, 4  //-Y
+};
+
+
+GLfloat cubeWithN[] = {
+	-0.5f,  0.5f,  0.5f,    0.0f,1.0f,0.0f,
+	-0.5f,  0.5f, -0.5f,    0.0f,1.0f,0.0f,
+	 0.5f,  0.5f, -0.5f,    0.0f,1.0f,0.0f,
+	-0.5f,  0.5f,  0.5f,    0.0f,1.0f,0.0f,
+	 0.5f,  0.5f, -0.5f,    0.0f,1.0f,0.0f,
+	 0.5f,  0.5f,  0.5f,    0.0f,1.0f,0.0f,
+
+	-0.5f, -0.5f,  0.5f,    0.0f,0.0f,1.0f,
+	-0.5f,  0.5f,  0.5f,    0.0f,0.0f,1.0f,
+	 0.5f,  0.5f,  0.5f,    0.0f,0.0f,1.0f,
+	-0.5f, -0.5f,  0.5f,    0.0f,0.0f,1.0f,
+	 0.5f,  0.5f,  0.5f,    0.0f,0.0f,1.0f,
+	 0.5f, -0.5f,  0.5f,    0.0f,0.0f,1.0f,
+
+	 0.5f, -0.5f,  0.5f,    1.0f,0.0f,0.0f,
+	 0.5f,  0.5f,  0.5f,    1.0f,0.0f,0.0f,
+	 0.5f,  0.5f, -0.5f,    1.0f,0.0f,0.0f,
+	 0.5f, -0.5f,  0.5f,    1.0f,0.0f,0.0f,
+	 0.5f,  0.5f, -0.5f,    1.0f,0.0f,0.0f,
+	 0.5f, -0.5f, -0.5f,    1.0f,0.0f,0.0f,
+
+	 0.5f, -0.5f, -0.5f,    0.0f,0.0f,-1.0f,
+	 0.5f,  0.5f, -0.5f,    0.0f,0.0f,-1.0f,
+	-0.5f,  0.5f, -0.5f,    0.0f,0.0f,-1.0f,
+	 0.5f, -0.5f, -0.5f,    0.0f,0.0f,-1.0f,
+	-0.5f,  0.5f, -0.5f,    0.0f,0.0f,-1.0f,
+	-0.5f, -0.5f, -0.5f,    0.0f,0.0f,-1.0f,
+
+	-0.5f, -0.5f, -0.5f,    -1.0f,0.0f,0.0f,
+	-0.5f,  0.5f, -0.5f,    -1.0f,0.0f,0.0f,
+	-0.5f,  0.5f,  0.5f,    -1.0f,0.0f,0.0f,
+	-0.5f, -0.5f, -0.5f,    -1.0f,0.0f,0.0f,
+	-0.5f,  0.5f,  0.5f,    -1.0f,0.0f,0.0f,
+	-0.5f, -0.5f,  0.5f,    -1.0f,0.0f,0.0f,
+
+	-0.5f, -0.5f, -0.5f,    0.0f,-1.0f,0.0f,
+	-0.5f, -0.5f,  0.5f,    0.0f,-1.0f,0.0f,
+	 0.5f, -0.5f,  0.5f,    0.0f,-1.0f,0.0f,
+	-0.5f, -0.5f, -0.5f,    0.0f,-1.0f,0.0f,
+	 0.5f, -0.5f,  0.5f,    0.0f,-1.0f,0.0f,
+	 0.5f, -0.5f, -0.5f,    0.0f,-1.0f,0.0f
+
+};
+
+glm::vec3 positions[] = {
+	glm::vec3(0.0f, 2.75f, -3.75f),
+	glm::vec3(0.0f, 2.75f, -2.25f),
+	glm::vec3(0.0f, 2.75f, -0.75f),
+	glm::vec3(0.0f, 2.75f,  0.75f),
+	glm::vec3(0.0f, 2.75f,  2.25f),
+	glm::vec3(0.0f, 2.75f,  3.75f),
+
+	glm::vec3(0.0f, 4.25f, -3.75f),
+	glm::vec3(0.0f, 4.25f, -2.25f),
+	glm::vec3(0.0f, 4.25f, -0.75f),
+	glm::vec3(0.0f, 4.25f, 0.75f),
+	glm::vec3(0.0f, 4.25f, 2.25f),
+	glm::vec3(0.0f, 4.25f, 3.75f),
+
+	glm::vec3(0.0f, 5.75f, -3.75f),
+	glm::vec3(0.0f, 5.75f, -2.25f),
+	glm::vec3(0.0f, 5.75f, -0.75f),
+	glm::vec3(0.0f, 5.75f, 0.75f),
+	glm::vec3(0.0f, 5.75f, 2.25f),
+	glm::vec3(0.0f, 5.75f, 3.75f),
+
+	glm::vec3(0.0f, 7.25f, -3.75f),
+	glm::vec3(0.0f, 7.25f, -2.25f),
+	glm::vec3(0.0f, 7.25f, -0.75f),
+	glm::vec3(0.0f, 7.25f, 0.75f),
+	glm::vec3(0.0f, 7.25f, 2.25f),
+	glm::vec3(0.0f, 7.25f, 3.75f)
+
+};
+
+MaterialPOD materials[] = {
+	material::Emerald,
+	material::Jade,
+	material::Obsidian,
+	material::Pearl,
+	material::Ruby,
+	material::Turquoise,
+
+	material::Gold,
+	material::Brass,
+	material::Bronze,
+	material::Chrome,
+	material::Copper,
+	material::Silver,
+
+	material::BlackPlastic,
+	material::CyanPlastic,
+	material::GreenPlastic,
+	material::RedPlastic,
+	material::WhitePlastic,
+	material::YellowPlastic,
+
+	material::BlackRubber,
+	material::CyanRubber,
+	material::GreenRubber,
+	material::RedRubber,
+	material::WhiteRubber,
+	material::YellowRubber
 };

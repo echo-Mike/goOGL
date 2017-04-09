@@ -84,15 +84,23 @@
     <ClCompile Include="src\main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\Framework\assets\material\HMaterialCollection.h" />
+    <ClInclude Include="..\..\Framework\assets\material\SJewelry.h" />
+    <ClInclude Include="..\..\Framework\assets\material\SMetals.h" />
+    <ClInclude Include="..\..\Framework\assets\material\SPlastic.h" />
+    <ClInclude Include="..\..\Framework\assets\material\SRubber.h" />
     <ClInclude Include="..\..\Framework\assets\model\CCombinedModel.h" />
     <ClInclude Include="..\..\Framework\assets\model\CInstanceLoader.h" />
     <ClInclude Include="..\..\Framework\assets\model\CSeparateModel.h" />
     <ClInclude Include="..\..\Framework\assets\model\CSimpleModel.h" />
     <ClInclude Include="..\..\Framework\assets\shader\CShader.h" />
     <ClInclude Include="..\..\Framework\assets\shader\CUniforms.h" />
+    <ClInclude Include="..\..\Framework\assets\shader\CUniformStruct.h" />
     <ClInclude Include="..\..\Framework\assets\textures\CTexture.h" />
     <ClInclude Include="..\..\Framework\assets\textures\CUniformTexture.h" />
     <ClInclude Include="..\..\Framework\general\CUniformMatrix.h" />
+    <ClInclude Include="..\..\Framework\general\CUniformNumber.h" />
+    <ClInclude Include="..\..\Framework\general\CUniformStructCollection.h" />
     <ClInclude Include="..\..\Framework\general\CUniformVec3.h" />
     <ClInclude Include="..\..\Framework\general\ImprovedMath.h" />
     <ClInclude Include="..\..\Framework\ogl\CGLBufferHandler.h" />
