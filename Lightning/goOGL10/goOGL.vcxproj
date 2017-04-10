@@ -41,6 +41,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <IncludePath>C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Framework;C:\Users\123\Desktop\OpenGL\EXTERNAL\Include;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Users\123\Desktop\OpenGL\EXTERNAL\Libs;$(LibraryPath)</LibraryPath>
+    <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

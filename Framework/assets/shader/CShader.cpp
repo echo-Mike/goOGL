@@ -6,7 +6,7 @@ void Shader::Use() {
 	for (auto &_value : uniforms) {
 		_location = glGetUniformLocation(Program, _value.second.first.c_str());
 		if (_location == -1) { //Check if uniform not found
-			#ifdef DEBUG_SHADER
+			#ifdef DEBUG_SHADERCPP
 				DEBUG_OUT << "ERROR::SHADER::Use::UNIFORM_NAME_MISSING"<< DEBUG_NEXT_LINE;
 				DEBUG_OUT << "\tName: " << _value.first << DEBUG_NEXT_LINE;
 			#endif
@@ -44,7 +44,7 @@ void Shader::Reload() {
 		fragmentCode = fShaderStream.str();
 	}
 	catch (std::ifstream::failure e) {
-		#ifdef DEBUG_SHADER
+		#ifdef DEBUG_SHADERCPP
 			DEBUG_OUT << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ" << DEBUG_NEXT_LINE;
 		#endif
 	}
@@ -62,7 +62,7 @@ void Shader::Reload() {
 	// Print compile errors if any
 	glGetShaderiv(vertex, GL_COMPILE_STATUS, &success);
 	if (!success) {
-		#ifdef DEBUG_SHADER
+		#ifdef DEBUG_SHADERCPP
 			glGetShaderInfoLog(vertex, 512, NULL, infoLog);
 			DEBUG_OUT << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << DEBUG_NEXT_LINE;
 		#endif
@@ -73,7 +73,7 @@ void Shader::Reload() {
 	glCompileShader(fragment);
 	glGetShaderiv(fragment, GL_COMPILE_STATUS, &success);
 	if (!success) {
-		#ifdef DEBUG_SHADER
+		#ifdef DEBUG_SHADERCPP
 			glGetShaderInfoLog(fragment, 512, NULL, infoLog);
 			DEBUG_OUT << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << DEBUG_NEXT_LINE;
 		#endif
@@ -86,7 +86,7 @@ void Shader::Reload() {
 	// Print linking errors if any
 	glGetProgramiv(this->Program, GL_LINK_STATUS, &success);
 	if (!success) {
-		#ifdef DEBUG_SHADER
+		#ifdef DEBUG_SHADERCPP
 			glGetProgramInfoLog(this->Program, 512, NULL, infoLog);
 			DEBUG_OUT << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << DEBUG_NEXT_LINE;
 		#endif

@@ -23,6 +23,7 @@
 //OUR
 #include "CUniforms.h"
 //DEBUG
+
 #ifdef DEBUG_SHADER
 	#ifndef DEBUG_OUT
 		#define DEBUG_OUT std::cout
@@ -30,6 +31,12 @@
 	#ifndef DEBUG_NEXT_LINE
 		#define DEBUG_NEXT_LINE std::endl
 	#endif
+#else 
+	#ifndef DEBUG_SHADERCPP
+		#define DEBUG_SHADERCPP
+	#endif
+	#define DEBUG_OUT std::cout
+	#define DEBUG_NEXT_LINE std::endl
 #endif
 
 //Class definition: Shader
@@ -59,6 +66,7 @@ public:
 			#ifdef DEBUG_SHADER
 				DEBUG_OUT << "ERROR::SHADER::getUniformLocation::UNIFORM_NAME_MISSING"<< DEBUG_NEXT_LINE;
 				DEBUG_OUT << "\tName: " << _uniformName << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "\tFPath: " << fpath << DEBUG_NEXT_LINE;
 			#endif
 		}
 		return _location;

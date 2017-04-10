@@ -130,18 +130,19 @@ int main()
 		
 		//Update camera state
 		camera->Update();
-		//viewPosition.setValue(camera->position);
 
 		offset += deltaTime;
 		LightsourceData* _buffptr = dynamic_cast<LightsourceData*>(instances[1]);
-		_buffptr->lightsource.operator()(glm::vec3(3.0f, 5.0f, 0.0f) + 2.5f * glm::vec3(0.0f, glm::sin(offset), glm::cos(offset)), LightsourcePOD::POSITION);
+		_buffptr->lightsource(glm::vec3(3.0f, 5.0f, 0.0f) + 2.5f * glm::vec3(0.0f, glm::sin(offset), glm::cos(offset)), LightsourcePOD::POSITION);
 		_buffptr->modelMatrix.setValue(glm::translate(glm::mat4(), _buffptr->lightsource.getValue(LightsourcePOD::POSITION)) * lightSourceScale);
+		lightColor.setValue(glm::vec3(glm::sin(glfwGetTime() * 2.0f), glm::sin(glfwGetTime() * 0.7f), glm::sin(glfwGetTime()*1.3f)));
+		_buffptr->lightsource(lightColor.getValue() * glm::vec3(0.2f), LightsourcePOD::AMBIENT);
+		_buffptr->lightsource(lightColor.getValue() * glm::vec3(0.5f), LightsourcePOD::DIFFUSE);
 
 		offset = (float)glfwGetTime();
 		WorldOrigin->drawInstance();
 		cube->drawInstances(0, 24);
 		lightCube->drawInstance();
-		//DEBUG_OUT << glGetError() << DEBUG_NEXT_LINE;
 
 		glfwSwapBuffers(window);
 		GLfloat currentFrame = (float)glfwGetTime();
@@ -192,11 +193,11 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
 	if (keys[GLFW_KEY_LEFT_CONTROL]) {
-		camera->speed += (GLfloat)yoffset * 0.5f;
+		SimpleCamera::PerspectiveData _data(camera->getPrespectiveData());
+		_data.fov -= (GLfloat)yoffset * 0.1f;
+		camera->setPerspectiveData(_data);
+		camera->updateProjection();
 		return;
 	}
-	SimpleCamera::PerspectiveData _data(camera->getPrespectiveData());
-	_data.fov -= (GLfloat)yoffset * 0.1f;
-	camera->setPerspectiveData(_data);
-	camera->updateProjection();
+	camera->speed += (GLfloat)yoffset * 0.5f;
 }

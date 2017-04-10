@@ -58,16 +58,13 @@ public:
 			#endif
 			return;
 		}
+
 		if (std::is_same<T, int>::value) {
 			glUniform1i(_location, value);
-		} else {
-			if (std::is_same<T, unsigned int>::value) {
-				glUniform1ui(_location, value);
-			} else {
-				if (std::is_floating_point<T>::value)
-					glUniform1f(_location, value);
-			}
-		}
+		} else 	if (std::is_same<T, unsigned int>::value) {
+			glUniform1ui(_location, value);
+		} else  if (std::is_floating_point<T>::value)
+			glUniform1f(_location, value);
 	}
 };
 #endif
