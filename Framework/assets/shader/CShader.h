@@ -81,7 +81,6 @@ public:
 	}
 	
 	~Shader() {
-		//WEAK DESISION: destructor calls on const ptr?
 		//Prevent external values from destructor calls
 		for (auto &v : uniforms)
 			v.second.second = nullptr;

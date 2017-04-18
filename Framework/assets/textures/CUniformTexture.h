@@ -17,6 +17,7 @@
 //OUR
 #include "assets/shader/CUniforms.h"
 #include "CTexture.h"
+#include "general\CIndexPool.h"
 //DEBUG
 #ifdef DEBUG_UNIFORMTEXTURE
 	#ifndef DEBUG_OUT
@@ -27,9 +28,9 @@
 	#endif
 #endif
 
-#ifndef TEXTURE_HANDLER_STD_SHADER_VARIABLE_NAME
+#ifndef TEXTURE_STD_SHADER_VARIABLE_NAME
 	//In shader variable name of texture
-	#define TEXTURE_HANDLER_STD_SHADER_VARIABLE_NAME "Texture"
+	#define TEXTURE_STD_SHADER_VARIABLE_NAME "Texture"
 #endif
 
 /* The automatic storage for uniform samplaer2D in-shader value.
@@ -44,19 +45,19 @@ class TextureAutomaticStorage : public UniformAutomaticStorage<TTexture, TShader
 	int textureUnit;
 public:
 
-	TextureAutomaticStorage() : Base(TTexture(), nullptr, TEXTURE_HANDLER_STD_SHADER_VARIABLE_NAME),
+	TextureAutomaticStorage() : Base(TTexture(), nullptr, TEXTURE_STD_SHADER_VARIABLE_NAME),
 								textureSlot(GL_TEXTURE0), 
 								textureUnit(0) {}
 
 	TextureAutomaticStorage(TTexture *_texture, TShader *_shader,
 							GLuint _textureSlot = GL_TEXTURE0, int _textureUnit = 0,
-							const char* _name = TEXTURE_HANDLER_STD_SHADER_VARIABLE_NAME) :
+							const char* _name = TEXTURE_STD_SHADER_VARIABLE_NAME) :
 							Base(_texture, _shader, _name), 
 							textureSlot(_textureSlot), textureUnit(_textureUnit) {}
 
 	TextureAutomaticStorage(TTexture *_texture, TShader *_shader,
 							GLuint _textureSlot = GL_TEXTURE0, int _textureUnit = 0,
-							std::string _name = std::string(TEXTURE_HANDLER_STD_SHADER_VARIABLE_NAME)) :
+							std::string _name = std::string(TEXTURE_STD_SHADER_VARIABLE_NAME)) :
 							Base(_texture, _shader, _name),
 							textureSlot(_textureSlot), textureUnit(_textureUnit) {}
 	
@@ -101,7 +102,7 @@ public:
 			textureSlot = newSlot;
 		} else {
 			#ifdef DEBUG_UNIFORMTEXTURE
-				DEBUG_OUT << "ERROR::TEXTURE_HANDLER::setTextureSlot::INVALID_TEXTURE_SLOT" << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "ERROR::TEXTURE_AUTOMATIC_STORAGE::setTextureSlot::INVALID_TEXTURE_SLOT" << DEBUG_NEXT_LINE;
 				DEBUG_OUT << "\tSlot: " << newSlot << DEBUG_NEXT_LINE;
 				DEBUG_OUT << "\tRange: " << GL_TEXTURE0 << " : " << GL_TEXTURE31 << DEBUG_NEXT_LINE;
 			#endif
@@ -114,7 +115,7 @@ public:
 			textureUnit = newUnit;
 		} else {
 			#ifdef DEBUG_UNIFORMTEXTURE
-				DEBUG_OUT << "ERROR::TEXTURE_HANDLER::setTextureUnit::INVALID_TEXTURE_UNIT" << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "ERROR::TEXTURE_AUTOMATIC_STORAGE::setTextureUnit::INVALID_TEXTURE_UNIT" << DEBUG_NEXT_LINE;
 				DEBUG_OUT << "\tUnit: " << newUnit << DEBUG_NEXT_LINE;
 				DEBUG_OUT << "\tRange: 0 : 31" << DEBUG_NEXT_LINE;
 			#endif
@@ -137,7 +138,7 @@ public:
 	};
 #endif 
 
-/* The automatic storage stack-like for multiple uniform samplaer2D in-shader value.
+/* The automatic stack-like storage for multiple uniform samplaer2D in-shader values.
 *  Class template definition: MultipleTextureHandler
 */
 template < class TTexture = Texture, class TShader = Shader >
@@ -153,7 +154,7 @@ public:
 	~MultipleTextureHandler() { shader = nullptr; }
 
 	//Push texture to texture stack
-	void pushTexture(TTexture* t) {
+	void pushTexture(TTexture* t, const char* _name = TEXTURE_STD_SHADER_VARIABLE_NAME) {
 		int _size = textures.size();
 		if (_size == 32) {
 			popTexture();

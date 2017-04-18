@@ -204,6 +204,8 @@ public:
 	virtual void bindUniform(GLint _location) = 0;
 	//Push uniform to shader queue
 	virtual void push() = 0;
+	//Pull uniform from shader queue
+	virtual void pull() = 0;
 };
 
 /* Common base class for all automatic Uniform handlers.
@@ -251,8 +253,14 @@ public:
 	//Pull from shader uniform handle queue of current saved shader
 	void pull() {
 		if (shader) {
-			(shader->*DeleteUniform)(uniformId);
-			uniformId = -1;
+			if (uniformId >= 0) {
+				(shader->*DeleteUniform)(uniformId);
+				uniformId = -1;
+			} else {
+				#ifdef DEBUG_UNIFORMS
+					DEBUG_OUT << "ERROR::UNIFORM_AUTOMATIC::pull::UNIFORMID_MISSING" << DEBUG_NEXT_LINE;
+				#endif
+			}
 		} else {
 			#ifdef DEBUG_UNIFORMS
 				DEBUG_OUT << "ERROR::UNIFORM_AUTOMATIC::pull::SHADER_MISSING" << DEBUG_NEXT_LINE;
@@ -315,6 +323,14 @@ public:
 		if (shader && uniformId >= 0)
 			pull();
 		Base::setShader(_shader);
+		push();
+	}
+
+	//Set new in-shader name of variable
+	void setName(std::string _newName) {
+		if (shader && uniformId >= 0)
+			pull();
+		Base::setName(std::move(_newName));
 		push();
 	}
 };

@@ -120,6 +120,16 @@ protected:
 		}
 	}
 public:
+
+	/*
+	* Practically now the first thing i don't understand is 
+	* "Why on Earth i created this set of virtual functions?"
+	* The second is "How compiler distinguish calls between 
+	* MultipleInstanceLoader::drawInstances() and SimpleModel::drawInstances() of same object?"
+	* This functions must be total abstract stuff, but object of this class must be constructible.
+	* This section must be redone properly.
+	*/
+
 	//Draw one instance of model using instance data
 	virtual void drawInstance(int index) { return; }
 

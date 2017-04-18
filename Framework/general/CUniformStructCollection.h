@@ -50,6 +50,13 @@ struct MaterialPOD {
 	MaterialPOD(const MaterialPOD& other) : 
 				ambient(other.ambient), diffuse(other.diffuse),
 				specular(other.specular), shininess(other.shininess) {}
+	
+	enum Data : int {
+		AMBIENT,
+		DIFFUSE,
+		SPECULAR,
+		SHININESS
+	};
 };
 
 /* The manual storage for in-shader struct that represents material.
@@ -144,6 +151,52 @@ struct MaterialManualStorage : public StructManualContainer {
 		dynamic_cast<Vec3ManualStorage<>*>(_buff)->setShader(_shader);
 		_buff = data[3];
 		dynamic_cast<NumberManualStorage<>*>(_buff)->setShader(_shader);
+	}
+
+	void operator() (glm::vec3 _vector, LightsourcePOD::Data _index) {
+		UniformManualInteface* _buff = nullptr;
+		switch (_index) {
+			case MaterialPOD::AMBIENT:
+				_buff = data[0];
+				break;
+			case MaterialPOD::DIFFUSE:
+				_buff = data[1];
+				break;
+			case MaterialPOD::SPECULAR:
+				_buff = data[2];
+				break;
+		}
+		dynamic_cast<Vec3ManualStorage<>*>(_buff)->setValue(_vector);
+	}
+
+	void operator() (float _value, LightsourcePOD::Data _index) {
+		UniformManualInteface* _buff = nullptr;
+		if (_index == MaterialPOD::SHININESS) {
+			_buff = data[3];
+			dynamic_cast<NumberManualStorage<>*>(_buff)->setValue(_value);
+		}
+	}
+
+	glm::vec3 getValue(MaterialPOD::Data _index) {
+		UniformManualInteface* _buff = nullptr;
+		switch (_index) {
+			case MaterialPOD::AMBIENT:
+				_buff = data[0];
+				break;
+			case MaterialPOD::DIFFUSE:
+				_buff = data[1];
+				break;
+			case MaterialPOD::SPECULAR:
+				_buff = data[2];
+				break;
+		}
+		return dynamic_cast<Vec3ManualStorage<>*>(_buff)->getValue();
+	}
+
+	float getValue() {
+		UniformManualInteface* _buff = nullptr;
+		_buff = data[3];
+		return dynamic_cast<NumberManualStorage<>*>(_buff)->getValue();
 	}
 };
 

@@ -28,29 +28,31 @@ public:
 		int normal_offset,		normal_length;
 		int vertices_count,		indexes_count;
 		bool indexed;
+		int stride;
 
 		Layout() :  vertex_offset(0),		vertex_length(SIMPLEMODEL_VERTEX_SIZE),
 					color_offset(-1),		color_length(SIMPLEMODEL_COLOR_SIZE),
 					texCoord_offset(-1),	texCoord_length(SIMPLEMODEL_TEXCOORD_SIZE),
 					normal_offset(-1),		normal_length(SIMPLEMODEL_NORMAL_SIZE),
 					vertices_count(0),		indexes_count(0),
-					indexed(true) {}
+					indexed(true),			stride(-1) {}
 		/*
 		vertex_offset,   vertex_length,
 		color_offset,	 color_length,
 		texCoord_offset, texCoord_length,
 		normal_offset,   normal_length,
 		vertices_count,  indexes_count,
-		indexed
+		indexed,		 stride
 		*/
 		Layout( int vo, int vl, int co, int cl, 
 				int to, int tl, int no, int nl, 
-				int vc, int ic, bool ind) : vertex_offset(vo),		vertex_length(vl),
-											color_offset(co),		color_length(cl),
-											texCoord_offset(to),	texCoord_length(tl),
-											normal_offset(no),		normal_length(nl),
-											vertices_count(vc),		indexes_count(ic),
-											indexed(ind) {}
+				int vc, int ic, bool ind, 
+				int st = -1 ) : vertex_offset(vo),		vertex_length(vl),
+								color_offset(co),		color_length(cl),
+								texCoord_offset(to),	texCoord_length(tl),
+								normal_offset(no),		normal_length(nl),
+								vertices_count(vc),		indexes_count(ic),
+								indexed(ind),			stride(st) {}
 	};
 private:
 	Layout layout;
@@ -65,12 +67,12 @@ public:
 		if (layout.vertex_offset > -1) {
 			bufferAlocator |= COMBINED;
 		} else {
-			throw std::exception("ERROR::COMBINED_MODEL::Constructor::Vertices array must be defined");
+			throw std::invalid_argument("ERROR::COMBINED_MODEL::Constructor::Vertices array must be defined");
 		}
 		if (indexesArray != nullptr) {
 			bufferAlocator |= ELEMENT;
 		} else if (layout.indexed) {
-			throw std::exception("ERROR::COMBINED_MODEL::Constructor::Element array must be defined for indexed layout");
+			throw std::invalid_argument("ERROR::COMBINED_MODEL::Constructor::Element array must be defined for indexed layout");
 		}
 		bufferAlocator |= VERTEXARRAY;
 		allocate(bufferAlocator);
@@ -109,6 +111,17 @@ public:
 				stride += layout.texCoord_length;
 			if (layout.normal_offset > -1)
 				stride += layout.normal_length;
+			
+			/* This adds ability to use continuous arrays of data partially:
+			* |   DATA SLOT 1   ||   DATA SLOT 2   |
+			* |X|Y|Z|___|S|T|___||X|Y|Z|___|S|T|___|
+			* |1|2|3|_|_|4|5|_|_||1|2|3|_|_|4|5|_|_|...
+			* |----------------->|stride = 9
+			*           |----------------->|stride = 9
+			* Custom stride must be equal or higher than sum of length of data.
+			*/
+			if (layout.stride > stride)
+				stride = layout.stride;
 
 			glBufferData(GL_ARRAY_BUFFER, layout.vertices_count * sizeof(GLfloat) * stride, data, GL_STATIC_DRAW);
 

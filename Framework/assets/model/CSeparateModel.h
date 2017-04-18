@@ -60,7 +60,7 @@ public:
 			bufferAlocator |= VERTEX;
 		}
 		else {
-			throw std::exception("ERROR::SEPARATE_MODEL::Constructor::Vertices array must be defined");
+			throw std::invalid_argument("ERROR::SEPARATE_MODEL::Constructor::Vertices array must be defined");
 		}
 		if (colors != nullptr)
 			bufferAlocator |= COLOR;
@@ -72,7 +72,7 @@ public:
 			bufferAlocator |= ELEMENT;
 		}
 		else {
-			throw std::exception("ERROR::SEPARATE_MODEL::Constructor::Element array must be defined");
+			throw std::invalid_argument("ERROR::SEPARATE_MODEL::Constructor::Element array must be defined");
 		}
 		bufferAlocator |= VERTEXARRAY;
 		allocate(bufferAlocator);
