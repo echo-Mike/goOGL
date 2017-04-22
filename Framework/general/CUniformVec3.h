@@ -1,5 +1,5 @@
 #ifndef UNIFORMVEC3_H
-#define UNIFORMVEC3_H "[0.0.2@CUniformVec3.h]"
+#define UNIFORMVEC3_H "[0.0.3@CUniformVec3.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of in-shader uniform vec3f handling classes and templates based on uniform handling.
@@ -101,7 +101,7 @@ public:
 		if (_location == -1) { //Check if uniform not found
 			#ifdef DEBUG_UNIFORMMATRIX
 				DEBUG_OUT << "ERROR::VEC3_MANUAL_STORAGE::bindData::UNIFORM_NAME_MISSING" << DEBUG_NEXT_LINE;
-				DEBUG_OUT << "\tName: " << uniformName.c_str() << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "\tName: " << uniformName << DEBUG_NEXT_LINE;
 			#endif
 			return;
 		}

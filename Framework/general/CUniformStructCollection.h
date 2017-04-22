@@ -1,5 +1,5 @@
 #ifndef UNIFORMSTRUCTCOLLECTION_H
-#define UNIFORMSTRUCTCOLLECTION_H "[0.0.2@CUniformStructCollection.h]"
+#define UNIFORMSTRUCTCOLLECTION_H "[0.0.3@CUniformStructCollection.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of common structures handlers 
@@ -153,7 +153,7 @@ struct MaterialManualStorage : public StructManualContainer {
 		dynamic_cast<NumberManualStorage<>*>(_buff)->setShader(_shader);
 	}
 
-	void operator() (glm::vec3 _vector, LightsourcePOD::Data _index) {
+	void operator() (glm::vec3 _vector, MaterialPOD::Data _index) {
 		UniformManualInteface* _buff = nullptr;
 		switch (_index) {
 			case MaterialPOD::AMBIENT:
@@ -169,7 +169,7 @@ struct MaterialManualStorage : public StructManualContainer {
 		dynamic_cast<Vec3ManualStorage<>*>(_buff)->setValue(_vector);
 	}
 
-	void operator() (float _value, LightsourcePOD::Data _index) {
+	void operator() (float _value, MaterialPOD::Data _index) {
 		UniformManualInteface* _buff = nullptr;
 		if (_index == MaterialPOD::SHININESS) {
 			_buff = data[3];

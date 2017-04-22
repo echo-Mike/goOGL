@@ -1,5 +1,5 @@
 #ifndef JEWELRY_H
-#define JEWELRY_H "[0.0.2@SJewelry.h]"
+#define JEWELRY_H "[0.0.3@SJewelry.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of jewelry materials 

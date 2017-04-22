@@ -1,5 +1,5 @@
 #ifndef CAMERA_H
-#define CAMERA_H "[0.0.2@CCamera.h]"
+#define CAMERA_H "[0.0.3@CCamera.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of camera controller class.

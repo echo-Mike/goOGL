@@ -1,5 +1,5 @@
 #ifndef UNIFORMS_H
-#define UNIFORMS_H "[0.0.2@CUniforms.h]"
+#define UNIFORMS_H "[0.0.3@CUniforms.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of in-shader uniform value handling classes and templates.
@@ -212,23 +212,15 @@ public:
 *  Class template definition: UniformAutomatic
 */
 template <	template<class, class> class TBase, class T, class TShader = Shader,
-			int (TShader::* NewUniform)(const char*, UniformAutomaticInteface*) = &TShader::newUniform,
-			void (TShader::* DeleteUniform)(int) = &TShader::deleteUniform >
+			void (TShader::* NewUniform)(std::string&, UniformAutomaticInteface*) = &TShader::newUniform,
+			void (TShader::* DeleteUniform)(std::string&) = &TShader::deleteUniform >
 class UniformAutomatic : public UniformAutomaticInteface, public TBase<T, TShader> {
-	int uniformId;
 	typedef TBase<T, TShader> Base;
 public:
 	//Push to shader uniform handle queue of current saved shader
 	void push() {
-		if (uniformId >= 0) {
-			#ifdef DEBUG_UNIFORMS
-				DEBUG_OUT << "WARNING::UNIFORM_AUTOMATIC::push::ALREADY_BINDED" << DEBUG_NEXT_LINE;
-				DEBUG_OUT << "\tMessage: Uniform handler alredy helds binding with other shader." << DEBUG_NEXT_LINE;
-				DEBUG_OUT << "\tLast Id: " << uniformId << DEBUG_NEXT_LINE;
-			#endif	
-		}
 		if (shader) {
-			uniformId = (shader->*NewUniform)(uniformName.c_str(), this);
+			(shader->*NewUniform)(uniformName, this);
 		} else {
 			#ifdef DEBUG_UNIFORMS
 				DEBUG_OUT << "ERROR::UNIFORM_AUTOMATIC::push::SHADER_MISSING" << DEBUG_NEXT_LINE;
@@ -236,31 +228,21 @@ public:
 		}
 	}
 
-	/*Push to uniform handle queue of shader defined by pointer
-	* Returns uniforId from _shader
-	*/
-	int push(TShader *_shader) {
+	//Push to uniform handle queue of shader defined by pointer
+	void push(TShader *_shader) {
 		if (_shader) {
-			return (_shader->*NewUniform)(uniformName.c_str(), this);
+			(_shader->*NewUniform)(uniformName, this);
 		} else {
 			#ifdef DEBUG_UNIFORMS
-				DEBUG_OUT << "ERROR::UNIFORM_AUTOMATIC::push::SHADER_MISSING" << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "ERROR::UNIFORM_AUTOMATIC::push::SHADER_NOT_PROVIDED" << DEBUG_NEXT_LINE;
 			#endif
-			return -1;
 		}
 	}
 
 	//Pull from shader uniform handle queue of current saved shader
 	void pull() {
 		if (shader) {
-			if (uniformId >= 0) {
-				(shader->*DeleteUniform)(uniformId);
-				uniformId = -1;
-			} else {
-				#ifdef DEBUG_UNIFORMS
-					DEBUG_OUT << "ERROR::UNIFORM_AUTOMATIC::pull::UNIFORMID_MISSING" << DEBUG_NEXT_LINE;
-				#endif
-			}
+			(shader->*DeleteUniform)(uniformName);
 		} else {
 			#ifdef DEBUG_UNIFORMS
 				DEBUG_OUT << "ERROR::UNIFORM_AUTOMATIC::pull::SHADER_MISSING" << DEBUG_NEXT_LINE;
@@ -268,59 +250,37 @@ public:
 		}
 	}
 
-	UniformAutomatic() : Base(), uniformId(-1) {}
+	UniformAutomatic() : Base() {}
 
 	UniformAutomatic(	T *_value, TShader *_shader = nullptr,
 						std::string _uniformName = std::string(UNIFORM_STD_SHADER_VARIABLE_NAME)) :
-						Base(_value, _shader, _uniformName), uniformId(-1)
-	{
-		push();
-	}
+						Base(_value, _shader, _uniformName) { push(); }
 	
 	UniformAutomatic(	T *_value, TShader *_shader = nullptr,
 						const char* _uniformName = UNIFORM_STD_SHADER_VARIABLE_NAME) :
-						Base(_value, _shader, _uniformName), uniformId(-1)
-	{
-		push();
-	}
+						Base(_value, _shader, _uniformName) { push(); }
 
-	UniformAutomatic(const UniformAutomatic &other) : Base(other), uniformId(-1)
-	{
-		push();
-	}
+	UniformAutomatic(const UniformAutomatic &other) : Base(other) {	push();	}
 
-	UniformAutomatic(UniformAutomatic &&other) :	Base(other),
-													uniformId(std::move(other.uniformId)) 
-	{
-		//Negate the shader resource acquisition in "other" that will be deleted soon
-		other.uniformId = -1;
-	}
+	UniformAutomatic(UniformAutomatic &&other) : Base(other) {}
 
-	~UniformAutomatic() {
-		//Clear shader callback for this uniform
-		if (uniformId >= 0)
-			pull();
-	}
+	~UniformAutomatic() { /*Clear shader callback for this uniform*/ pull(); }
 
 	UniformAutomatic& operator=(UniformAutomatic other) {
 		if (&other == this)
 			return *this;
 		Base::operator=(other);
-		uniformId = -1;
-		std::swap(uniformId, other.uniformId);
 		return *this;
 	}
 
 	UniformAutomatic& operator=(UniformAutomatic &&other) {
 		Base::operator=(other);
-		uniformId = std::move(other.uniformId);
-		other.uniformId = -1;
 		return *this;
 	}
 
 	//Shader pointer setup
 	void setShader(TShader* _shader) {
-		if (shader && uniformId >= 0)
+		if (shader)
 			pull();
 		Base::setShader(_shader);
 		push();
@@ -328,7 +288,7 @@ public:
 
 	//Set new in-shader name of variable
 	void setName(std::string _newName) {
-		if (shader && uniformId >= 0)
+		if (shader)
 			pull();
 		Base::setName(std::move(_newName));
 		push();

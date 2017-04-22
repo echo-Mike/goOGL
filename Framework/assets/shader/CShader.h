@@ -1,5 +1,5 @@
 #ifndef SHADER_H
-#define SHADER_H "[0.0.2@CShader.h]"
+#define SHADER_H "[0.0.3@CShader.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of shader class.
@@ -40,21 +40,19 @@
 #endif
 
 //Class definition: Shader
-class Shader {	
+class Shader {
 	//NO STDCONSTRUCT, NO MOVECONSTRUCT, NO COPYCONSTRUCT
 	Shader() = delete;
 	Shader(const Shader& s) = delete;
 	Shader(const Shader&& s) = delete;
-	//Vertex and Fragment shader paths
-	std::string vpath, fpath;
 	//Uniform container
-	std::map<int, std::pair<std::string, UniformAutomaticInteface*>> uniforms;
+	std::map<std::string, UniformAutomaticInteface*> uniforms;
 	//The program ID //SPO ID
 	GLuint Program;
-	//NOT SAFE SOLUTION: OVERFLOW
-	//Id counter for current shader
-	int incrementId;
 public:
+	//Vertex and Fragment shader paths
+	std::string vpath, fpath;
+
 	//Returns SPO Id
 	GLuint getShaderId() { return Program; }
 
@@ -72,10 +70,23 @@ public:
 		return _location;
 	}
 
+	//Returns result of uniform search: location detemined by name
+	GLint getUniformLocation(std::string &_uniformName) {
+		GLint _location;
+		_location = glGetUniformLocation(Program, _uniformName.c_str());
+		if (_location == -1) { //Check if uniform not found
+			#ifdef DEBUG_SHADER
+				DEBUG_OUT << "ERROR::SHADER::getUniformLocation::UNIFORM_NAME_MISSING"<< DEBUG_NEXT_LINE;
+				DEBUG_OUT << "\tName: " << _uniformName << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "\tFPath: " << fpath << DEBUG_NEXT_LINE;
+			#endif
+		}
+		return _location;
+	}
+
 	Shader(const GLchar* vertexPath, const GLchar* fragmentPath) :	vpath(vertexPath), 
 																	fpath(fragmentPath), 
-																	Program(0), 
-																	incrementId(0) 
+																	Program(0)
 	{ 
 		Reload(); 
 	}
@@ -83,16 +94,28 @@ public:
 	~Shader() {
 		//Prevent external values from destructor calls
 		for (auto &v : uniforms)
-			v.second.second = nullptr;
+			v.second = nullptr;
 		glDeleteProgram(this->Program); 
 	}
 
-	int newUniform(const char* _uniformName, UniformAutomaticInteface* _handler) {
-		uniforms[incrementId] = std::move(std::make_pair(std::string(_uniformName), _handler));
-		return incrementId++;
+	void newUniform(std::string &_uniformName, UniformAutomaticInteface* _handler) {
+		uniforms[_uniformName] = _handler;
 	}
 
-	void deleteUniform(int _index) { uniforms.erase(_index); }
+	void deleteUniform(const char* _key) { uniforms.erase(std::string(_key)); }
+
+	void deleteUniform(std::string &_key) { uniforms.erase(_key); }
+	
+	//Find uniform in queue by it's name
+	bool find(std::string &_key) { return uniforms.find(_key) != uniforms.end(); }
+
+	//Find uniform in queue by pointer to it
+	bool find(UniformAutomaticInteface* _toFind) {
+		for (auto &_value : uniforms)
+			if (_value.second == _toFind)
+				return true;
+		return false;
+	}
 
 	void Use();
 

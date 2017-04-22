@@ -1,5 +1,5 @@
 #ifndef SIMPLEMODEL_H
-#define SIMPLEMODEL_H "[0.0.2@CSimpleModel.h]"
+#define SIMPLEMODEL_H "[0.0.3@CSimpleModel.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of model base class.
@@ -31,7 +31,7 @@
 */
 template<	class TShader = Shader, class TTexture = Texture,
 			void (TShader::* ApplyShader)(void) = &TShader::Use>
-class SimpleModel : public GLBufferHandler, public MultipleInstanceLoader, public MultipleTextureHandler<TTexture, TShader> {
+class SimpleModel : public GLBufferHandler, public MultipleInstanceLoader<TShader>, public MultipleTextureHandler<TTexture, TShader> {
 protected:
 	//Pointer to shader
 	TShader *shader;
@@ -44,6 +44,7 @@ public:
 	void setShader(TShader *_shader) {
 		shader = _shader;
 		MultipleTextureHandler::setShader(_shader);
+		MultipleInstanceLoader::setShader(_shader);
 	}
 
 	//Draw one instance of model using instance data

@@ -1,5 +1,5 @@
 #ifndef INDEXPOOL_H
-#define INDEXPOOL_H "[0.0.2@CIndexPool.h]"
+#define INDEXPOOL_H "[0.0.3@CIndexPool.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of index handler class.

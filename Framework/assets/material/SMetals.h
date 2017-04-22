@@ -1,5 +1,5 @@
 #ifndef METALS_H
-#define METALS_H "[0.0.2@SMetals.h]"
+#define METALS_H "[0.0.3@SMetals.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of metal-like materials 

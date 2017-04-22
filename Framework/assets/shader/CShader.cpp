@@ -1,10 +1,10 @@
 #include "CShader.h"
 //Bind shader program to OpenGL and update all uniforms
 void Shader::Use() {
-	glUseProgram(this->Program);
+	glUseProgram(Program);
 	GLint _location = 0;
 	for (auto &_value : uniforms) {
-		_location = glGetUniformLocation(Program, _value.second.first.c_str());
+		_location = glGetUniformLocation(Program, _value.first.c_str());
 		if (_location == -1) { //Check if uniform not found
 			#ifdef DEBUG_SHADERCPP
 				DEBUG_OUT << "ERROR::SHADER::Use::UNIFORM_NAME_MISSING"<< DEBUG_NEXT_LINE;
@@ -12,7 +12,7 @@ void Shader::Use() {
 			#endif
 			continue;
 		}
-		_value.second.second->bindUniform(_location);
+		_value.second->bindUniform(_location);
 	}
 }
 

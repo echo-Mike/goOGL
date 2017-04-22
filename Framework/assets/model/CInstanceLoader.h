@@ -1,5 +1,5 @@
 #ifndef INSTANCELOADER_H
-#define INSTANCELOADER_H "[0.0.2@CInstanceLoader.h]"
+#define INSTANCELOADER_H "[0.0.3@CInstanceLoader.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of model instance loader class 
@@ -11,6 +11,9 @@
 */
 //STD
 #include <vector>
+#include <type_traits>
+//OUR
+#include "assets\shader\CShader.h"
 //DEBUG
 #ifdef DEBUG_INSTANCELOADER
 	#ifndef DEBUG_OUT
@@ -22,30 +25,36 @@
 #endif
 
 /* Common interface class for InstanceData declaration.
-*  Class abstract definition: InstanceDataInterface
+*  Class abstract template definition: InstanceDataInterface
 */
+template< class TShader = Shader >
 class InstanceDataInterface {
 public:
 	//Bind instance data to shader
 	virtual void bindData() = 0;
+	//Set shader of instance
+	virtual void setShader(TShader *_shader) = 0;
 };
 
 /* Load controller for instance data.
 *  Class definition: MultipleInstanceLoader
 */
+template < class TShader = Shader >
 class MultipleInstanceLoader {
+	//The base interface class of handled instances
+	typedef InstanceDataInterface<TShader> Interface;
 	//Container of pointers to instance data 
-	std::vector<InstanceDataInterface*> instances;
+	std::vector<Interface*> instances;
 public:
 	//Push instance data to instance array
-	void pushInstance(InstanceDataInterface* _data) {
+	void pushInstance(Interface* _data) {
 		try {
 			instances.push_back(_data);
 		}
 		catch (std::length_error e) {
 			#ifdef DEBUG_INSTANCELOADER
 				DEBUG_OUT << "ERROR::MULTIPLE_INSTANCE_LOADER::pushInstance::OUT_OF_RANGE" << DEBUG_NEXT_LINE; 
-				DEBUG_OUT << "\tCan't push more instance data." << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "\tMessege: Can't push more instance data." << DEBUG_NEXT_LINE;
 				DEBUG_OUT << "\tError string: " << e.what() << DEBUG_NEXT_LINE;
 			#endif
 		}
@@ -62,7 +71,7 @@ public:
 		if (instances.empty()) {
 			#ifdef DEBUG_INSTANCELOADER
 				DEBUG_OUT << "ERROR::MULTIPLE_INSTANCE_LOADER::popInstance::OUT_OF_RANGE" << DEBUG_NEXT_LINE; 
-				DEBUG_OUT << "\tCan't pop from empty instance array." << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "\tMessege: Can't pop from empty instance array." << DEBUG_NEXT_LINE;
 			#endif
 		} else {
 			instances.pop_back();
@@ -70,14 +79,14 @@ public:
 	}
 
 	//Setup instance data for "index" model instance
-	void setInstance(int _index, InstanceDataInterface *_data) {
+	void setInstance(int _index, Interface *_data) {
 		try {
 			instances.at(_index) = _data;
 		}
 		catch (std::length_error e) {
 			#ifdef DEBUG_INSTANCELOADER
 				DEBUG_OUT << "ERROR::MULTIPLE_INSTANCE_LOADER::setInstance::OUT_OF_RANGE"<< DEBUG_NEXT_LINE;
-				DEBUG_OUT << "\tCan't access instance by index: " << _index << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "\tMessege: Can't access instance by index: " << _index << DEBUG_NEXT_LINE;
 				DEBUG_OUT << "\tError string: " << e.what() << DEBUG_NEXT_LINE;
 			#endif
 		}
@@ -95,6 +104,48 @@ public:
 		_start += start;
 		_end += end;
 		instances.erase(_start, _end);
+	}
+
+	//Create new instance of type T by copy-constructing from pointer
+	template < class T >
+	void newInstance(T* _valueptr) {
+		if (std::is_base_of<Interface, T>::value) {
+			if (std::is_copy_constructible<T>::value) {
+				instances.push_back(nullptr);
+				instances.back() = new T(*_valueptr);
+			} else {
+				#ifdef DEBUG_INSTANCELOADER
+					DEBUG_OUT << "ERROR::MULTIPLE_INSTANCE_LOADER::newInstance::INVALID_TYPE" << DEBUG_NEXT_LINE;
+					DEBUG_OUT << "\tMessege: Type T isn't copy constructible." << DEBUG_NEXT_LINE;
+				#endif
+			}
+		} else {
+			#ifdef DEBUG_INSTANCELOADER
+				DEBUG_OUT << "ERROR::MULTIPLE_INSTANCE_LOADER::newInstance::INVALID_TYPE" << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "\tMessege: InstanceDataInterface must be the base class of T." << DEBUG_NEXT_LINE;
+			#endif
+		}
+	}
+
+	//Create new instance of type T by copy-constructing from reference
+	template < class T >
+	void newInstance(T &_valueptr) {
+		if (std::is_base_of<Interface, T>::value) {
+			if (std::is_copy_constructible<T>::value) {
+				instances.push_back(nullptr);
+				instances.back() = new T(_valueptr);
+			} else {
+				#ifdef DEBUG_INSTANCELOADER
+					DEBUG_OUT << "ERROR::MULTIPLE_INSTANCE_LOADER::newInstance::INVALID_TYPE" << DEBUG_NEXT_LINE;
+					DEBUG_OUT << "\tMessege: Type T isn't copy constructible." << DEBUG_NEXT_LINE;
+				#endif
+			}
+		} else {
+			#ifdef DEBUG_INSTANCELOADER
+				DEBUG_OUT << "ERROR::MULTIPLE_INSTANCE_LOADER::newInstance::INVALID_TYPE" << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "\tMessege: InstanceDataInterface must be the base class of T." << DEBUG_NEXT_LINE;
+			#endif
+		}
 	}
 protected:
 	/* Load instance data
@@ -143,6 +194,12 @@ public:
 		}
 		for (int _index = start_index; _index < start_index + count; _index++)
 			this->drawInstance(_index);
+	}
+
+	//Set shader for all handled instances
+	virtual void setShader(TShader *_shader) {
+		for (auto &_value : instances)
+			_value->setShader(_shader);
 	}
 };
 #endif

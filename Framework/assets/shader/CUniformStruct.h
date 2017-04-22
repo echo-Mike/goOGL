@@ -1,5 +1,5 @@
 #ifndef UNIFORMSTRUCT_H
-#define UNIFORMSTRUCT_H "[0.0.2@CUniformStruct.h]"
+#define UNIFORMSTRUCT_H "[0.0.3@CUniformStruct.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of in-shader struct of uniform values handling classes and templates.

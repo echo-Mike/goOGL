@@ -1,5 +1,5 @@
 #ifndef UNIFORMNUMBER_H
-#define UNIFORMNUMBER_H "[0.0.2@CUniformNumber.h]"
+#define UNIFORMNUMBER_H "[0.0.3@CUniformNumber.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of in-shader uniform number (float, double, etc.)
@@ -54,7 +54,7 @@ public:
 		if (_location == -1) { //Check if uniform not found
 			#ifdef DEBUG_UNIFORMNUMBER
 				DEBUG_OUT << "ERROR::NUMBER_MANUAL_STORAGE::bindData::UNIFORM_NAME_MISSING" << DEBUG_NEXT_LINE;
-				DEBUG_OUT << "\tName: " << uniformName.c_str() << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "\tName: " << uniformName << DEBUG_NEXT_LINE;
 			#endif
 			return;
 		}
