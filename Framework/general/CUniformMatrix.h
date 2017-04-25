@@ -52,6 +52,8 @@ public:
 							std::string _name = std::string(MATRIX_STD_SHADER_VARIABLE_NAME)) :
 							Base(_matrix, _shader, _name) {}
 	
+	MatrixAutomaticStorage(const MatrixAutomaticStorage& other) : Base(other) {}
+
 	//Bind matrix to shader
 	void bindUniform(GLint _location) {
 		glUniformMatrix4fv(_location, 1, transposeOnLoad, (value.*_getValuePtr)());
@@ -80,6 +82,8 @@ public:
 	MatrixManualStorage(TMatrix* _matrix, TShader* _shader,
 						std::string _name = std::string(MATRIX_STD_SHADER_VARIABLE_NAME)) :
 						Base(_matrix, _shader, _name) {}
+
+	MatrixManualStorage(const MatrixManualStorage& other) : Base(other) {}
 	
 	//Bind matrix to shader
 	void bindData() {

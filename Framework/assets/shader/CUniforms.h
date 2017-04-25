@@ -218,7 +218,7 @@ class UniformAutomatic : public UniformAutomaticInteface, public TBase<T, TShade
 	typedef TBase<T, TShader> Base;
 public:
 	//Push to shader uniform handle queue of current saved shader
-	void push() {
+	virtual void push() {
 		if (shader) {
 			(shader->*NewUniform)(uniformName, this);
 		} else {
@@ -229,7 +229,7 @@ public:
 	}
 
 	//Push to uniform handle queue of shader defined by pointer
-	void push(TShader *_shader) {
+	virtual void push(TShader *_shader) {
 		if (_shader) {
 			(_shader->*NewUniform)(uniformName, this);
 		} else {
@@ -240,7 +240,7 @@ public:
 	}
 
 	//Pull from shader uniform handle queue of current saved shader
-	void pull() {
+	virtual void pull() {
 		if (shader) {
 			(shader->*DeleteUniform)(uniformName);
 		} else {
@@ -279,7 +279,7 @@ public:
 	}
 
 	//Shader pointer setup
-	void setShader(TShader* _shader) {
+	virtual void setShader(TShader* _shader) {
 		if (shader)
 			pull();
 		Base::setShader(_shader);
@@ -287,7 +287,7 @@ public:
 	}
 
 	//Set new in-shader name of variable
-	void setName(std::string _newName) {
+	virtual void setName(std::string _newName) {
 		if (shader)
 			pull();
 		Base::setName(std::move(_newName));

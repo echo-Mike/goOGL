@@ -18,7 +18,6 @@
 //OUR
 #include "assets/shader/CUniforms.h"
 #include "CTexture.h"
-#include "general\CIndexPool.h"
 //DEBUG
 #ifdef DEBUG_UNIFORMTEXTURE
 	#ifndef DEBUG_OUT
@@ -288,7 +287,7 @@ public:
 			_size--;
 		}
 		try {
-			textures.push_back(THandler(t, shader, 0, 0, MULTIPLE_TEXTURE_HANDLER_TEXTURE_NAMES[_size]));
+			textures.push_back(std::move(THandler(t, shader, 0, 0, MULTIPLE_TEXTURE_HANDLER_TEXTURE_NAMES[_size])));
 		}
 		catch (std::length_error e) {
 			#ifdef DEBUG_UNIFORMTEXTURE
@@ -305,6 +304,7 @@ public:
 			return;
 		}
 		//Setup texture
+		textures.back().push();
 		textures.back().setTextureSlot(GL_TEXTURE0 + (GLuint)(textures.size() - 1));
 		textures.back().setTextureUnit(textures.size() - 1);
 	}
@@ -405,13 +405,13 @@ public:
 	int getResrvedCount() { return reserved; }
 
 	//Get first available texture slot
-	GLuint getStartReservedSlot() { return GL_TEXTURE0 + (GLuint)(MULTIPLE_TEXTURE_HANDLER_UPPER_BOUND - reserved); }
+	GLuint getFirstReservedSlot() { return GL_TEXTURE0 + (GLuint)(MULTIPLE_TEXTURE_HANDLER_UPPER_BOUND - reserved); }
 
 	//Get first available texture unit
-	int getStartReservedUnit() { return MULTIPLE_TEXTURE_HANDLER_UPPER_BOUND - reserved; }
+	int getFirstReservedUnit() { return MULTIPLE_TEXTURE_HANDLER_UPPER_BOUND - reserved; }
 
 	//Get first available texture slot and unit in pair
-	std::pair<GLuint, int> getStartReserved() {
+	std::pair<GLuint, int> getFirstReserved() {
 		int _unit = MULTIPLE_TEXTURE_HANDLER_UPPER_BOUND - reserved;
 		return std::make_pair<GLuint, int>(GL_TEXTURE0 + (GLuint)_unit, _unit);
 	}

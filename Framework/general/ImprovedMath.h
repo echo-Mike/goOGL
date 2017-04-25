@@ -27,7 +27,7 @@ namespace our {
 		Matrix4GLMHelper() : value(glm::mat4()) {}
 
 		//Copy constructor
-		Matrix4GLMHelper(Matrix4GLMHelper& other) : value(other.value) {}
+		Matrix4GLMHelper(const Matrix4GLMHelper& other) : value(other.value) {}
 
 		//Move constructor
 		Matrix4GLMHelper(Matrix4GLMHelper&& other) : value(std::move(other.value)) {}
@@ -102,5 +102,4 @@ namespace our {
 		return glm::scale(m, v);
 	}
 }
-
 #endif

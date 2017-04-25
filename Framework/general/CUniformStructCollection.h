@@ -153,6 +153,7 @@ struct MaterialManualStorage : public StructManualContainer {
 		dynamic_cast<NumberManualStorage<>*>(_buff)->setShader(_shader);
 	}
 
+	//Set values of glm::vec3 type
 	void operator() (glm::vec3 _vector, MaterialPOD::Data _index) {
 		UniformManualInteface* _buff = nullptr;
 		switch (_index) {
@@ -169,6 +170,7 @@ struct MaterialManualStorage : public StructManualContainer {
 		dynamic_cast<Vec3ManualStorage<>*>(_buff)->setValue(_vector);
 	}
 
+	//Set values of float type
 	void operator() (float _value, MaterialPOD::Data _index) {
 		UniformManualInteface* _buff = nullptr;
 		if (_index == MaterialPOD::SHININESS) {
@@ -177,26 +179,29 @@ struct MaterialManualStorage : public StructManualContainer {
 		}
 	}
 
-	glm::vec3 getValue(MaterialPOD::Data _index) {
+	//Get values of any type (for float use "new float" as argument)
+	template < class T >
+	T operator() (MaterialPOD::Data _index, T &_typeValue) {
 		UniformManualInteface* _buff = nullptr;
-		switch (_index) {
-			case MaterialPOD::AMBIENT:
-				_buff = data[0];
-				break;
-			case MaterialPOD::DIFFUSE:
-				_buff = data[1];
-				break;
-			case MaterialPOD::SPECULAR:
-				_buff = data[2];
-				break;
+		if (std::is_same<T, glm::vec3>::value) {
+			switch (_index) {
+				case MaterialPOD::AMBIENT:
+					_buff = data[0];
+					break;
+				case MaterialPOD::DIFFUSE:
+					_buff = data[1];
+					break;
+				case MaterialPOD::SPECULAR:
+					_buff = data[2];
+					break;
+			}
+			return dynamic_cast<Vec3ManualStorage<>*>(_buff)->getValue();
+		} else if (std::is_same<T, float>::value) {
+			_buff = data[3];
+			return dynamic_cast<NumberManualStorage<>*>(_buff)->getValue();
+		} else {
+			return _typeValue;
 		}
-		return dynamic_cast<Vec3ManualStorage<>*>(_buff)->getValue();
-	}
-
-	float getValue() {
-		UniformManualInteface* _buff = nullptr;
-		_buff = data[3];
-		return dynamic_cast<NumberManualStorage<>*>(_buff)->getValue();
 	}
 };
 
@@ -226,6 +231,9 @@ struct LightsourcePOD {
 	};
 };
 
+/* The storage for in-shader struct that represents lightsource.
+*  Struct definition: LightsourceStorage
+*/
 template < class TBase, class TMember, class TMemberInterface, class TVector3 = glm::vec3, class TShader = Shader>
 struct LightsourceStorage : public TBase {
 
@@ -360,7 +368,7 @@ struct LightsourceStorage : public TBase {
 		dynamic_cast<TMember*>(_buff)->setValue(_vector);
 	}
 
-	TVector3 getValue(LightsourcePOD::Data _index) {
+	TVector3 operator()(LightsourcePOD::Data _index, TVector3& _typeValue = glm::vec3()) {
 		TMemberInterface* _buff = nullptr;
 		switch (_index) {
 			case LightsourcePOD::POSITION:
@@ -375,6 +383,8 @@ struct LightsourceStorage : public TBase {
 			case LightsourcePOD::SPECULAR:
 				_buff = data[3];
 				break;
+			default:
+				return _typeValue;
 		}
 		return dynamic_cast<TMember*>(_buff)->getValue();
 	}
@@ -384,6 +394,9 @@ struct LightsourceStorage : public TBase {
 	typedef TMemberInterface MemberInterface;
 };
 
+/* The manual storage for in-shader struct that represents material.
+*  Struct definition: LightsourceManualStorage
+*/
 template < class TVector3 = glm::vec3, class TShader = Shader >
 using LightsourceManualStorage	=	LightsourceStorage<	StructManualContainer, 
 														Vec3ManualStorage<TVector3, TShader>, 
@@ -391,6 +404,9 @@ using LightsourceManualStorage	=	LightsourceStorage<	StructManualContainer,
 														TVector3, 
 														TShader >;
 
+/* The automatic storage for in-shader struct that represents material.
+*  Struct definition: LightsourceAutomaticStorage
+*/
 template < class TVector3 = glm::vec3, class TShader = Shader >
 using LightsourceAutomaticStorage = LightsourceStorage<	StructAutomaticContainer, 
 														Vec3AutomaticStorage<TVector3, TShader>, 

@@ -47,6 +47,8 @@ public:
 	Vec3AutomaticStorage(	TVector* _vector, TShader* _shader,
 							std::string _name = std::string(VEC3_STD_SHADER_VARIABLE_NAME)) :
 							Base(_vector, _shader, _name) {}
+
+	Vec3AutomaticStorage(const Vec3AutomaticStorage& other) : Base(other) {}
 	
 	//Bind vec3 to shader
 	void bindUniform(GLint _location) {
@@ -71,6 +73,8 @@ public:
 							std::string _name = std::string(VEC3_STD_SHADER_VARIABLE_NAME)) :
 							Base(_vector, _shader, _name) {}
 	
+	Vec3AutomaticObserver(const Vec3AutomaticObserver& other) : Base(other) {}
+
 	//Bind vec3 to shader
 	void bindUniform(GLint _location) {
 		glUniform3f(_location, valueptr->x, valueptr->y, valueptr->z);
@@ -94,6 +98,8 @@ public:
 	Vec3ManualStorage(	TVector* _vector, TShader* _shader,
 						std::string _name = std::string(VEC3_STD_SHADER_VARIABLE_NAME)) :
 						Base(_vector, _shader, _name) {}
+
+	Vec3ManualStorage(const Vec3ManualStorage& other) : Base(other) {}
 	
 	//Bind vec3 to shader
 	void bindData() {

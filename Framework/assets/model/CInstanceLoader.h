@@ -41,13 +41,18 @@ public:
 */
 template < class TShader = Shader >
 class MultipleInstanceLoader {
-	//The base interface class of handled instances
-	typedef InstanceDataInterface<TShader> Interface;
-	//Container of pointers to instance data 
-	std::vector<Interface*> instances;
 public:
+	//The base interface class of handled instances
+	typedef InstanceDataInterface<TShader> InstanceInterface;
+
+	//The type of instance container used
+	typedef std::vector<InstanceInterface*> InstanceContainer;
+
+	//Container of instance data
+	InstanceContainer instances;
+
 	//Push instance data to instance array
-	void pushInstance(Interface* _data) {
+	void pushInstance(InstanceInterface* _data) {
 		try {
 			instances.push_back(_data);
 		}
@@ -78,38 +83,10 @@ public:
 		}
 	}
 
-	//Setup instance data for "index" model instance
-	void setInstance(int _index, Interface *_data) {
-		try {
-			instances.at(_index) = _data;
-		}
-		catch (std::length_error e) {
-			#ifdef DEBUG_INSTANCELOADER
-				DEBUG_OUT << "ERROR::MULTIPLE_INSTANCE_LOADER::setInstance::OUT_OF_RANGE"<< DEBUG_NEXT_LINE;
-				DEBUG_OUT << "\tMessege: Can't access instance by index: " << _index << DEBUG_NEXT_LINE;
-				DEBUG_OUT << "\tError string: " << e.what() << DEBUG_NEXT_LINE;
-			#endif
-		}
-		catch (...) {
-			#ifdef DEBUG_INSTANCELOADER
-				DEBUG_OUT << "ERROR::MULTIPLE_INSTANCE_LOADER::setInstance::UNKONWN"<< DEBUG_NEXT_LINE;
-			#endif
-				throw;
-		}
-	}
-
-	//Remove instances from start index to end index
-	void eraseInstance(int start = 0, int end = 0) {
-		auto _start = instances.begin(), _end = instances.begin();
-		_start += start;
-		_end += end;
-		instances.erase(_start, _end);
-	}
-
 	//Create new instance of type T by copy-constructing from pointer
 	template < class T >
 	void newInstance(T* _valueptr) {
-		if (std::is_base_of<Interface, T>::value) {
+		if (std::is_base_of<InstanceInterface, T>::value) {
 			if (std::is_copy_constructible<T>::value) {
 				instances.push_back(nullptr);
 				instances.back() = new T(*_valueptr);
@@ -130,7 +107,7 @@ public:
 	//Create new instance of type T by copy-constructing from reference
 	template < class T >
 	void newInstance(T &_valueptr) {
-		if (std::is_base_of<Interface, T>::value) {
+		if (std::is_base_of<InstanceInterface, T>::value) {
 			if (std::is_copy_constructible<T>::value) {
 				instances.push_back(nullptr);
 				instances.back() = new T(_valueptr);
@@ -147,6 +124,11 @@ public:
 			#endif
 		}
 	}
+
+	InstanceInterface* operator[] (const int _index) {
+		return instances.at(_index);
+	}
+
 protected:
 	/* Load instance data
 	*  Instance data expected to be derived from InstanceDataInterface

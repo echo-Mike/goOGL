@@ -49,6 +49,8 @@ public:
 						std::string _name = std::string(NUMBER_STD_SHADER_VARIABLE_NAME)) :
 						Base(_value, _shader, _name) {}
 
+	NumberManualStorage(const NumberManualStorage& other) : Base(other) {}
+
 	void bindData() {
 		GLint _location = (shader->*_getUniformLocation)(uniformName.c_str());
 		if (_location == -1) { //Check if uniform not found

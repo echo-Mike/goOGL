@@ -285,9 +285,9 @@ public:
 		view.setName(SIMPLE_CAMERA_STD_VIEW_SHADER_VARIABLE_NAME);
 	}
 
-	//Shader pointer setup
+	//Setup new main shader
 	void setShader(Shader *_shader) {
-		shader = _shader;
+		ProjectionHandler::setShader(_shader);
 		view.setShader(_shader);
 	}
 
@@ -296,21 +296,23 @@ public:
 	*/
 	void Setup() {
 		updateProjection();
-		push();
 		view.setValue(our::lookAt(position, position + front, up));
-		view.push();
 	}
 
 	/*Setup all parameters for OpenGL draw calls including shader
 	* No need to call setShader first
 	*/
 	void Setup(Shader *_shader) {
-		shader = _shader;
-		view.setShader(_shader);
 		updateProjection();
-		push();
 		view.setValue(our::lookAt(position, position + front, up));
-		view.push();
+		ProjectionHandler::setShader(_shader);
+		view.setShader(_shader);
+	}
+
+	//Push camera data to _shader handle queue
+	void push(Shader *_shader) {
+		ProjectionHandler::push(_shader);
+		view.push(_shader);
 	}
 
 	//Periodic update function
