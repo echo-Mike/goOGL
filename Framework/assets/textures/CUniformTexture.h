@@ -48,12 +48,11 @@
 /* The storage for uniform samplaer2D in-shader value.
 *  Class template definition: TextureStorage
 */
-template <	template <class, class> class TBase, 
+template <	class TBase, 
 			class TTexture = Texture, class TShader = Shader,
-			void (TTexture::* TextureLoader)(void)	= &TTexture::LoadToGL,
-			void (TTexture::* BindTexture)(void)	= &TTexture::Use >
-class TextureStorage : public TBase<TTexture, TShader> {
-	typedef TBase<TTexture, TShader> Base;
+			void (TTexture::* TextureLoader)(void)	= &TTexture::LoadToGL >
+class TextureStorage : public TBase {
+	typedef TBase Base;
 protected:
 	GLuint textureSlot;
 	int textureUnit;
@@ -137,8 +136,8 @@ public:
 template <	class TTexture = Texture, class TShader = Shader,
 			void (TTexture::* TextureLoader)(void) = &TTexture::LoadToGL,
 			void (TTexture::* BindTexture)(void) = &TTexture::Use >
-class TextureAutomaticStorage : public TextureStorage<UniformAutomaticStorage, TTexture, TShader, TextureLoader, BindTexture> {
-	typedef TextureStorage<UniformAutomaticStorage, TTexture, TShader, TextureLoader, BindTexture> Base;
+class TextureAutomaticStorage : public TextureStorage<UniformAutomaticStorage<TTexture, TShader>, TTexture, TShader, TextureLoader> {
+	typedef TextureStorage<UniformAutomaticStorage<TTexture, TShader>, TTexture, TShader, TextureLoader> Base;
 public:
 
 	TextureAutomaticStorage() : Base() {}
@@ -183,7 +182,8 @@ template <	class TTexture = Texture, class TShader = Shader,
 			void (TTexture::* TextureLoader)(void) = &TTexture::LoadToGL,
 			void (TTexture::* BindTexture)(void) = &TTexture::Use,
 			GLint(TShader::* _getUniformLocation)(const char*) = &TShader::getUniformLocation >
-class TextureManualStorage : public TextureStorage<UniformManualStorage, TTexture, TShader, TextureLoader, BindTexture> {
+class TextureManualStorage : public TextureStorage<UniformManualStorage<TTexture, TShader>, TTexture, TShader, TextureLoader> {
+	typedef TextureStorage<UniformManualStorage<TTexture, TShader>, TTexture, TShader, TextureLoader> Base;
 public:
 	TextureManualStorage() : Base() {}
 

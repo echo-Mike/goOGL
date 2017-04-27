@@ -64,6 +64,16 @@ public:
 																						PixelDataType(pixel_load_type),	HaveMimpmap(applay_mipmap),	
 																						SOILLoadType(load_type),		load_status(EMPTY) {}
 	
+	Texture(std::string &texture_path,			int load_type = SOIL_LOAD_RGB, 
+			GLuint target = GL_TEXTURE_2D,		GLuint how_to_store = GL_RGB, 
+			GLuint pixel_load_format = GL_RGB,	GLuint pixel_load_type = GL_UNSIGNED_BYTE,
+			GLuint texture_slot = GL_TEXTURE0,	GLboolean applay_mipmap = GL_TRUE) :	path(texture_path),				width(-1), 
+																						height(-1),						depth(-1),
+																						GLId(0),						GLTarget(target),
+																						GLStoreFormat(how_to_store),	PixelDataFormat(pixel_load_format),
+																						PixelDataType(pixel_load_type),	HaveMimpmap(applay_mipmap),	
+																						SOILLoadType(load_type),		load_status(EMPTY) {}
+
 	Texture(const Texture& t) : path(t.path),					width(t.width),
 								height(t.height),				depth(t.depth),
 								GLId(0),						GLTarget(t.GLTarget),
