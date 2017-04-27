@@ -31,6 +31,36 @@
 	#define NUMBER_STD_SHADER_VARIABLE_NAME "number"
 #endif
 
+/* The automatic storage for uniform number in-shader value.
+*  Class template definition: NumberManualStorage
+*/
+template <	class T = float, class TShader = Shader >
+class NumberAutomaticStorage : public UniformManualStorage<T, TShader> {
+	typedef NumberAutomaticStorage<T, TShader> Base;
+public:
+	NumberAutomaticStorage() : Base(&0, nullptr, NUMBER_STD_SHADER_VARIABLE_NAME) {}
+
+	NumberAutomaticStorage(	T* _value, TShader* _shader,
+							const char* _name = NUMBER_STD_SHADER_VARIABLE_NAME) :
+							Base(_value, _shader, _name) {}
+
+	NumberAutomaticStorage(	T* _value, TShader* _shader,
+							std::string _name = std::string(NUMBER_STD_SHADER_VARIABLE_NAME)) :
+							Base(_value, _shader, _name) {}
+
+	NumberAutomaticStorage(const NumberAutomaticStorage& other) : Base(other) {}
+
+	//Bind number to shader
+	void bindUniform(GLint _location) {
+		if (std::is_same<T, int>::value) {
+			glUniform1i(_location, value);
+		} else 	if (std::is_same<T, unsigned int>::value) {
+			glUniform1ui(_location, value);
+		} else  if (std::is_floating_point<T>::value)
+			glUniform1f(_location, value);
+	}
+};
+
 /* The manual storage for uniform number in-shader value.
 *  Class template definition: NumberManualStorage
 */

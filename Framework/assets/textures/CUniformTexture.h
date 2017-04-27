@@ -405,15 +405,9 @@ public:
 	int getResrvedCount() { return reserved; }
 
 	//Get first available texture slot
-	GLuint getFirstReservedSlot() { return GL_TEXTURE0 + (GLuint)(MULTIPLE_TEXTURE_HANDLER_UPPER_BOUND - reserved); }
+	GLuint getReservedSlot(GLuint _index = 0) { return GL_TEXTURE0 + (GLuint)(MULTIPLE_TEXTURE_HANDLER_UPPER_BOUND - reserved) + _index; }
 
 	//Get first available texture unit
-	int getFirstReservedUnit() { return MULTIPLE_TEXTURE_HANDLER_UPPER_BOUND - reserved; }
-
-	//Get first available texture slot and unit in pair
-	std::pair<GLuint, int> getFirstReserved() {
-		int _unit = MULTIPLE_TEXTURE_HANDLER_UPPER_BOUND - reserved;
-		return std::make_pair<GLuint, int>(GL_TEXTURE0 + (GLuint)_unit, _unit);
-	}
+	int getReservedUnit(int _index = 0) { return MULTIPLE_TEXTURE_HANDLER_UPPER_BOUND - reserved + _index; }
 };
 #endif

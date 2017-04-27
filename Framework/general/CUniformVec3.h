@@ -15,7 +15,8 @@
 //GLM
 #include <GLM/glm.hpp>
 //OUR
-#include "assets/shader/CUniforms.h"
+#include "assets\shader\CUniforms.h"
+#include "assets\shader\CShader.h"
 //DEBUG
 #ifdef DEBUG_UNIFORMVEC3
 	#ifndef DEBUG_OUT
@@ -105,7 +106,7 @@ public:
 	void bindData() {
 		GLint _location = (shader->*_getUniformLocation)(uniformName.c_str());
 		if (_location == -1) { //Check if uniform not found
-			#ifdef DEBUG_UNIFORMMATRIX
+			#ifdef DEBUG_UNIFORMVEC3
 				DEBUG_OUT << "ERROR::VEC3_MANUAL_STORAGE::bindData::UNIFORM_NAME_MISSING" << DEBUG_NEXT_LINE;
 				DEBUG_OUT << "\tName: " << uniformName << DEBUG_NEXT_LINE;
 			#endif

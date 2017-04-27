@@ -22,7 +22,7 @@
 	#endif
 #endif
 
-//Forwar declaration of shader calss used in project
+//Forward declaration of shader calss used in project
 class Shader;
 
 #ifndef UNIFORM_STD_SHADER_VARIABLE_NAME
