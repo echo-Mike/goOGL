@@ -49,7 +49,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 //Scroll callback for GLFW
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
-struct CommonInstance : public InstanceDataInterface {
+struct CommonInstance : public InstanceDataInterface<Shader> {
 	MatrixManualStorage<> modelMatrix;
 	
 	CommonInstance() : modelMatrix() {}
@@ -57,7 +57,11 @@ struct CommonInstance : public InstanceDataInterface {
 	CommonInstance(	our::mat4 _matrix, Shader *_shader, const char* _name) :
 					modelMatrix(&_matrix, _shader, _name) {}
 
-	void bindData() { modelMatrix.bindData(); }
+	CommonInstance(const CommonInstance& other) : modelMatrix(other.modelMatrix) {}
+
+	virtual void bindData() { modelMatrix.bindData(); }
+
+	virtual void setShader(Shader *_shader) { modelMatrix.setShader(_shader); }
 
 	void operator() (our::mat4 _matrix, Shader *_shader, const char* _name) {
 		modelMatrix.setValue(_matrix);
@@ -67,42 +71,41 @@ struct CommonInstance : public InstanceDataInterface {
 
 	void operator() (our::mat4 _matrix) { modelMatrix.setValue(_matrix); }
 
-	void operator() (Shader* _shader) { modelMatrix.setShader(_shader); }
-
 	glm::vec3 getPosition() {
 		return glm::vec3((glm::mat4)modelMatrix.getValue() * glm::vec4());
 	}
 };
 
-//Declaration of InstanceData class
 struct InstanceData : public CommonInstance {
-	MaterialManualStorage material;
+	TextureMaterialManualStorage<> material;
 
 	InstanceData() : CommonInstance(), material() {}
 
-	InstanceData(	our::mat4 _matrix, MaterialPOD _material,  Shader *_shader, 
+	InstanceData(	our::mat4 _matrix, TextureMaterialPOD _material,  Shader *_shader, 
 					const char* _matName, const char* _structName) : 
 					CommonInstance(_matrix, _shader, _matName),
 					material(_material, _shader, _structName) {}
+
+	InstanceData(const InstanceData& other) : CommonInstance(other), material(other.material) {}
 
 	void bindData() { 
 		modelMatrix.bindData(); 
 		material.bindData();
 	}
 
-	void operator() (	our::mat4 _matrix, MaterialPOD _material, Shader *_shader, 
+	void setShader(Shader *_shader) { 
+		material(_shader);
+		modelMatrix.setShader(_shader); 
+	}
+
+	void operator() (	our::mat4 _matrix, TextureMaterialPOD _material, Shader *_shader, 
 						const char* _matName, const char* _structName) 
 	{
 		CommonInstance::operator()(_matrix, _shader, _matName);
 		material(_material, _shader, _structName);
 	}
 
-	void operator() (MaterialPOD _material) { material(_material); }
-
-	void operator() (Shader* _shader) { 
-		material(_shader);
-		CommonInstance::operator()(_shader);
-	}
+	void operator() (TextureMaterialPOD _material) { material(_material); }
 };
 
 struct LightsourceData : public CommonInstance {
@@ -115,8 +118,13 @@ struct LightsourceData : public CommonInstance {
 					CommonInstance(_matrix, _shader, _matName),
 					lightsource(_light, _shader, _structName) {}
 
-	void bindData() { 
-		modelMatrix.bindData();
+	LightsourceData(const LightsourceData& other) : CommonInstance(other), lightsource(other.lightsource) {}
+
+	void bindData() { modelMatrix.bindData(); }
+	
+	void setShader(Shader *_shader) {
+		lightsource(_shader);
+		modelMatrix.setShader(_shader);
 	}
 
 	void operator() (	our::mat4 _matrix, LightsourcePOD _light, Shader *_shader, 
@@ -127,11 +135,6 @@ struct LightsourceData : public CommonInstance {
 	}
 
 	void operator() (LightsourcePOD _light) { lightsource(_light); }
-
-	void operator() (Shader* _shader) { 
-		lightsource(_shader);
-		CommonInstance::operator()(_shader);
-	}
 
 	void push(Shader* _shader) {
 		LightsourceAutomaticStorage<>::MemberInterface* _buff;

@@ -11,6 +11,7 @@ static Shader *cubeShader;
 static const std::string cubeVSP(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Lightning\goOGL11\src\GLSL\cube.vs)");
 static const std::string cubeFSP(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Lightning\goOGL11\src\GLSL\cube.fs)");
 static const std::string diffuseMap(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Assets\container2.png)");
+static const std::string specularMap(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Assets\container2_specular.png)");
 
 static SimpleModel<> *lightCube;
 static Shader *lightCubeShader;
@@ -60,8 +61,8 @@ int main()
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	//янгдю╗л лндекэ
-	WorldOrigin = new CombinedModel<>(CombinedModel<>::Layout(0, 3, 5, 3, 3, 2, -1, 3, 36, 0, false), WorldOriginV);
-	cube = new CombinedModel<>(CombinedModel<>::Layout(0,3, -1,0, -1,0, 3,3, 36, 0, false), cubeWithN);
+	WorldOrigin = new CombinedModel<>(CombinedModel<>::Layout(0,3, 5,3, 3,2, -1,3, 36, 0, false), WorldOriginV);
+	cube = new CombinedModel<>(CombinedModel<>::Layout(0,3, -1,0, 6,2, 3,3, 36, 0, false), vertices);
 	lightCube = new SeparateModel<>(8, 36, cubeV, nullptr, nullptr, nullptr, cubeI);
 	//янгдю╗л ьеидеп
 	WorldOriginShader = new Shader(WorldOriginVSP.c_str(), WorldOriginFSP.c_str());
@@ -80,36 +81,35 @@ int main()
 	cube->Build();
 	lightCube->Build();
 
-	std::array<InstanceDataInterface*, 26> instances;
-
 	GLfloat offset = 0.0f;
 
-	instances[0] = new CommonInstance(our::mat4(), WorldOriginShader, "model");
-	WorldOrigin->pushInstance(instances[0]);
-	
+	WorldOrigin->newInstance<CommonInstance>(CommonInstance(our::mat4(), WorldOriginShader, "model"));
 
 	LightsourcePOD light(	glm::vec3(5.0f, 5.0f, 0.0f), 
 							glm::vec3(0.2f, 0.2f, 0.2f), 
 							glm::vec3(0.5f, 0.5f, 0.5f), 
 							glm::vec3(1.0f, 1.0f, 1.0f));
+
 	Vec3AutomaticStorage<> lightColor(&glm::vec3(1.0f), lightCubeShader, "lightColor");
 	glm::mat4 lightSourceScale = glm::scale(glm::mat4(), glm::vec3(0.1f));
-	instances[1] = new LightsourceData(our::translate(lightSourceScale, light.position), light, nullptr, "model", "light");
-	dynamic_cast<LightsourceData*>(instances[1])->modelMatrix.setShader(lightCubeShader);
-	dynamic_cast<LightsourceData*>(instances[1])->push(cubeShader);
-	lightCube->pushInstance(instances[1]);
+	lightCube->newInstance<LightsourceData>(LightsourceData(our::translate(lightSourceScale, light.position), light, nullptr, "model", "light"));
+	dynamic_cast<LightsourceData*>((*lightCube)[0])->modelMatrix.setShader(lightCubeShader);
+	dynamic_cast<LightsourceData*>((*lightCube)[0])->push(cubeShader);
 
-	for (int _index = 0; _index  < 24; _index++) {
-		instances[_index+2] = new InstanceData(our::translate(glm::mat4(), positions[_index]), materials[_index], cubeShader, "model", "material");
-		cube->pushInstance(instances[_index+2]);
-	}
-	
+	TextureMaterialPOD container(diffuseMap, specularMap, 128.0f);
+
+	cube->newInstance<InstanceData>(InstanceData(our::translate(glm::mat4(), glm::vec3(0.0, 5.0, 0.0)), container, cubeShader, "model", "material"));
+	dynamic_cast<InstanceData*>(cube->instances[0])->material.setTextureSlot(cube->getFirstReservedSlot(), TextureMaterialPOD::DIFFUSE);
+	dynamic_cast<InstanceData*>(cube->instances[0])->material.setTextureSlot(cube->getFirstReservedSlot()+1, TextureMaterialPOD::SPECULAR);
+	dynamic_cast<InstanceData*>(cube->instances[0])->material.setTextureUnit(cube->getFirstReservedUnit(), TextureMaterialPOD::DIFFUSE);
+	dynamic_cast<InstanceData*>(cube->instances[0])->material.setTextureUnit(cube->getFirstReservedUnit() + 1, TextureMaterialPOD::SPECULAR);
+
 	camera = new SimpleCamera();
 	camera->setPerspectiveData(glm::radians(100.0f), (float)width / height, 0.1f, 1000.0f);
 	camera->setProjectionMode(SimpleCamera::ProjectionMode::MODE_PERSPECTIVE);
-	camera->Setup(WorldOriginShader);
 	camera->Setup(cubeShader);
-	camera->Setup(lightCubeShader);
+	camera->push(WorldOriginShader);
+	camera->push(lightCubeShader);
 	camera->speed = 1.5f;
 	camera->sensitivity.x = 0.15f;
 	camera->sensitivity.y = 0.15f;
@@ -133,16 +133,16 @@ int main()
 		camera->Update();
 
 		offset += deltaTime;
-		LightsourceData* _buffptr = dynamic_cast<LightsourceData*>(instances[1]);
-		_buffptr->lightsource(glm::vec3(3.0f, 5.0f, 0.0f) + 2.5f * glm::vec3(0.0f, glm::sin(offset), glm::cos(offset)), LightsourcePOD::POSITION);
-		_buffptr->modelMatrix.setValue(glm::translate(glm::mat4(), _buffptr->lightsource.getValue(LightsourcePOD::POSITION)) * lightSourceScale);
+		LightsourceData* _buffptr = dynamic_cast<LightsourceData*>((*lightCube)[0]);
+		_buffptr->lightsource(glm::vec3(3.0f, 5.0f, 0.0f) + 1.0f * glm::vec3(0.0f, glm::sin(offset), glm::cos(offset)), LightsourcePOD::POSITION);
+		_buffptr->modelMatrix.setValue(glm::translate(glm::mat4(), _buffptr->lightsource(LightsourcePOD::POSITION)) * lightSourceScale);
 		lightColor.setValue(glm::vec3(glm::sin(glfwGetTime() * 2.0f), glm::sin(glfwGetTime() * 0.7f), glm::sin(glfwGetTime()*1.3f)));
 		_buffptr->lightsource(lightColor.getValue() * glm::vec3(0.2f), LightsourcePOD::AMBIENT);
 		_buffptr->lightsource(lightColor.getValue() * glm::vec3(0.5f), LightsourcePOD::DIFFUSE);
 
 		offset = (float)glfwGetTime();
 		WorldOrigin->drawInstance();
-		cube->drawInstances(0, 24);
+		cube->drawInstance();
 		lightCube->drawInstance();
 
 		glfwSwapBuffers(window);
