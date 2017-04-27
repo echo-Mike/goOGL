@@ -1,0 +1,127 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{CE77ABB4-6B64-4C3D-AA74-D67E6752D5E2}</ProjectGuid>
+    <RootNamespace>goOGL</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v120</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v120</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <IncludePath>C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Framework;C:\Users\123\Desktop\OpenGL\EXTERNAL\Include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\123\Desktop\OpenGL\EXTERNAL\Libs;$(LibraryPath)</LibraryPath>
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>C:\Users\123\Desktop\OpenGL\EXTERNAL\Include;C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Framework;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <FunctionLevelLinking>
+      </FunctionLevelLinking>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>opengl32.lib;glfw3.lib;glew32s.lib;SOIL.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/NODEFAULTLIB:MSVCRT /NODEFAULTLIB:LIBCMT %(AdditionalOptions)</AdditionalOptions>
+      <EnableCOMDATFolding>
+      </EnableCOMDATFolding>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <None Include="src\GLSL\cube.fs" />
+    <None Include="src\GLSL\cube.vs" />
+    <None Include="src\GLSL\cuboid.fs" />
+    <None Include="src\GLSL\cuboid.vs" />
+    <None Include="src\GLSL\lightCube.fs" />
+    <None Include="src\GLSL\lightCube.vs" />
+    <None Include="src\GLSL\shader.fs" />
+    <None Include="src\GLSL\shader.vs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\Framework\assets\shader\CShader.cpp" />
+    <ClCompile Include="src\main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\Framework\assets\light\CDirectionalLight.h" />
+    <ClInclude Include="..\..\Framework\assets\light\CPointLight.h" />
+    <ClInclude Include="..\..\Framework\assets\light\CSpotlight.h" />
+    <ClInclude Include="..\..\Framework\assets\light\VDebugLight.h" />
+    <ClInclude Include="..\..\Framework\assets\material\HMaterialCollection.h" />
+    <ClInclude Include="..\..\Framework\assets\material\SJewelry.h" />
+    <ClInclude Include="..\..\Framework\assets\material\SMetals.h" />
+    <ClInclude Include="..\..\Framework\assets\material\SPlastic.h" />
+    <ClInclude Include="..\..\Framework\assets\material\SRubber.h" />
+    <ClInclude Include="..\..\Framework\assets\model\CCombinedModel.h" />
+    <ClInclude Include="..\..\Framework\assets\model\CInstanceLoader.h" />
+    <ClInclude Include="..\..\Framework\assets\model\CSeparateModel.h" />
+    <ClInclude Include="..\..\Framework\assets\model\CSimpleModel.h" />
+    <ClInclude Include="..\..\Framework\assets\shader\CShader.h" />
+    <ClInclude Include="..\..\Framework\assets\shader\CUniforms.h" />
+    <ClInclude Include="..\..\Framework\assets\shader\CUniformStruct.h" />
+    <ClInclude Include="..\..\Framework\assets\textures\CTexture.h" />
+    <ClInclude Include="..\..\Framework\assets\textures\CUniformTexture.h" />
+    <ClInclude Include="..\..\Framework\general\CIndexPool.h" />
+    <ClInclude Include="..\..\Framework\general\CUniformMatrix.h" />
+    <ClInclude Include="..\..\Framework\general\CUniformNumber.h" />
+    <ClInclude Include="..\..\Framework\general\CUniformStructCollection.h" />
+    <ClInclude Include="..\..\Framework\general\CUniformVec3.h" />
+    <ClInclude Include="..\..\Framework\general\CUniformVec4.h" />
+    <ClInclude Include="..\..\Framework\general\ImprovedMath.h" />
+    <ClInclude Include="..\..\Framework\ogl\CGLBufferHandler.h" />
+    <ClInclude Include="..\..\Framework\scene\CCamera.h" />
+    <ClInclude Include="src\data.h" />
+    <ClInclude Include="src\debug.h" />
+    <ClInclude Include="src\main.h" />
+    <ClInclude Include="src\OLD.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
