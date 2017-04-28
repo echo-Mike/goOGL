@@ -29,6 +29,8 @@
 //CInstanceLoader.h
 #define DEBUG_INSTANCELOADER
 
+#define DEBUG_LIGHT
+
 //Log output
 #ifndef DEBUG_OUT
 	#define DEBUG_OUT std::cout

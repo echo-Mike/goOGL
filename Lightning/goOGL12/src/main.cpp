@@ -2,21 +2,21 @@
 
 static SimpleModel<> *WorldOrigin;
 static Shader *WorldOriginShader;
-static const std::string WorldOriginVSP(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Lightning\goOGL11\src\GLSL\cuboid.vs)");
-static const std::string WorldOriginFSP(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Lightning\goOGL11\src\GLSL\cuboid.fs)");
+static const std::string WorldOriginVSP(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Lightning\goOGL12\src\GLSL\cuboid.vs)");
+static const std::string WorldOriginFSP(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Lightning\goOGL12\src\GLSL\cuboid.fs)");
 static const std::string WorldOriginTPath(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Assets\cubelayout.png)");
 
 static SimpleModel<> *cube;
 static Shader *cubeShader;
-static const std::string cubeVSP(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Lightning\goOGL11\src\GLSL\cube.vs)");
-static const std::string cubeFSP(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Lightning\goOGL11\src\GLSL\cube.fs)");
+static const std::string cubeVSP(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Lightning\goOGL12\src\GLSL\cube.vs)");
+static const std::string cubeFSP(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Lightning\goOGL12\src\GLSL\cube.fs)");
 static const std::string diffuseMap(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Assets\container2.png)");
 static const std::string specularMap(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Assets\container2_specular.png)");
 
 static SimpleModel<> *lightCube;
 static Shader *lightCubeShader;
-static const std::string lightCubeVSP(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Lightning\goOGL11\src\GLSL\lightCube.vs)");
-static const std::string lightCubeFSP(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Lightning\goOGL11\src\GLSL\lightCube.fs)");
+static const std::string lightCubeVSP(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Lightning\goOGL12\src\GLSL\lightCube.vs)");
+static const std::string lightCubeFSP(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Lightning\goOGL12\src\GLSL\lightCube.fs)");
 
 static SimpleCamera *camera;
 
@@ -85,16 +85,19 @@ int main()
 
 	WorldOrigin->newInstance<CommonInstance>(CommonInstance(our::mat4(), WorldOriginShader, "model"));
 
-	LightsourcePOD light(	glm::vec3(5.0f, 5.0f, 0.0f), 
-							glm::vec3(0.2f, 0.2f, 0.2f), 
-							glm::vec3(0.5f, 0.5f, 0.5f), 
-							glm::vec3(1.0f, 1.0f, 1.0f));
-
+	DirectionalLightPOD<> light(glm::vec4(-0.2f, -1.0f, -0.3f, 0.0f),
+								glm::vec3(0.2f, 0.2f, 0.2f), 
+								glm::vec3(0.5f, 0.5f, 0.5f),
+								glm::vec3(1.0f, 1.0f, 1.0f));
+	DirectionalLightsourceAutomaticStorage<> directLight(light, cubeShader, "directionLight");
+	//directLight.push();
 	Vec3AutomaticStorage<> lightColor(&glm::vec3(1.0f), lightCubeShader, "lightColor");
-	glm::mat4 lightSourceScale = glm::scale(glm::mat4(), glm::vec3(0.1f));
-	lightCube->newInstance<LightsourceData>(LightsourceData(our::translate(lightSourceScale, light.position), light, nullptr, "model", "light"));
+
+
+	/*glm::mat4 lightSourceScale = glm::scale(glm::mat4(), glm::vec3(0.1f));
+	lightCube->newInstance<LightsourceData>(LightsourceData(our::mat4(), light, nullptr, "model", "light"));
 	dynamic_cast<LightsourceData*>((*lightCube)[0])->modelMatrix.setShader(lightCubeShader);
-	dynamic_cast<LightsourceData*>((*lightCube)[0])->push(cubeShader);
+	dynamic_cast<LightsourceData*>((*lightCube)[0])->push(cubeShader);*/
 
 	TextureMaterialPOD container(diffuseMap, specularMap, 128.0f);
 
@@ -133,17 +136,22 @@ int main()
 		camera->Update();
 
 		offset += deltaTime;
-		LightsourceData* _buffptr = dynamic_cast<LightsourceData*>((*lightCube)[0]);
+		/*LightsourceData* _buffptr = dynamic_cast<LightsourceData*>((*lightCube)[0]);
 		_buffptr->lightsource(glm::vec3(3.0f, 5.0f, 0.0f) + 1.0f * glm::vec3(0.0f, glm::sin(offset), glm::cos(offset)), LightsourcePOD::POSITION);
-		_buffptr->modelMatrix.setValue(glm::translate(glm::mat4(), _buffptr->lightsource(LightsourcePOD::POSITION)) * lightSourceScale);
-		lightColor.setValue(glm::vec3(glm::sin(glfwGetTime() * 2.0f), glm::sin(glfwGetTime() * 0.7f), glm::sin(glfwGetTime()*1.3f)));
-		_buffptr->lightsource(lightColor.getValue() * glm::vec3(0.2f), LightsourcePOD::AMBIENT);
-		_buffptr->lightsource(lightColor.getValue() * glm::vec3(0.5f), LightsourcePOD::DIFFUSE);
+		_buffptr->modelMatrix.setValue(glm::translate(glm::mat4(), _buffptr->lightsource(LightsourcePOD::POSITION)) * lightSourceScale);*/
+
+		//directLight(glm::rotate(glm::vec4(0.0f, -1.0f, 0.0f, 0.0f), offset, glm::vec3(1.0f, 0.0f, 0.0f)));
+		//lightColor.setValue(glm::vec3(glm::sin(glfwGetTime() * 2.0f), glm::sin(glfwGetTime() * 0.7f), glm::sin(glfwGetTime()*1.3f)));
+		//directLight(lightColor.getValue() * glm::vec3(0.2f), DirectionalLightStructComponents::AMBIENT);
+		//directLight(lightColor.getValue() * glm::vec3(0.5f), DirectionalLightStructComponents::DIFFUSE);
+
+		/*_buffptr->lightsource(lightColor.getValue() * glm::vec3(0.2f), LightsourcePOD::AMBIENT);
+		_buffptr->lightsource(lightColor.getValue() * glm::vec3(0.5f), LightsourcePOD::DIFFUSE);*/
 
 		offset = (float)glfwGetTime();
 		WorldOrigin->drawInstance();
 		cube->drawInstance();
-		lightCube->drawInstance();
+		//lightCube->drawInstance();
 
 		glfwSwapBuffers(window);
 		GLfloat currentFrame = (float)glfwGetTime();
