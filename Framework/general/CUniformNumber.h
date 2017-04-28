@@ -50,6 +50,8 @@ public:
 
 	NumberAutomaticStorage(const NumberAutomaticStorage& other) : Base(other) {}
 
+	NumberAutomaticStorage(NumberAutomaticStorage&& other) : Base(std::move(other)) {}
+
 	//Bind number to shader
 	void bindUniform(GLint _location) {
 		if (std::is_same<T, int>::value) {

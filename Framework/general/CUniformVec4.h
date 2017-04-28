@@ -50,6 +50,8 @@ public:
 							Base(_vector, _shader, _name) {}
 
 	Vec4AutomaticStorage(const Vec4AutomaticStorage& other) : Base(other) {}
+
+	Vec4AutomaticStorage(Vec4AutomaticStorage&& other) : Base(std::move(other)) {}
 	
 	//Bind vec4 to shader
 	void bindUniform(GLint _location) {
@@ -75,6 +77,8 @@ public:
 							Base(_vector, _shader, _name) {}
 	
 	Vec4AutomaticObserver(const Vec4AutomaticObserver& other) : Base(other) {}
+
+	Vec4AutomaticObserver(Vec4AutomaticObserver&& other) : Base(std::move(other)) {}
 
 	//Bind vec4 to shader
 	void bindUniform(GLint _location) {

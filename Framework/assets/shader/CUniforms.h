@@ -113,7 +113,7 @@ public:
 
 	UniformStorage(const UniformStorage &other) : UniformBase(other), value(other.value) {}
 
-	UniformStorage(UniformStorage &&other) : UniformBase(other), value(std::move(other.value)) {}
+	UniformStorage(UniformStorage &&other) : UniformBase(std::move(other)), value(std::move(other.value)) {}
 
 	~UniformStorage() {}
 
@@ -128,7 +128,7 @@ public:
 	}
 
 	UniformStorage& operator=(UniformStorage &&other) {
-		UniformBase::operator=(other);
+		UniformBase::operator=(std::move(other));
 		//Trigger move-assign of value type
 		value = std::move(other.value);
 		return *this;
@@ -168,7 +168,7 @@ public:
 
 	UniformObserver(const UniformObserver &other) : UniformBase(other), valueptr(other.valueptr) {}
 
-	UniformObserver(UniformObserver &&other) : UniformBase(other), valueptr(std::move(other.valueptr)) {}
+	UniformObserver(UniformObserver &&other) : UniformBase(std::move(other)), valueptr(std::move(other.valueptr)) {}
 
 	~UniformObserver() { /*Protect value from destructor call*/ valueptr = nullptr; }
 
@@ -182,7 +182,7 @@ public:
 	}
 
 	UniformObserver& operator=(UniformObserver &&other) {
-		UniformBase::operator=(other);
+		UniformBase::operator=(std::move(other));
 		valueptr = nullptr;
 		valueptr = std::move(other.valueptr);
 		return *this;
@@ -262,7 +262,7 @@ public:
 
 	UniformAutomatic(const UniformAutomatic &other) : Base(other) {	push();	}
 
-	UniformAutomatic(UniformAutomatic &&other) : Base(other) {}
+	UniformAutomatic(UniformAutomatic &&other) : Base(std::move(other)) { other.setShader(nullptr); }
 
 	~UniformAutomatic() { /*Clear shader callback for this uniform*/ pull(); }
 
@@ -274,16 +274,17 @@ public:
 	}
 
 	UniformAutomatic& operator=(UniformAutomatic &&other) {
-		Base::operator=(other);
+		Base::operator=(std::move(other));
 		return *this;
 	}
 
 	//Shader pointer setup
 	virtual void setShader(TShader* _shader) {
-		if (shader)
+		if (shader && _shader)
 			pull();
 		Base::setShader(_shader);
-		push();
+		if (_shader)
+			push();
 	}
 
 	//Set new in-shader name of variable
@@ -335,7 +336,7 @@ public:
 	
 	UniformManual(const UniformManual &other) : Base(other) {}
 
-	UniformManual(UniformManual &&other) : Base(other) {}
+	UniformManual(UniformManual &&other) : Base(std::move(other)) {}
 
 	~UniformManual() {}
 };

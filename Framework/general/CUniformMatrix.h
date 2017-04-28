@@ -54,6 +54,8 @@ public:
 	
 	MatrixAutomaticStorage(const MatrixAutomaticStorage& other) : Base(other) {}
 
+	MatrixAutomaticStorage(MatrixAutomaticStorage&& other) : Base(std::move(other)) {}
+
 	//Bind matrix to shader
 	void bindUniform(GLint _location) {
 		glUniformMatrix4fv(_location, 1, transposeOnLoad, (value.*_getValuePtr)());

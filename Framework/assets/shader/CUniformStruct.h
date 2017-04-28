@@ -89,21 +89,26 @@ struct StructAutomaticContainer {
 	}
 
 	template< class T >
-	void newElement(T _value) {
+	void newElement(T& _value) {
 		data.push_back(nullptr);
-		data.back() = new T(_value);
+		data.back() = new T(std::move(_value));
 	}
 
 	template< class T >
 	void newElement(T* _valueptr) {
 		data.push_back(nullptr);
-		data.back() = new T(*_valueptr);
+		data.back() = new T(std::move(*_valueptr));
 	}
 
 	template< class T >
-	void setElement(int _index, T _value) {
+	void setElement(int _index, T& _value) {
 		delete data.at(_index);
-		data.at(_index) = new T(_value);
+		data.at(_index) = new T(std::move(_value));
+	}
+
+	virtual void push() {
+		for (auto &v : data)
+			v->push();
 	}
 };
 #endif

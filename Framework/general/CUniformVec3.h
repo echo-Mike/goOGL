@@ -51,6 +51,8 @@ public:
 
 	Vec3AutomaticStorage(const Vec3AutomaticStorage& other) : Base(other) {}
 	
+	Vec3AutomaticStorage(Vec3AutomaticStorage&& other) : Base(std::move(other)) {}
+
 	//Bind vec3 to shader
 	void bindUniform(GLint _location) {
 		glUniform3f(_location, value.x, value.y, value.z);
@@ -75,6 +77,8 @@ public:
 							Base(_vector, _shader, _name) {}
 	
 	Vec3AutomaticObserver(const Vec3AutomaticObserver& other) : Base(other) {}
+
+	Vec3AutomaticObserver(Vec3AutomaticObserver&& other) : Base(std::move(other)) {}
 
 	//Bind vec3 to shader
 	void bindUniform(GLint _location) {

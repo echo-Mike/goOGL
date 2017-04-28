@@ -11,6 +11,7 @@
 */
 //STD
 #include <string>
+#include <type_traits>
 //GLEW
 #include <GL/glew.h>
 //GLM
@@ -30,24 +31,10 @@
 	#endif
 #endif
 
-/* Plain-old-data directional lightsource properties structure.
-*  Struct definition: DirectionalLightPOD
+/* Helper struct with enum of in-shader struct members selectors.
+*  Struct definition: DirectionalLightStructComponents
 */
-struct DirectionalLightPOD {
-	glm::vec4 direction;
-	glm::vec4 ambient;
-	glm::vec4 diffuse;
-	glm::vec4 specular;
-
-	DirectionalLightPOD(glm::vec4 _direction,	glm::vec4 _ambient,
-						glm::vec4 _diffuse,		glm::vec4 _specular ) : 
-						ambient(_ambient),		diffuse(_diffuse),
-						specular(_specular),	direction(_direction) {}
-
-	DirectionalLightPOD(const DirectionalLightPOD& other) :
-						ambient(other.ambient),		diffuse(other.diffuse),
-						specular(other.specular),	direction(other.direction) {}
-	
+struct DirectionalLightStructComponents {
 	enum Data : int {
 		DIRECTION,
 		AMBIENT,
@@ -56,59 +43,84 @@ struct DirectionalLightPOD {
 	};
 };
 
+/* Plain-old-data directional lightsource properties structure.
+*  Struct template definition: DirectionalLightPOD
+*/
+template < class TVector4 = glm::vec4, class TVector3 = glm::vec3 >
+struct DirectionalLightPOD : public DirectionalLightStructComponents {
+	TVector4 direction;
+	TVector3 ambient;
+	TVector3 diffuse;
+	TVector3 specular;
+
+	/*
+	* direction, ambient,
+	* diffuse,	 specular
+	*/
+	DirectionalLightPOD(TVector4 _direction,	TVector3 _ambient,
+						TVector3 _diffuse,		TVector3 _specular ) : 
+						ambient(_ambient),		diffuse(_diffuse),
+						specular(_specular),	direction(_direction) {}
+
+	DirectionalLightPOD(const DirectionalLightPOD& other) :
+						ambient(other.ambient),		diffuse(other.diffuse),
+						specular(other.specular),	direction(other.direction) {}
+};
+
 #ifndef DIRECTIONAL_LIGHT_NAMES
-#define DIRECTIONAL_LIGHT_NAMES dataNames
+#define DIRECTIONAL_LIGHT_NAMES directionalLightNames
 	//Static array for structure names
 	static const char* DIRECTIONAL_LIGHT_NAMES[] = {
-		".direction", ".ambient", ".diffuse", ".specular"
+		"[0].direction", "[0].ambient", "[0].diffuse", "[0].specular"
 	};
 #endif 
 
 /* The storage for in-shader struct that represents directional lightsource.
 *  Struct template definition: DirectionalLightsourceStorage
 */
-template < class TBase, class TMember, class TMemberInterface, class TVector4 = glm::vec4, class TShader = Shader >
+template <	class TBase,				class TMemberInterface,			
+			class TMemberVector4,		class TMemberVector3,		
+			class TVector4 = glm::vec4,	class TVector3 = glm::vec3,
+			class TShader = Shader,		class TPOD = DirectionalLightPOD<TVector4, TVector3> >
 struct DirectionalLightsourceStorage : public TBase {
 	typedef TBase Base;
-	typedef TMember Member;
+	typedef TMemberVector4 MemberVector4;
+	typedef TMemberVector3 MemberVector3;
 	typedef TMemberInterface MemberInterface;
+	typedef TPOD POD;
 
-	DirectionalLightsourceStorage(	TVector4 direction, TVector4 ambient,
-									TVector4 diffuse, TVector4 specular,
+	static_assert(	std::is_base_of<TMemberInterface, TMemberVector4>::value && std::is_base_of<TMemberInterface, TMemberVector3>::value, 
+					"WARNING::DIRECTIONAL_LIGHTSOURCE_STORAGE::TMemberVector4 and TMemberVector3 must both be derived from TMemberInterface");
+
+	DirectionalLightsourceStorage(	TVector4 direction, TVector3 ambient,
+									TVector3 diffuse, TVector3 specular,
 									TShader* _shader, std::string _structName)
 	{
 		structName = std::move(_structName);
-		TMember _direction(&direction, _shader, structName.substr().append(DIRECTIONAL_LIGHT_NAMES[0]));
-		newElement<TMember>(_direction);
-
-		TMember _ambient(&ambient, _shader, structName.substr().append(DIRECTIONAL_LIGHT_NAMES[1]));
-		newElement<TMember>(_ambient);
-
-		TMember _diffuse(&diffuse, _shader, structName.substr().append(DIRECTIONAL_LIGHT_NAMES[2]));
-		newElement<TMember>(_diffuse);
-
-		TMember _specular(&specular, _shader, structName.substr().append(DIRECTIONAL_LIGHT_NAMES[3]));
-		newElement<TMember>(_specular);
+		newElement<MemberVector4>(MemberVector4(&direction, _shader, structName + DIRECTIONAL_LIGHT_NAMES[0]));
+		newElement<MemberVector3>(MemberVector3(&ambient,   _shader, structName + DIRECTIONAL_LIGHT_NAMES[1]));
+		newElement<MemberVector3>(MemberVector3(&diffuse,   _shader, structName + DIRECTIONAL_LIGHT_NAMES[2]));
+		newElement<MemberVector3>(MemberVector3(&specular,  _shader, structName + DIRECTIONAL_LIGHT_NAMES[3]));
 	}
 
-	DirectionalLightsourceStorage(	DirectionalLightPOD _light, TShader* _shader, std::string _structName) :
+	DirectionalLightsourceStorage(	TPOD _light, TShader* _shader, std::string _structName) :
 									DirectionalLightsourceStorage(	_light.direction,	_light.ambient,
 																	_light.diffuse,		_light.specular,
 																	_shader,			_structName) {}
 
-	DirectionalLightsourceStorage() : DirectionalLightsourceStorage(TVector4(), TVector4(), TVector4(), TVector4(), nullptr, "light") {}
+	DirectionalLightsourceStorage() : DirectionalLightsourceStorage(TVector4(), TVector3(), TVector3(), TVector3(), nullptr, "light") {}
 
 	DirectionalLightsourceStorage(const DirectionalLightsourceStorage& other) {
 		structName = other.structName.substr();
 		TMemberInterface* _buff = nullptr;
 		_buff = other.data[0];
-		newElement<TMember>(dynamic_cast<TMember*>(_buff));
+		newElement<TMemberVector4>(dynamic_cast<TMemberVector4*>(_buff));
 		_buff = other.data[1];
-		newElement<TMember>(dynamic_cast<TMember*>(_buff));
+		newElement<TMemberVector3>(dynamic_cast<TMemberVector3*>(_buff));
 		_buff = other.data[2];
-		newElement<TMember>(dynamic_cast<TMember*>(_buff));
+		newElement<TMemberVector3>(dynamic_cast<TMemberVector3*>(_buff));
 		_buff = other.data[3];
-		newElement<TMember>(dynamic_cast<TMember*>(_buff));
+		newElement<TMemberVector3>(dynamic_cast<TMemberVector3*>(_buff));
 	}
 
 	DirectionalLightsourceStorage& operator=(DirectionalLightsourceStorage other) {
@@ -118,97 +130,129 @@ struct DirectionalLightsourceStorage : public TBase {
 		return *this;
 	}
 
-	void operator() (DirectionalLightPOD _light, TShader* _shader, std::string _structName) {
+	void operator() (TPOD _light, TShader* _shader, std::string _structName) {
 		structName = std::move(_structName);
 		TMemberInterface* _buff = nullptr;
 		_buff = data[0];
-		dynamic_cast<TMember*>(_buff)->setValue(_light.direction);
-		dynamic_cast<TMember*>(_buff)->setName(structName.substr().append(DIRECTIONAL_LIGHT_NAMES[0]));
-		dynamic_cast<TMember*>(_buff)->setShader(_shader);
+		dynamic_cast<TMemberVector4*>(_buff)->setValue(_light.direction);
+		dynamic_cast<TMemberVector4*>(_buff)->setName(structName + DIRECTIONAL_LIGHT_NAMES[0]);
+		dynamic_cast<TMemberVector4*>(_buff)->setShader(_shader);
 		_buff = data[1];
-		dynamic_cast<TMember*>(_buff)->setValue(_light.ambient);
-		dynamic_cast<TMember*>(_buff)->setName(structName.substr().append(DIRECTIONAL_LIGHT_NAMES[1]));
-		dynamic_cast<TMember*>(_buff)->setShader(_shader);
+		dynamic_cast<TMemberVector3*>(_buff)->setValue(_light.ambient);
+		dynamic_cast<TMemberVector3*>(_buff)->setName(structName + DIRECTIONAL_LIGHT_NAMES[1]);
+		dynamic_cast<TMemberVector3*>(_buff)->setShader(_shader);
 		_buff = data[2];
-		dynamic_cast<TMember*>(_buff)->setValue(_light.diffuse);
-		dynamic_cast<TMember*>(_buff)->setName(structName.substr().append(DIRECTIONAL_LIGHT_NAMES[2]));
-		dynamic_cast<TMember*>(_buff)->setShader(_shader);
+		dynamic_cast<TMemberVector3*>(_buff)->setValue(_light.diffuse);
+		dynamic_cast<TMemberVector3*>(_buff)->setName(structName + DIRECTIONAL_LIGHT_NAMES[2]);
+		dynamic_cast<TMemberVector3*>(_buff)->setShader(_shader);
 		_buff = data[3];
-		dynamic_cast<TMember*>(_buff)->setValue(_light.specular);
-		dynamic_cast<TMember*>(_buff)->setName(structName.substr().append(DIRECTIONAL_LIGHT_NAMES[3]));
-		dynamic_cast<TMember*>(_buff)->setShader(_shader);
+		dynamic_cast<TMemberVector3*>(_buff)->setValue(_light.specular);
+		dynamic_cast<TMemberVector3*>(_buff)->setName(structName + DIRECTIONAL_LIGHT_NAMES[3]);
+		dynamic_cast<TMemberVector3*>(_buff)->setShader(_shader);
 	}
 
-	void operator() (DirectionalLightPOD _light) {
+	void operator() (TPOD _light) {
 		TMemberInterface* _buff = nullptr;
 		_buff = data[0];
-		dynamic_cast<TMember*>(_buff)->setValue(_light.direction);
+		dynamic_cast<TMemberVector4*>(_buff)->setValue(_light.direction);
 		_buff = data[1];
-		dynamic_cast<TMember*>(_buff)->setValue(_light.ambient);
+		dynamic_cast<TMemberVector3*>(_buff)->setValue(_light.ambient);
 		_buff = data[2];
-		dynamic_cast<TMember*>(_buff)->setValue(_light.diffuse);
+		dynamic_cast<TMemberVector3*>(_buff)->setValue(_light.diffuse);
 		_buff = data[3];
-		dynamic_cast<TMember*>(_buff)->setValue(_light.specular);
+		dynamic_cast<TMemberVector3*>(_buff)->setValue(_light.specular);
 	}
 
 	void operator() (TShader* _shader) {
 		TMemberInterface* _buff = nullptr;
 		_buff = data[0];
-		dynamic_cast<TMember*>(_buff)->setShader(_shader);
+		dynamic_cast<TMemberVector4*>(_buff)->setShader(_shader);
 		_buff = data[1];
-		dynamic_cast<TMember*>(_buff)->setShader(_shader);
+		dynamic_cast<TMemberVector3*>(_buff)->setShader(_shader);
 		_buff = data[2];
-		dynamic_cast<TMember*>(_buff)->setShader(_shader);
+		dynamic_cast<TMemberVector3*>(_buff)->setShader(_shader);
 		_buff = data[3];
-		dynamic_cast<TMember*>(_buff)->setShader(_shader);
+		dynamic_cast<TMemberVector3*>(_buff)->setShader(_shader);
 	}
 
 	void operator() (std::string _structName) {
 		structName = std::move(_structName);
 		TMemberInterface* _buff = nullptr;
 		_buff = data[0];
-		dynamic_cast<TMember*>(_buff)->setName(structName.substr().append(DIRECTIONAL_LIGHT_NAMES[0]));
+		dynamic_cast<TMemberVector4*>(_buff)->setName(structName + DIRECTIONAL_LIGHT_NAMES[0]);
 		_buff = data[1];
-		dynamic_cast<TMember*>(_buff)->setName(structName.substr().append(DIRECTIONAL_LIGHT_NAMES[1]));
+		dynamic_cast<TMemberVector3*>(_buff)->setName(structName + DIRECTIONAL_LIGHT_NAMES[1]);
 		_buff = data[2];
-		dynamic_cast<TMember*>(_buff)->setName(structName.substr().append(DIRECTIONAL_LIGHT_NAMES[2]));
+		dynamic_cast<TMemberVector3*>(_buff)->setName(structName + DIRECTIONAL_LIGHT_NAMES[2]);
 		_buff = data[3];
-		dynamic_cast<TMember*>(_buff)->setName(structName.substr().append(DIRECTIONAL_LIGHT_NAMES[3]));
+		dynamic_cast<TMemberVector3*>(_buff)->setName(structName + DIRECTIONAL_LIGHT_NAMES[3]);
 	}
+	
+	#ifdef FWCPP17
+		//Set value by selector C++17
+		template < class T >
+		void operator() (T& _value, DirectionalLightStructComponents::Data _index = TPOD::DIRECTION) {
+			TMemberInterface* _buff = nullptr;
+			_buff = data[_index];
+			if constexpr (std::is_same<T, TVector4>::value) {
+				dynamic_cast<TMemberVector4*>(_buff)->setValue(_value);
+			} else if constexpr (std::is_same<T, TVector3>::value) {
+				dynamic_cast<TMemberVector3*>(_buff)->setValue(_value);
+			}
+		}
+	#else
+		//Set value by selector
+		void operator() (TVector4& _value, DirectionalLightStructComponents::Data _index = TPOD::DIRECTION) {
+			TMemberInterface* _buff = nullptr;
+			_buff = data[_index];
+			dynamic_cast<TMemberVector4*>(_buff)->setValue(_value);
+		}
 
-	//Set value by selector
-	void operator() (TVector4 _vector, DirectionalLightPOD::Data _index = DirectionalLightPOD::DIRECTION) {
-		TMemberInterface* _buff = nullptr;
-		_buff = data[_index];
-		dynamic_cast<TMember*>(_buff)->setValue(_vector);
-	}
+		//Set value by selector
+		void operator() (TVector3& _value, DirectionalLightStructComponents::Data _index) {
+			TMemberInterface* _buff = nullptr;
+			_buff = data[_index];
+			dynamic_cast<TMemberVector3*>(_buff)->setValue(_value);
+		}
+	#endif
 
 	//Get value by selector
-	TVector4 operator() (DirectionalLightPOD::Data _index = DirectionalLightPOD::DIRECTION, TVector4& _typeValue = glm::vec4()) {
+	template < class T >
+	T operator() (DirectionalLightStructComponents::Data _index, T& _typeValue) {
 		TMemberInterface* _buff = nullptr;
 		_buff = data[_index];
-		return dynamic_cast<TMember*>(_buff)->getValue();
+		if (std::is_same<T, TVector4>::value) {
+			return dynamic_cast<TMemberVector4*>(_buff)->getValue();
+		} else if (std::is_same<T, TVector3>::value) {
+			return dynamic_cast<TMemberVector3*>(_buff)->getValue();
+		} else {
+			return _typeValue;
+		}
 	}
 };
 
 /* The manual storage for in-shader struct that represents directional lightsource.
 *  Struct template definition: DirectionalLightsourceManualStorage
 */
-template < class TVector4 = glm::vec4, class TShader = Shader >
+template < class TVector4 = glm::vec4, class TVector3 = glm::vec3, class TShader = Shader >
 using DirectionalLightsourceManualStorage = DirectionalLightsourceStorage<	StructManualContainer,
+																			UniformManualInteface,
 																			Vec4ManualStorage<TVector4, TShader>, 
-																			UniformManualInteface, 
+																			Vec3ManualStorage<TVector3, TShader>, 
 																			TVector4,
+																			TVector3,
 																			TShader >;
 
 /* The automatic storage for in-shader struct that represents directional lightsource.
 *  Struct template definition: DirectionalLightsourceAutomaticStorage
 */
-template < class TVector4 = glm::vec4, class TShader = Shader >
+template < class TVector4 = glm::vec4, class TVector3 = glm::vec3, class TShader = Shader >
 using DirectionalLightsourceAutomaticStorage = DirectionalLightsourceStorage<	StructAutomaticContainer,
-																				Vec4AutomaticStorage<TVector4, TShader>, 
 																				UniformAutomaticInteface, 
+																				Vec4AutomaticStorage<TVector4, TShader>, 
+																				Vec3AutomaticStorage<TVector3, TShader>,
 																				TVector4,
+																				TVector3,
 																				TShader >;
 #ifdef EXAMPLE_SHADERS
 	const std::string DirectionalLightShaderExampleVS(R"**(
@@ -244,9 +288,9 @@ using DirectionalLightsourceAutomaticStorage = DirectionalLightsourceStorage<	St
 
 		struct Light {
 			vec4 direction;
-			vec4 ambient;
-			vec4 diffuse;
-			vec4 specular;
+			vec3 ambient;
+			vec3 diffuse;
+			vec3 specular;
 		};
 
 		in vec3 FragPos;  
@@ -261,19 +305,19 @@ using DirectionalLightsourceAutomaticStorage = DirectionalLightsourceStorage<	St
 		void main()
 		{
 			// Ambient
-			vec3 ambient = light.ambient.xyz * material.ambient;
+			vec3 ambient = light.ambient * material.ambient;
   	
 			// Diffuse 
 			vec3 norm = normalize(Normal);
 			vec3 lightDir = normalize(-light.direction).xyz;
 			float diff = max(dot(norm, lightDir), 0.0);
-			vec3 diffuse = light.diffuse.xyz * (diff * material.diffuse);
+			vec3 diffuse = light.diffuse * (diff * material.diffuse);
     
 			// Specular
 			vec3 viewDir = normalize(viewPos - FragPos);
 			vec3 reflectDir = reflect(-lightDir, norm);  
 			float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
-			vec3 specular = light.specular.xyz * (spec * material.specular);   
+			vec3 specular = light.specular * (spec * material.specular);   
 
 			color = vec4(ambient + diffuse + specular, 1.0f);
 		} 

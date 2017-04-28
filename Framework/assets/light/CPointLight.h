@@ -69,7 +69,7 @@ struct PointLightPOD {
 };
 
 #ifndef POINT_LIGHT_NAMES
-#define POINT_LIGHT_NAMES dataNames
+#define POINT_LIGHT_NAMES pointLightNames
 	//Static array for structure names
 	static const char* POINT_LIGHT_NAMES[] = {
 		".position", ".ambient", ".diffuse", ".specular",
@@ -251,17 +251,33 @@ struct PointLightsourceStorage : public TBase {
 		dynamic_cast<MemberNumber*>(_buff)->setName(structName.substr().append(DIRECTIONAL_LIGHT_NAMES[6]));
 	}
 
-	//Set value by selector
-	template < class T >
-	void operator() (T& _value, PointLightPOD::Data _index = PointLightPOD::POSITION) {
-		TMemberInterface* _buff = nullptr;
-		_buff = data[_index];
-		if (std::is_same<T, TVector4>::value) {
+	#ifdef FWCPP17
+		//Set value by selector C++17
+		template < class T >
+		void operator() (T& _value, PointLightPOD::Data _index = PointLightPOD::POSITION) {
+			TMemberInterface* _buff = nullptr;
+			_buff = data[_index];
+			if constexpr (std::is_same<T, TVector4>::value) {
+				dynamic_cast<MemberVector*>(_buff)->setValue(_value);
+			} else if constexpr (std::is_same<T, TNumber>::value) {
+				dynamic_cast<MemberNumber*>(_buff)->setValue(_value);
+			}
+		}
+	#else
+		//Set value by selector
+		void operator() (TVector4& _value, PointLightPOD::Data _index = PointLightPOD::POSITION) {
+			TMemberInterface* _buff = nullptr;
+			_buff = data[_index];
 			dynamic_cast<MemberVector*>(_buff)->setValue(_value);
-		} else if (std::is_same<T, TNumber>::value) {
+		}
+
+		//Set value by selector
+		void operator() (TNumber& _value, PointLightPOD::Data _index) {
+			TMemberInterface* _buff = nullptr;
+			_buff = data[_index];
 			dynamic_cast<MemberNumber*>(_buff)->setValue(_value);
 		}
-	}
+	#endif
 
 	//Get value by selector
 	template < class T >
@@ -302,7 +318,7 @@ using PointLightsourceAutomaticStorage = PointLightsourceStorage<	StructAutomati
 																	TNumber,
 																	TShader >;
 #ifdef EXAMPLE_SHADERS
-	const std::string DirectionalLightShaderExampleVS(R"**(
+	const std::string PointLightShaderExampleVS(R"**(
 		#version 330 core
 
 		layout(location = 0) in vec3 position;
@@ -324,7 +340,7 @@ using PointLightsourceAutomaticStorage = PointLightsourceStorage<	StructAutomati
 		}
 	)**");
 
-	const std::string DirectionalLightShaderExampleFS(R"**(
+	const std::string PointLightShaderExampleFS(R"**(
 		#version 330 core
 		struct Material {
 			vec3 ambient;
@@ -361,7 +377,7 @@ using PointLightsourceAutomaticStorage = PointLightsourceStorage<	StructAutomati
   	
 			// Diffuse 
 			vec3 norm = normalize(Normal);
-			vec3 lightDir = normalize(-light.direction);
+			vec3 lightDir = normalize(light.position - FragPos);
 			float diff = max(dot(norm, lightDir), 0.0);
 			vec3 diffuse = light.diffuse * (diff * material.diffuse);
     
@@ -370,8 +386,11 @@ using PointLightsourceAutomaticStorage = PointLightsourceStorage<	StructAutomati
 			vec3 reflectDir = reflect(-lightDir, norm);  
 			float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
 			vec3 specular = light.specular * (spec * material.specular);   
-
-			color = vec4(ambient + diffuse + specular, 1.0f);
+			
+			float distance    = length(light.position - FragPos);
+			float attenuation = 1.0f / (light.constant + light.linear * distance + light.quadratic * (distance * distance));   
+			
+			color = vec4(attenuation * (ambient + diffuse + specular), 1.0f);
 		} 
 	)**");
 #endif
