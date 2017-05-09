@@ -32,31 +32,10 @@
 	#endif
 #endif
 
-/* Plain-old-data point lightsource properties structure.
-*  Struct definition: PointLightPOD
+/* Helper struct with enum of in-shader struct members selectors.
+*  Struct definition: PointLightStructComponents
 */
-struct PointLightPOD {
-	glm::vec4 position;
-	glm::vec4 ambient;
-	glm::vec4 diffuse;
-	glm::vec4 specular;
-	float constant, linear, quadratic;
-
-	PointLightPOD(	glm::vec4 _direction,	glm::vec4 _ambient,
-					glm::vec4 _diffuse,		glm::vec4 _specular,
-					float _constant,		float _linear,
-					float _quadratic		) : 
-					ambient(_ambient),		diffuse(_diffuse),
-					specular(_specular),	position(_direction),
-					constant(_constant),	linear(_linear),
-					quadratic(_quadratic)	{}
-
-	PointLightPOD(	const PointLightPOD& other) :
-					ambient(other.ambient),		diffuse(other.diffuse),
-					specular(other.specular),	position(other.position),
-					constant(other.constant),	linear(other.linear),
-					quadratic(other.quadratic) {}
-	
+struct PointLightStructComponents {
 	enum Data : int {
 		POSITION,
 		AMBIENT,
@@ -68,8 +47,35 @@ struct PointLightPOD {
 	};
 };
 
+/* Plain-old-data point lightsource properties structure.
+*  Struct template definition: PointLightPOD
+*/
+template < class TVector4 = glm::vec4, class TNumber = float >
+struct PointLightPOD : public PointLightStructComponents {
+	TVector4 position;
+	TVector4 ambient;
+	TVector4 diffuse;
+	TVector4 specular;
+	float constant, linear, quadratic;
+
+	PointLightPOD(	TVector4 _direction,TVector4 _ambient,
+					TVector4 _diffuse,	TVector4 _specular,
+					float _constant,	float _linear,
+					float _quadratic	) : 
+					ambient(_ambient),		diffuse(_diffuse),
+					specular(_specular),	position(_direction),
+					constant(_constant),	linear(_linear),
+					quadratic(_quadratic)	{}
+
+	PointLightPOD(	const PointLightPOD& other) :
+					ambient(other.ambient),		diffuse(other.diffuse),
+					specular(other.specular),	position(other.position),
+					constant(other.constant),	linear(other.linear),
+					quadratic(other.quadratic) {}
+};
+
 #ifndef POINT_LIGHT_NAMES
-#define POINT_LIGHT_NAMES pointLightNames
+#define POINT_LIGHT_NAMES ___pointLightNames
 	//Static array for structure names
 	static const char* POINT_LIGHT_NAMES[] = {
 		".position", ".ambient", ".diffuse", ".specular",
@@ -83,14 +89,15 @@ struct PointLightPOD {
 template <	class TBase,				class TMemberVector, 
 			class TMemberNumber,		class TMemberInterface, 
 			class TVector4 = glm::vec4, class TNumber = float,	
-			class TShader = Shader >
+			class TShader = Shader,		class TPOD = PointLightPOD<TVector4, TNumber> >
 struct PointLightsourceStorage : public TBase {
-	static_assert(	std::is_base_of<TMemberInterface, TMemberVector>::value && std::is_base_of<TMemberInterface, TMemberNumber>::value, 
-					"WARNING::POINT_LIGHTSOURCE_STORAGE::TMemberVector and TMemberNumber must both be derived from TMemberInterface");
 	typedef TBase Base;
 	typedef TMemberVector MemberVector;
 	typedef TMemberNumber MemberNumber;
 	typedef TMemberInterface MemberInterface;
+
+	static_assert(std::is_base_of<TMemberInterface, TMemberVector>::value && std::is_base_of<TMemberInterface, TMemberNumber>::value,
+		"WARNING::POINT_LIGHTSOURCE_STORAGE::TMemberVector and TMemberNumber must both be derived from TMemberInterface");
 
 	/*
 	*	position,	ambient
@@ -106,54 +113,42 @@ struct PointLightsourceStorage : public TBase {
 							TShader* _shader,	std::string _structName)
 	{
 		structName = std::move(_structName);
-		MemberVector _position(&position, _shader, structName.substr().append(DIRECTIONAL_LIGHT_NAMES[0]));
-		newElement<MemberVector>(_position);
+		newElement<TMemberVector>(TMemberVector(&position, _shader, structName + DIRECTIONAL_LIGHT_NAMES[0]));
+		newElement<TMemberVector>(TMemberVector(&ambient,  _shader, structName + DIRECTIONAL_LIGHT_NAMES[1]));
+		newElement<TMemberVector>(TMemberVector(&diffuse,  _shader, structName + DIRECTIONAL_LIGHT_NAMES[2]));
+		newElement<TMemberVector>(TMemberVector(&specular, _shader, structName + DIRECTIONAL_LIGHT_NAMES[3]));
 
-		MemberVector _ambient(&ambient, _shader, structName.substr().append(DIRECTIONAL_LIGHT_NAMES[1]));
-		newElement<MemberVector>(_ambient);
-
-		MemberVector _diffuse(&diffuse, _shader, structName.substr().append(DIRECTIONAL_LIGHT_NAMES[2]));
-		newElement<MemberVector>(_diffuse);
-
-		MemberVector _specular(&specular, _shader, structName.substr().append(DIRECTIONAL_LIGHT_NAMES[3]));
-		newElement<MemberVector>(_specular);
-
-		MemberNumber _constant(&constant, _shader, structName.substr().append(DIRECTIONAL_LIGHT_NAMES[4]));
-		newElement<MemberNumber>(_constant);
-
-		MemberNumber _linear(&linear, _shader, structName.substr().append(DIRECTIONAL_LIGHT_NAMES[5]));
-		newElement<MemberNumber>(_linear);
-
-		MemberNumber _quadratic(&quadratic, _shader, structName.substr().append(DIRECTIONAL_LIGHT_NAMES[6]));
-		newElement<MemberNumber>(_quadratic);
+		newElement<TMemberNumber>(TMemberNumber(&constant, _shader, structName + DIRECTIONAL_LIGHT_NAMES[4]));
+		newElement<TMemberNumber>(TMemberNumber(&linear,   _shader, structName + DIRECTIONAL_LIGHT_NAMES[5]));
+		newElement<TMemberNumber>(TMemberNumber(&quadratic,_shader, structName + DIRECTIONAL_LIGHT_NAMES[6]));
 	}
 
-	PointLightsourceStorage(PointLightPOD _light, TShader* _shader, std::string _structName) :
+	PointLightsourceStorage(TPOD _light, TShader* _shader, std::string _structName) :
 							PointLightsourceStorage(_light.position,	_light.ambient,
 													_light.diffuse,		_light.specular,
 													_light.constant,	_light.linear,
 													_light.quadratic,
 													_shader,			_structName) {}
 
-	PointLightsourceStorage() : PointLightsourceStorage(TVector4(), TVector4(), TVector4(), TVector4(), 0, 0, 0, nullptr, "light") {}
+	PointLightsourceStorage() : PointLightsourceStorage(TVector4(), TVector4(), TVector4(), TVector4(), (TNumber)0, (TNumber)0, (TNumber)0, nullptr, "light") {}
 
 	PointLightsourceStorage(const PointLightsourceStorage& other) {
 		structName = other.structName.substr();
 		TMemberInterface* _buff = nullptr;
 		_buff = other.data[0];
-		newElement<MemberVector>(dynamic_cast<MemberVector*>(_buff));
+		newElement<TMemberVector>(dynamic_cast<TMemberVector*>(_buff));
 		_buff = other.data[1];
-		newElement<MemberVector>(dynamic_cast<MemberVector*>(_buff));
+		newElement<TMemberVector>(dynamic_cast<TMemberVector*>(_buff));
 		_buff = other.data[2];
-		newElement<MemberVector>(dynamic_cast<MemberVector*>(_buff));
+		newElement<TMemberVector>(dynamic_cast<TMemberVector*>(_buff));
 		_buff = other.data[3];
-		newElement<MemberVector>(dynamic_cast<MemberVector*>(_buff));
+		newElement<TMemberVector>(dynamic_cast<TMemberVector*>(_buff));
 		_buff = other.data[4];
-		newElement<MemberNumber>(dynamic_cast<MemberNumber*>(_buff));
+		newElement<TMemberNumber>(dynamic_cast<TMemberNumber*>(_buff));
 		_buff = other.data[5];
-		newElement<MemberNumber>(dynamic_cast<MemberNumber*>(_buff));
+		newElement<TMemberNumber>(dynamic_cast<TMemberNumber*>(_buff));
 		_buff = other.data[6];
-		newElement<MemberNumber>(dynamic_cast<MemberNumber*>(_buff));
+		newElement<TMemberNumber>(dynamic_cast<TMemberNumber*>(_buff));
 	}
 
 	PointLightsourceStorage& operator=(PointLightsourceStorage other) {
@@ -163,131 +158,131 @@ struct PointLightsourceStorage : public TBase {
 		return *this;
 	}
 
-	void operator() (PointLightPOD _light, TShader* _shader, std::string _structName) {
+	void operator() (TPOD _light, TShader* _shader, std::string _structName) {
 		structName = std::move(_structName);
 		TMemberInterface* _buff = nullptr;
 		_buff = data[0];
-		dynamic_cast<MemberVector*>(_buff)->setValue(_light.position);
-		dynamic_cast<MemberVector*>(_buff)->setName(structName.substr().append(DIRECTIONAL_LIGHT_NAMES[0]));
-		dynamic_cast<MemberVector*>(_buff)->setShader(_shader);
+		dynamic_cast<TMemberVector*>(_buff)->setValue(_light.position);
+		dynamic_cast<TMemberVector*>(_buff)->setName(structName + DIRECTIONAL_LIGHT_NAMES[0]);
+		dynamic_cast<TMemberVector*>(_buff)->setShader(_shader);
 		_buff = data[1];
-		dynamic_cast<MemberVector*>(_buff)->setValue(_light.ambient);
-		dynamic_cast<MemberVector*>(_buff)->setName(structName.substr().append(DIRECTIONAL_LIGHT_NAMES[1]));
-		dynamic_cast<MemberVector*>(_buff)->setShader(_shader);
+		dynamic_cast<TMemberVector*>(_buff)->setValue(_light.ambient);
+		dynamic_cast<TMemberVector*>(_buff)->setName(structName + DIRECTIONAL_LIGHT_NAMES[1]);
+		dynamic_cast<TMemberVector*>(_buff)->setShader(_shader);
 		_buff = data[2];
-		dynamic_cast<MemberVector*>(_buff)->setValue(_light.diffuse);
-		dynamic_cast<MemberVector*>(_buff)->setName(structName.substr().append(DIRECTIONAL_LIGHT_NAMES[2]));
-		dynamic_cast<MemberVector*>(_buff)->setShader(_shader);
+		dynamic_cast<TMemberVector*>(_buff)->setValue(_light.diffuse);
+		dynamic_cast<TMemberVector*>(_buff)->setName(structName + DIRECTIONAL_LIGHT_NAMES[2]);
+		dynamic_cast<TMemberVector*>(_buff)->setShader(_shader);
 		_buff = data[3];
-		dynamic_cast<MemberVector*>(_buff)->setValue(_light.specular);
-		dynamic_cast<MemberVector*>(_buff)->setName(structName.substr().append(DIRECTIONAL_LIGHT_NAMES[3]));
-		dynamic_cast<MemberVector*>(_buff)->setShader(_shader);
+		dynamic_cast<TMemberVector*>(_buff)->setValue(_light.specular);
+		dynamic_cast<TMemberVector*>(_buff)->setName(structName + DIRECTIONAL_LIGHT_NAMES[3]);
+		dynamic_cast<TMemberVector*>(_buff)->setShader(_shader);
 		_buff = data[4];
-		dynamic_cast<MemberNumber*>(_buff)->setValue(_light.constant);
-		dynamic_cast<MemberNumber*>(_buff)->setName(structName.substr().append(DIRECTIONAL_LIGHT_NAMES[4]));
-		dynamic_cast<MemberNumber*>(_buff)->setShader(_shader);
+		dynamic_cast<TMemberNumber*>(_buff)->setValue(_light.constant);
+		dynamic_cast<TMemberNumber*>(_buff)->setName(structName + DIRECTIONAL_LIGHT_NAMES[4]);
+		dynamic_cast<TMemberNumber*>(_buff)->setShader(_shader);
 		_buff = data[5];
-		dynamic_cast<MemberNumber*>(_buff)->setValue(_light.linear);
-		dynamic_cast<MemberNumber*>(_buff)->setName(structName.substr().append(DIRECTIONAL_LIGHT_NAMES[5]));
-		dynamic_cast<MemberNumber*>(_buff)->setShader(_shader);
+		dynamic_cast<TMemberNumber*>(_buff)->setValue(_light.linear);
+		dynamic_cast<TMemberNumber*>(_buff)->setName(structName + DIRECTIONAL_LIGHT_NAMES[5]);
+		dynamic_cast<TMemberNumber*>(_buff)->setShader(_shader);
 		_buff = data[6];
-		dynamic_cast<MemberNumber*>(_buff)->setValue(_light.quadratic);
-		dynamic_cast<MemberNumber*>(_buff)->setName(structName.substr().append(DIRECTIONAL_LIGHT_NAMES[6]));
-		dynamic_cast<MemberNumber*>(_buff)->setShader(_shader);
+		dynamic_cast<TMemberNumber*>(_buff)->setValue(_light.quadratic);
+		dynamic_cast<TMemberNumber*>(_buff)->setName(structName + DIRECTIONAL_LIGHT_NAMES[6]);
+		dynamic_cast<TMemberNumber*>(_buff)->setShader(_shader);
 	}
 
-	void operator() (PointLightPOD _light) {
+	void operator() (TPOD _light) {
 		TMemberInterface* _buff = nullptr;
 		_buff = data[0];
-		dynamic_cast<MemberVector*>(_buff)->setValue(_light.position);
+		dynamic_cast<TMemberVector*>(_buff)->setValue(_light.position);
 		_buff = data[1];
-		dynamic_cast<MemberVector*>(_buff)->setValue(_light.ambient);
+		dynamic_cast<TMemberVector*>(_buff)->setValue(_light.ambient);
 		_buff = data[2];
-		dynamic_cast<MemberVector*>(_buff)->setValue(_light.diffuse);
+		dynamic_cast<TMemberVector*>(_buff)->setValue(_light.diffuse);
 		_buff = data[3];
-		dynamic_cast<MemberVector*>(_buff)->setValue(_light.specular);
+		dynamic_cast<TMemberVector*>(_buff)->setValue(_light.specular);
 		_buff = data[4];
-		dynamic_cast<MemberNumber*>(_buff)->setValue(_light.constant);
+		dynamic_cast<TMemberNumber*>(_buff)->setValue(_light.constant);
 		_buff = data[5];
-		dynamic_cast<MemberNumber*>(_buff)->setValue(_light.linear);
+		dynamic_cast<TMemberNumber*>(_buff)->setValue(_light.linear);
 		_buff = data[6];
-		dynamic_cast<MemberNumber*>(_buff)->setValue(_light.quadratic);
+		dynamic_cast<TMemberNumber*>(_buff)->setValue(_light.quadratic);
 	}
 
 	void operator() (TShader* _shader) {
 		TMemberInterface* _buff = nullptr;
 		_buff = data[0];
-		dynamic_cast<MemberVector*>(_buff)->setShader(_shader);
+		dynamic_cast<TMemberVector*>(_buff)->setShader(_shader);
 		_buff = data[1];
-		dynamic_cast<MemberVector*>(_buff)->setShader(_shader);
+		dynamic_cast<TMemberVector*>(_buff)->setShader(_shader);
 		_buff = data[2];
-		dynamic_cast<MemberVector*>(_buff)->setShader(_shader);
+		dynamic_cast<TMemberVector*>(_buff)->setShader(_shader);
 		_buff = data[3];
-		dynamic_cast<MemberVector*>(_buff)->setShader(_shader);
+		dynamic_cast<TMemberVector*>(_buff)->setShader(_shader);
 		_buff = data[4];
-		dynamic_cast<MemberNumber*>(_buff)->setShader(_shader);
+		dynamic_cast<TMemberNumber*>(_buff)->setShader(_shader);
 		_buff = data[5];
-		dynamic_cast<MemberNumber*>(_buff)->setShader(_shader);
+		dynamic_cast<TMemberNumber*>(_buff)->setShader(_shader);
 		_buff = data[6];
-		dynamic_cast<MemberNumber*>(_buff)->setShader(_shader);
+		dynamic_cast<TMemberNumber*>(_buff)->setShader(_shader);
 	}
 
 	void operator() (std::string _structName) {
 		structName = std::move(_structName);
 		TMemberInterface* _buff = nullptr;
 		_buff = data[0];
-		dynamic_cast<MemberVector*>(_buff)->setName(structName.substr().append(DIRECTIONAL_LIGHT_NAMES[0]));
+		dynamic_cast<TMemberVector*>(_buff)->setName(structName.substr().append(DIRECTIONAL_LIGHT_NAMES[0]));
 		_buff = data[1];
-		dynamic_cast<MemberVector*>(_buff)->setName(structName.substr().append(DIRECTIONAL_LIGHT_NAMES[1]));
+		dynamic_cast<TMemberVector*>(_buff)->setName(structName.substr().append(DIRECTIONAL_LIGHT_NAMES[1]));
 		_buff = data[2];
-		dynamic_cast<MemberVector*>(_buff)->setName(structName.substr().append(DIRECTIONAL_LIGHT_NAMES[2]));
+		dynamic_cast<TMemberVector*>(_buff)->setName(structName.substr().append(DIRECTIONAL_LIGHT_NAMES[2]));
 		_buff = data[3];
-		dynamic_cast<MemberVector*>(_buff)->setName(structName.substr().append(DIRECTIONAL_LIGHT_NAMES[3]));
+		dynamic_cast<TMemberVector*>(_buff)->setName(structName.substr().append(DIRECTIONAL_LIGHT_NAMES[3]));
 		_buff = data[4];
-		dynamic_cast<MemberNumber*>(_buff)->setName(structName.substr().append(DIRECTIONAL_LIGHT_NAMES[4]));
+		dynamic_cast<TMemberNumber*>(_buff)->setName(structName.substr().append(DIRECTIONAL_LIGHT_NAMES[4]));
 		_buff = data[5];
-		dynamic_cast<MemberNumber*>(_buff)->setName(structName.substr().append(DIRECTIONAL_LIGHT_NAMES[5]));
+		dynamic_cast<TMemberNumber*>(_buff)->setName(structName.substr().append(DIRECTIONAL_LIGHT_NAMES[5]));
 		_buff = data[6];
-		dynamic_cast<MemberNumber*>(_buff)->setName(structName.substr().append(DIRECTIONAL_LIGHT_NAMES[6]));
+		dynamic_cast<TMemberNumber*>(_buff)->setName(structName.substr().append(DIRECTIONAL_LIGHT_NAMES[6]));
 	}
 
 	#ifdef FWCPP17
 		//Set value by selector C++17
 		template < class T >
-		void operator() (T& _value, PointLightPOD::Data _index = PointLightPOD::POSITION) {
+		void operator() (T& _value, PointLightStructComponents::Data _index = PointLightStructComponents::POSITION) {
 			TMemberInterface* _buff = nullptr;
 			_buff = data[_index];
 			if constexpr (std::is_same<T, TVector4>::value) {
-				dynamic_cast<MemberVector*>(_buff)->setValue(_value);
+				dynamic_cast<TMemberVector*>(_buff)->setValue(_value);
 			} else if constexpr (std::is_same<T, TNumber>::value) {
-				dynamic_cast<MemberNumber*>(_buff)->setValue(_value);
+				dynamic_cast<TMemberNumber*>(_buff)->setValue(_value);
 			}
 		}
 	#else
 		//Set value by selector
-		void operator() (TVector4& _value, PointLightPOD::Data _index = PointLightPOD::POSITION) {
+		void operator() (TVector4& _value, PointLightStructComponents::Data _index = PointLightStructComponents::POSITION) {
 			TMemberInterface* _buff = nullptr;
 			_buff = data[_index];
-			dynamic_cast<MemberVector*>(_buff)->setValue(_value);
+			dynamic_cast<TMemberVector*>(_buff)->setValue(_value);
 		}
 
 		//Set value by selector
-		void operator() (TNumber& _value, PointLightPOD::Data _index) {
+		void operator() (TNumber& _value, PointLightStructComponents::Data _index) {
 			TMemberInterface* _buff = nullptr;
 			_buff = data[_index];
-			dynamic_cast<MemberNumber*>(_buff)->setValue(_value);
+			dynamic_cast<TMemberNumber*>(_buff)->setValue(_value);
 		}
 	#endif
 
 	//Get value by selector
 	template < class T >
-	T operator() (PointLightPOD::Data _index, T& _typeValue) {
+	T operator() (PointLightStructComponents::Data _index, T& _typeValue) {
 		TMemberInterface* _buff = nullptr;
 		_buff = data[_index];
 		if (std::is_same<T, TVector4>::value) {
-			return dynamic_cast<MemberVector*>(_buff)->getValue();
+			return dynamic_cast<TMemberVector*>(_buff)->getValue();
 		} else if (std::is_same<T, TNumber>::value) {
-			return dynamic_cast<MemberNumber*>(_buff)->getValue();
+			return dynamic_cast<TMemberNumber*>(_buff)->getValue();
 		} else {
 			return _typeValue;
 		}

@@ -118,7 +118,7 @@ public:
 			* |1|2|3|_|_|4|5|_|_||1|2|3|_|_|4|5|_|_|...
 			* |----------------->|stride = 9
 			*           |----------------->|stride = 9
-			* Custom stride must be equal or higher than sum of length of data.
+			* Custom stride must be equal or higher than sum of lengths of data.
 			*/
 			if (layout.stride > stride)
 				stride = layout.stride;

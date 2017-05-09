@@ -12,34 +12,34 @@
 //GLM
 #include <GLM/glm.hpp>
 //OUR
-#include "general\CUniformStructCollection.h"
+#include "CMaterial.h"
 namespace material {
-	MaterialPOD BlackRubber (	glm::vec3(0.02, 0.02, 0.02),
+	MaterialPOD<> BlackRubber (	glm::vec3(0.02, 0.02, 0.02),
 								glm::vec3(0.01, 0.01, 0.01),
 								glm::vec3(0.4, 0.4, 0.4),
 								128 * 0.078125f );
 
-	MaterialPOD CyanRubber (	glm::vec3(0.0, 0.05, 0.05),
+	MaterialPOD<> CyanRubber (	glm::vec3(0.0, 0.05, 0.05),
 								glm::vec3(0.4, 0.5, 0.5),
 								glm::vec3(0.04, 0.7, 0.7),
 								128 * 0.078125f );
 
-	MaterialPOD GreenRubber (	glm::vec3(0.0, 0.05, 0.0),
+	MaterialPOD<> GreenRubber (	glm::vec3(0.0, 0.05, 0.0),
 								glm::vec3(0.4, 0.5, 0.4),
 								glm::vec3(0.04, 0.7, 0.04),
 								128 * 0.078125f );
 
-	MaterialPOD RedRubber (		glm::vec3(0.05, 0.0, 0.0),
+	MaterialPOD<> RedRubber (	glm::vec3(0.05, 0.0, 0.0),
 								glm::vec3(0.5, 0.4, 0.4),
 								glm::vec3(0.7, 0.04, 0.04),
 								128 * 0.078125f );
 
-	MaterialPOD WhiteRubber (	glm::vec3(0.05, 0.05, 0.05),
+	MaterialPOD<> WhiteRubber (	glm::vec3(0.05, 0.05, 0.05),
 								glm::vec3(0.5, 0.5, 0.5),
 								glm::vec3(0.7, 0.7, 0.7),
 								128 * 0.078125f );
 
-	MaterialPOD YellowRubber (	glm::vec3(0.05, 0.05, 0.0),
+	MaterialPOD<> YellowRubber (glm::vec3(0.05, 0.05, 0.0),
 								glm::vec3(0.5, 0.5, 0.4),
 								glm::vec3(0.7, 0.7, 0.04),
 								128 * 0.078125f );

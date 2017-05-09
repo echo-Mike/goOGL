@@ -53,7 +53,7 @@ public:
 											uniformName(other.uniformName) {}
 
 	UniformBase(UniformBase &&other) : 	shader(std::move(other.shader)),
-										uniformName(std::move(other.uniformName)) {}
+										uniformName(std::move(other.uniformName)) { other.shader = nullptr; }
 
 	~UniformBase() { /*Protect shader from destructor call*/ shader = nullptr; }
 
@@ -223,7 +223,9 @@ public:
 			(shader->*NewUniform)(uniformName, this);
 		} else {
 			#ifdef DEBUG_UNIFORMS
-				DEBUG_OUT << "ERROR::UNIFORM_AUTOMATIC::push::SHADER_MISSING" << DEBUG_NEXT_LINE;
+				#ifdef WARNINGS_UNIFORMS
+					DEBUG_OUT << "WARNING::UNIFORM_AUTOMATIC::push::SHADER_MISSING" << DEBUG_NEXT_LINE;
+				#endif
 			#endif	
 		}
 	}
@@ -234,7 +236,9 @@ public:
 			(_shader->*NewUniform)(uniformName, this);
 		} else {
 			#ifdef DEBUG_UNIFORMS
-				DEBUG_OUT << "ERROR::UNIFORM_AUTOMATIC::push::SHADER_NOT_PROVIDED" << DEBUG_NEXT_LINE;
+				#ifdef WARNINGS_UNIFORMS
+					DEBUG_OUT << "WARNING::UNIFORM_AUTOMATIC::push::SHADER_NOT_PROVIDED" << DEBUG_NEXT_LINE;
+				#endif
 			#endif
 		}
 	}
@@ -245,7 +249,9 @@ public:
 			(shader->*DeleteUniform)(uniformName);
 		} else {
 			#ifdef DEBUG_UNIFORMS
-				DEBUG_OUT << "ERROR::UNIFORM_AUTOMATIC::pull::SHADER_MISSING" << DEBUG_NEXT_LINE;
+				#ifdef WARNINGS_UNIFORMS
+					DEBUG_OUT << "WARNING::UNIFORM_AUTOMATIC::pull::SHADER_MISSING" << DEBUG_NEXT_LINE;
+				#endif
 			#endif	
 		}
 	}
@@ -260,9 +266,9 @@ public:
 						const char* _uniformName = UNIFORM_STD_SHADER_VARIABLE_NAME) :
 						Base(_value, _shader, _uniformName) { push(); }
 
-	UniformAutomatic(const UniformAutomatic &other) : Base(other) {	push();	}
+	UniformAutomatic(const UniformAutomatic &other) : Base(other) {}
 
-	UniformAutomatic(UniformAutomatic &&other) : Base(std::move(other)) { other.setShader(nullptr); }
+	UniformAutomatic(UniformAutomatic &&other) : Base(std::move(other)) { other.setShader(nullptr); push(); }
 
 	~UniformAutomatic() { /*Clear shader callback for this uniform*/ pull(); }
 

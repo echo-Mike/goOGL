@@ -12,34 +12,34 @@
 //GLM
 #include <GLM/glm.hpp>
 //OUR
-#include "general\CUniformStructCollection.h"
+#include "CMaterial.h"
 namespace material {
-	MaterialPOD BlackPlastic (	glm::vec3(0.0, 0.0, 0.0),
+	MaterialPOD<> BlackPlastic (glm::vec3(0.0, 0.0, 0.0),
 								glm::vec3(0.01, 0.01, 0.01),
 								glm::vec3(0.5, 0.5, 0.5),
 								128 * 0.25f );
 
-	MaterialPOD CyanPlastic (	glm::vec3(0.0, 0.1, 0.06),
+	MaterialPOD<> CyanPlastic (	glm::vec3(0.0, 0.1, 0.06),
 								glm::vec3(0.0, 0.50980392, 0.50980392),
 								glm::vec3(0.50196078, 0.50196078, 0.50196078),
 								128 * 0.25f );
 
-	MaterialPOD GreenPlastic (	glm::vec3(0.0, 0.0, 0.0),
+	MaterialPOD<> GreenPlastic (glm::vec3(0.0, 0.0, 0.0),
 								glm::vec3(0.1, 0.35, 0.1),
 								glm::vec3(0.45, 0.55, 0.45),
 								128 * 0.25f );
 
-	MaterialPOD RedPlastic (	glm::vec3(0.0, 0.0, 0.0),
+	MaterialPOD<> RedPlastic (	glm::vec3(0.0, 0.0, 0.0),
 								glm::vec3(0.5, 0.0, 0.0),
 								glm::vec3(0.7, 0.6, 0.6),
 								128 * 0.25f );
 
-	MaterialPOD WhitePlastic (	glm::vec3(0.0, 0.0, 0.0),
+	MaterialPOD<> WhitePlastic (glm::vec3(0.0, 0.0, 0.0),
 								glm::vec3(0.55, 0.55, 0.55),
 								glm::vec3(0.7, 0.7, 0.7),
 								128 * 0.25f );
 
-	MaterialPOD YellowPlastic (	glm::vec3(0.0, 0.0, 0.0),
+	MaterialPOD<> YellowPlastic(glm::vec3(0.0, 0.0, 0.0),
 								glm::vec3(0.5, 0.5, 0.0),
 								glm::vec3(0.6, 0.6, 0.5),
 								128 * 0.25f );

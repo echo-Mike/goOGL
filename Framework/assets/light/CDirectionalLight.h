@@ -68,7 +68,7 @@ struct DirectionalLightPOD : public DirectionalLightStructComponents {
 };
 
 #ifndef DIRECTIONAL_LIGHT_NAMES
-#define DIRECTIONAL_LIGHT_NAMES directionalLightNames
+#define DIRECTIONAL_LIGHT_NAMES ___directionalLightNames
 	//Static array for structure names
 	static const char* DIRECTIONAL_LIGHT_NAMES[] = {
 		"[0].direction", "[0].ambient", "[0].diffuse", "[0].specular"
@@ -92,15 +92,15 @@ struct DirectionalLightsourceStorage : public TBase {
 	static_assert(	std::is_base_of<TMemberInterface, TMemberVector4>::value && std::is_base_of<TMemberInterface, TMemberVector3>::value, 
 					"WARNING::DIRECTIONAL_LIGHTSOURCE_STORAGE::TMemberVector4 and TMemberVector3 must both be derived from TMemberInterface");
 
-	DirectionalLightsourceStorage(	TVector4 direction, TVector3 ambient,
-									TVector3 diffuse, TVector3 specular,
-									TShader* _shader, std::string _structName)
+	DirectionalLightsourceStorage(	TVector4 direction,	TVector3 ambient,
+									TVector3 diffuse,	TVector3 specular,
+									TShader* _shader,	std::string _structName)
 	{
 		structName = std::move(_structName);
-		newElement<MemberVector4>(MemberVector4(&direction, _shader, structName + DIRECTIONAL_LIGHT_NAMES[0]));
-		newElement<MemberVector3>(MemberVector3(&ambient,   _shader, structName + DIRECTIONAL_LIGHT_NAMES[1]));
-		newElement<MemberVector3>(MemberVector3(&diffuse,   _shader, structName + DIRECTIONAL_LIGHT_NAMES[2]));
-		newElement<MemberVector3>(MemberVector3(&specular,  _shader, structName + DIRECTIONAL_LIGHT_NAMES[3]));
+		newElement<TMemberVector4>(TMemberVector4(&direction, _shader, structName + DIRECTIONAL_LIGHT_NAMES[0]));
+		newElement<TMemberVector3>(TMemberVector3(&ambient,   _shader, structName + DIRECTIONAL_LIGHT_NAMES[1]));
+		newElement<TMemberVector3>(TMemberVector3(&diffuse,   _shader, structName + DIRECTIONAL_LIGHT_NAMES[2]));
+		newElement<TMemberVector3>(TMemberVector3(&specular,  _shader, structName + DIRECTIONAL_LIGHT_NAMES[3]));
 	}
 
 	DirectionalLightsourceStorage(	TPOD _light, TShader* _shader, std::string _structName) :
