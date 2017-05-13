@@ -182,8 +182,10 @@ public:
 			glBindTexture(GLTarget, GLId);
 		} else {
 			#ifdef DEBUG_TEXTURE
-				DEBUG_OUT << "ERROR::TEXTURE::Use" << DEBUG_NEXT_LINE;
-				DEBUG_OUT << "\tMessage: Attempt to use unloaded texture." << DEBUG_NEXT_LINE;
+				#ifdef WARNINGS_TEXTURE
+					DEBUG_OUT << "WARNING::TEXTURE::Use" << DEBUG_NEXT_LINE;
+					DEBUG_OUT << "\tMessage: Attempt to use unloaded texture." << DEBUG_NEXT_LINE;
+				#endif
 			#endif
 		}
 	}

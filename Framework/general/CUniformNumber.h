@@ -35,10 +35,10 @@
 *  Class template definition: NumberManualStorage
 */
 template <	class T = float, class TShader = Shader >
-class NumberAutomaticStorage : public UniformManualStorage<T, TShader> {
-	typedef NumberAutomaticStorage<T, TShader> Base;
+class NumberAutomaticStorage : public UniformAutomaticStorage<T, TShader> {
+	typedef UniformAutomaticStorage<T, TShader> Base;
 public:
-	NumberAutomaticStorage() : Base(&0, nullptr, NUMBER_STD_SHADER_VARIABLE_NAME) {}
+	NumberAutomaticStorage() : Base(nullptr, nullptr, NUMBER_STD_SHADER_VARIABLE_NAME) {}
 
 	NumberAutomaticStorage(	T* _value, TShader* _shader,
 							const char* _name = NUMBER_STD_SHADER_VARIABLE_NAME) :
@@ -71,7 +71,7 @@ template <	class T = float, class TShader = Shader,
 class NumberManualStorage : public UniformManualStorage<T, TShader> {
 	typedef UniformManualStorage<T, TShader> Base;
 public:
-	NumberManualStorage() : Base(&0, nullptr, NUMBER_STD_SHADER_VARIABLE_NAME) {}
+	NumberManualStorage() : Base(nullptr, nullptr, NUMBER_STD_SHADER_VARIABLE_NAME) {}
 
 	NumberManualStorage(T* _value, TShader* _shader,
 						const char* _name = NUMBER_STD_SHADER_VARIABLE_NAME) :
@@ -82,6 +82,8 @@ public:
 						Base(_value, _shader, _name) {}
 
 	NumberManualStorage(const NumberManualStorage& other) : Base(other) {}
+
+	NumberManualStorage(NumberManualStorage&& other) : Base(std::move(other)) {}
 
 	void bindData() {
 		GLint _location = (shader->*_getUniformLocation)(uniformName.c_str());

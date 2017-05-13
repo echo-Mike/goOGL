@@ -273,7 +273,7 @@ public:
 	~MultipleTextureHandler() { shader = nullptr; }
 
 	//Push texture to texture stack
-	void pushTexture(TTexture* t, const char* _name = TEXTURE_STD_SHADER_VARIABLE_NAME) {
+	void pushTexture(TTexture* t, const char* _name = nullptr) {
 		int _size = textures.size();
 		if (MULTIPLE_TEXTURE_HANDLER_UPPER_BOUND == reserved) {
 			#ifdef DEBUG_UNIFORMTEXTURE
@@ -304,7 +304,11 @@ public:
 			return;
 		}
 		//Setup texture
-		textures.back().push();
+		if (_name) {
+			textures.back().setName(_name);
+		} else {
+			textures.back().push();
+		}
 		textures.back().setTextureSlot(GL_TEXTURE0 + (GLuint)(textures.size() - 1));
 		textures.back().setTextureUnit(textures.size() - 1);
 	}

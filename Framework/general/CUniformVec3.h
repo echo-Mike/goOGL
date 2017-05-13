@@ -105,6 +105,8 @@ public:
 						Base(_vector, _shader, _name) {}
 
 	Vec3ManualStorage(const Vec3ManualStorage& other) : Base(other) {}
+
+	Vec3ManualStorage(Vec3ManualStorage&& other) : Base(std::move(other)) {}
 	
 	//Bind vec3 to shader
 	void bindData() {
@@ -117,6 +119,42 @@ public:
 			return;
 		}
 		glUniform3f(_location, value.x, value.y, value.z);
+	}
+};
+
+/* The automatic observer for uniform vec3f in-shader value.
+*  Class template definition: Vec3AutomaticObserver
+*/
+template <	class TVector = glm::vec3, class TShader = Shader,
+			GLint(TShader::* _getUniformLocation)(const char*) = &TShader::getUniformLocation >
+class Vec3ManualObserver : public UniformManualObserver<TVector, TShader> {
+	typedef UniformManualObserver<TVector, TShader> Base;
+public:
+	Vec3ManualObserver() : Base(nullptr, nullptr, VEC3_STD_SHADER_VARIABLE_NAME) {}
+
+	Vec3ManualObserver(	TVector* _vector, TShader* _shader,
+						const char* _name = VEC3_STD_SHADER_VARIABLE_NAME) :
+						Base(_vector, _shader, _name) {}
+
+	Vec3ManualObserver(	TVector* _vector, TShader* _shader,
+						std::string _name = std::string(VEC3_STD_SHADER_VARIABLE_NAME)) :
+						Base(_vector, _shader, _name) {}
+	
+	Vec3ManualObserver(const Vec3ManualObserver& other) : Base(other) {}
+
+	Vec3ManualObserver(Vec3ManualObserver&& other) : Base(std::move(other)) {}
+
+	//Bind vec3 to shader
+	void bindData() {
+		GLint _location = (shader->*_getUniformLocation)(uniformName.c_str());
+		if (_location == -1) { //Check if uniform not found
+			#ifdef DEBUG_UNIFORMVEC3
+				DEBUG_OUT << "ERROR::VEC3_MANUAL_OBSERVER::bindData::UNIFORM_NAME_MISSING" << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "\tName: " << uniformName << DEBUG_NEXT_LINE;
+			#endif
+			return;
+		}
+		glUniform3f(_location, valueptr->x, valueptr->y, valueptr->z);
 	}
 };
 #endif
