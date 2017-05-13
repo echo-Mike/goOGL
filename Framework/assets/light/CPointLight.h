@@ -1,5 +1,5 @@
 #ifndef POINTLIGHT_H
-#define POINTLIGHT_H "[0.0.3@CPointLight.h]"
+#define POINTLIGHT_H "[0.0.4@CPointLight.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of point lightsource properties structure
@@ -17,7 +17,6 @@
 //GLM
 #include <GLM/glm.hpp>
 //OUR
-#include "assets\shader\CUniforms.h"
 #include "assets\shader\CUniformStruct.h"
 #include "general\CUniformVec4.h"
 #include "general\CUniformNumber.h"

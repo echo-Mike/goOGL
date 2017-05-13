@@ -1,5 +1,5 @@
 #ifndef UNIFORMS_H
-#define UNIFORMS_H "[0.0.3@CUniforms.h]"
+#define UNIFORMS_H "[0.0.4@CUniforms.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of in-shader uniform value handling classes and templates.
@@ -39,6 +39,9 @@ protected:
 	TShader *shader;
 	std::string uniformName;
 public:
+	//Type of handeled shader
+	typedef TShader ShaderType;
+
 	UniformBase() : shader(nullptr), uniformName(UNIFORM_STD_SHADER_VARIABLE_NAME) {}
 
 	UniformBase(TShader *_shader,
@@ -98,8 +101,6 @@ public:
 	typedef T ValueType;
 	//Type of pointer to handled value
 	typedef T* ValueTypePtr;
-	//Type of handeled shader
-	typedef TShader ShaderType;
 
 	UniformStorage() : UniformBase(), value() {}
 
@@ -153,8 +154,6 @@ public:
 	typedef T ValueType;
 	//Type of pointer to handled value
 	typedef T* ValueTypePtr;
-	//Type of handeled shader
-	typedef TShader ShaderType;
 
 	UniformObserver() : UniformBase(), valueptr(nullptr) {}
 

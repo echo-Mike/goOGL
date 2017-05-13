@@ -1,5 +1,5 @@
 #ifndef COMBINEDMODEL_H
-#define COMBINEDMODEL_H "[0.0.3@CCombinedModel.h]"
+#define COMBINEDMODEL_H "[0.0.4@CCombinedModel.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of model storage.

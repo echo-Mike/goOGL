@@ -1,5 +1,5 @@
 #ifndef UNIFORMSTRUCTCOLLECTION_H
-#define UNIFORMSTRUCTCOLLECTION_H "[0.0.3@CUniformStructCollection.h]"
+#define UNIFORMSTRUCTCOLLECTION_H "[0.0.4@CUniformStructCollection.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of common structures handlers 

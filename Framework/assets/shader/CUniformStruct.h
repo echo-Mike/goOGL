@@ -1,5 +1,5 @@
 #ifndef UNIFORMSTRUCT_H
-#define UNIFORMSTRUCT_H "[0.0.3@CUniformStruct.h]"
+#define UNIFORMSTRUCT_H "[0.0.4@CUniformStruct.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of in-shader struct of uniform values handling classes and templates.
@@ -30,16 +30,18 @@
 	#define STRUCT_STD_SHADER_VARIABLE_NAME "structure"
 #endif
 
-/* Base class of manual storage for struct of uniform in-shader values.
-*  Class definition: StructManualContainer
+/* Base class of storage for struct of uniform in-shader values.
+*  Struct template definition: StructContainerBase
 */
-struct StructManualContainer {
-	std::vector<UniformManualInteface*> data;
+template < class Interface >
+struct StructContainerBase {
+	std::vector<Interface*> data;
 	std::string structName;
+	int index;
 
-	StructManualContainer() : structName(STRUCT_STD_SHADER_VARIABLE_NAME) {}
+	StructContainerBase() : structName(STRUCT_STD_SHADER_VARIABLE_NAME) {}
 
-	StructManualContainer& operator=(StructManualContainer other) {
+	StructContainerBase& operator=(StructContainerBase other) {
 		if (&other == this)
 			return *this;
 		std::swap(structName, other.structName);
@@ -49,47 +51,6 @@ struct StructManualContainer {
 
 	template< class T >
 	void newElement(T _value) {
-		data.push_back(nullptr);
-		data.back() = new T(_value);
-	}
-
-	template< class T >
-	void newElement(T* _valueptr) {
-		data.push_back(nullptr);
-		data.back() = new T(*_valueptr);
-	}
-
-	template< class T >
-	void setElement(int _index, T _value) {
-		delete data.at(_index);
-		data.at(_index) = new T(_value);
-	}
-
-	virtual void bindData() {
-		for (auto &v : data) 
-			v->bindData();
-	}
-};
-
-/* Base class of automatic storage for struct of uniform in-shader values.
-*  Class definition: StructAutomaticContainer
-*/
-struct StructAutomaticContainer {
-	std::vector<UniformAutomaticInteface*> data;
-	std::string structName;
-
-	StructAutomaticContainer() : structName(STRUCT_STD_SHADER_VARIABLE_NAME) {}
-
-	StructAutomaticContainer& operator=(StructAutomaticContainer other) {
-		if (&other == this)
-			return *this;
-		std::swap(structName, other.structName);
-		data.swap(other.data);
-		return *this;
-	}
-
-	template< class T >
-	void newElement(T& _value) {
 		data.push_back(nullptr);
 		data.back() = new T(std::move(_value));
 	}
@@ -101,9 +62,67 @@ struct StructAutomaticContainer {
 	}
 
 	template< class T >
-	void setElement(int _index, T& _value) {
+	void setElement(int _index, T _value) {
 		delete data.at(_index);
 		data.at(_index) = new T(std::move(_value));
+	}
+
+	virtual void operator() (std::string _structName) { return; }
+
+	//Sets current struct as separate value
+	void asValue() {
+		index = -1;
+		this->operator()(structName);
+	}
+
+	//Sets current struct as member of in-shader array of struct at position "_index"
+	void asArrayMember(const int _index) {
+		if (_index < 0) {
+			asValue();
+		} else {
+			index = _index;
+			std::string _buff(structName);
+			this->operator()(structName + "[" + std::to_string(_index) + "]");
+			structName = std::move(_buff);
+		}
+	}
+
+	//Functionality of asArrayMember and asValue binded to operator[] call
+	virtual void operator[] (const int _index) { asArrayMember(_index);	}
+};
+
+/* Base class of manual storage for struct of uniform in-shader values.
+*  Struct definition: StructManualContainer
+*/
+struct StructManualContainer : public StructContainerBase<UniformManualInteface> {
+
+	StructManualContainer() : StructContainerBase() {}
+
+	StructManualContainer& operator=(StructManualContainer other) {
+		if (&other == this)
+			return *this;
+		StructContainerBase<UniformManualInteface>::operator=(other);
+		return *this;
+	}
+
+	virtual void bindData() {
+		for (auto &v : data) 
+			v->bindData();
+	}
+};
+
+/* Base class of automatic storage for struct of uniform in-shader values.
+*  Struct definition: StructAutomaticContainer
+*/
+struct StructAutomaticContainer : public StructContainerBase<UniformAutomaticInteface> {
+
+	StructAutomaticContainer() : StructContainerBase() {}
+
+	StructAutomaticContainer& operator=(StructAutomaticContainer other) {
+		if (&other == this)
+			return *this;
+		StructContainerBase<UniformAutomaticInteface>::operator=(other);
+		return *this;
 	}
 
 	virtual void push() {

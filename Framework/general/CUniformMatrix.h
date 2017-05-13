@@ -1,5 +1,5 @@
 #ifndef UNIFORMMATRIX_H
-#define UNIFORMMATRIX_H "[0.0.3@CUniformMatrix.h]"
+#define UNIFORMMATRIX_H "[0.0.4@CUniformMatrix.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of in-shader uniform matrix4f handling classes and templates based on uniform handling.

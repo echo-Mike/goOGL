@@ -1,5 +1,5 @@
 #ifndef UNIFORMTEXTURE_H
-#define UNIFORMTEXTURE_H "[0.0.3@CUniformTexture.h]"
+#define UNIFORMTEXTURE_H "[0.0.4@CUniformTexture.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of in-shader uniform samplaer2D 

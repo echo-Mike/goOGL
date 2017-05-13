@@ -1,5 +1,5 @@
 #ifndef DIRECTIONALLIGHT_H
-#define DIRECTIONALLIGHT_H "[0.0.3@CDirectionalLight.h]"
+#define DIRECTIONALLIGHT_H "[0.0.4@CDirectionalLight.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of directional lightsource properties structure
@@ -17,7 +17,6 @@
 //GLM
 #include <GLM/glm.hpp>
 //OUR
-#include "assets\shader\CUniforms.h"
 #include "assets\shader\CUniformStruct.h"
 #include "general\CUniformVec4.h"
 #include "assets\shader\CShader.h"
@@ -71,7 +70,7 @@ struct DirectionalLightPOD : public DirectionalLightStructComponents {
 #define DIRECTIONAL_LIGHT_NAMES ___directionalLightNames
 	//Static array for structure names
 	static const char* DIRECTIONAL_LIGHT_NAMES[] = {
-		"[0].direction", "[0].ambient", "[0].diffuse", "[0].specular"
+		".direction", ".ambient", ".diffuse", ".specular"
 	};
 #endif 
 

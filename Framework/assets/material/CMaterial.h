@@ -1,5 +1,5 @@
 #ifndef MATERIAL_H
-#define MATERIAL_H "[0.0.3@CMaterial.h]"
+#define MATERIAL_H "[0.0.4@CMaterial.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of in-shader structure handler 
@@ -17,7 +17,6 @@
 //GLM
 #include <GLM/glm.hpp>
 //OUR
-#include "assets\shader\CUniforms.h"
 #include "assets\shader\CUniformStruct.h"
 #include "general\CUniformVec3.h"
 #include "general\CUniformNumber.h"
@@ -68,7 +67,7 @@ struct MaterialPOD : public MaterialStructComponents {
 #define MATERIAL_NAMES ___materialNames
 	//Static array for structure names
 	static const char* MATERIAL_NAMES[] = {
-		"[0].ambient", "[0].diffuse", "[0].specular", "[0].shininess"
+		".ambient", ".diffuse", ".specular", ".shininess"
 	};
 #endif 
 
@@ -107,7 +106,7 @@ struct MaterialStorage : public TBase {
 
 	MaterialStorage() : MaterialStorage(TVector3(), TVector3(), TVector3(), (TNumber)0, nullptr, "material") {}
 
-	MaterialStorage(const MaterialManualStorage& other) {
+	MaterialStorage(const MaterialStorage& other) {
 		structName = other.structName.substr();
 		UniformManualInteface* _buff = nullptr;
 		_buff = other.data[0];
@@ -191,9 +190,9 @@ struct MaterialStorage : public TBase {
 		void operator() (T& _value, MaterialStructComponents::Data _index) {
 			TMemberInterface* _buff = nullptr;
 			_buff = data[_index];
-			if constexpr (std::is_same<T, TVector3>::value) {
+			if constexpr (std::is_same_v<T, TVector3>) {
 				dynamic_cast<TMemberVector3*>(_buff)->setValue(_value);
-			} else if constexpr (std::is_same<T, TNumber>::value) {
+			} else if constexpr (std::is_same_v<T, TNumber>) {
 				dynamic_cast<TMemberNumber*>(_buff)->setValue(_value);
 			}
 		}

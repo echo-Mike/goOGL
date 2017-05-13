@@ -15,5 +15,5 @@
 #endif
 #include "CDirectionalLight.h"
 #include "CPointLight.h"
-#include "CSpotlight.h"
+//#include "CSpotlight.h"
 #endif

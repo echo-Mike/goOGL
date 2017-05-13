@@ -1,5 +1,5 @@
 #ifndef MATERIALCOLLECTION_H
-#define MATERIALCOLLECTION_H "[0.0.3@HMaterialCollection.h]"
+#define MATERIALCOLLECTION_H "[multi@HMaterialCollection.h]"
 /*
 *	DESCRIPTION:
 *		Module contains includes for all material files.

@@ -1,5 +1,5 @@
 #ifndef TEXTUREMATERIAL_H
-#define TEXTUREMATERIAL_H "[0.0.3@CTextureMaterial.h]"
+#define TEXTUREMATERIAL_H "[0.0.4@CTextureMaterial.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of in-shader structure handler 
@@ -15,7 +15,6 @@
 //GLEW
 #include <GL/glew.h>
 //OUR
-#include "assets\shader\CUniforms.h"
 #include "assets\shader\CUniformStruct.h"
 #include "general\CUniformNumber.h"
 #include "assets\textures\CTexture.h"
@@ -85,7 +84,7 @@ struct TextureMaterialPOD : public TextureMaterialStructComponents {
 #define TEXTURE_MATERIAL_NAMES ___textureMaterialNames
 	//Static array for structure names
 	static const char* TEXTURE_MATERIAL_NAMES[] = {
-		"[0].diffuse", "[0].specular", "[0].shininess"
+		".diffuse", ".specular", ".shininess"
 	};
 #endif 
 
@@ -147,7 +146,7 @@ struct TextureMaterialStorage : public TBase {
 		dynamic_cast<TMemberTexture*>(data[1])->LoadTexture();
 	}
 
-	MaterialManualStorage& operator=(MaterialManualStorage other) {
+	TextureMaterialStorage& operator=(TextureMaterialStorage other) {
 		if (&other == this)
 			return *this;
 		TBase::operator=(other);
@@ -216,10 +215,10 @@ struct TextureMaterialStorage : public TBase {
 		void operator() (T& _value, TextureMaterialStructComponents::Data _index) {
 			TMemberInterface* _buff = nullptr;
 			_buff = data[_index];
-			if constexpr (std::is_same<T, TTexture>::value) {
+			if constexpr (std::is_same_v<T, TTexture>) {
 				dynamic_cast<TMemberTexture*>(_buff)->setValue(_value);
 				dynamic_cast<TMemberTexture*>(_buff)->LoadTexture();
-			} else if constexpr (std::is_same<T, TNumber>::value) {
+			} else if constexpr (std::is_same_v<T, TNumber>) {
 				dynamic_cast<TMemberNumber*>(_buff)->setValue(_value);
 			}
 		}

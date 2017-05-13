@@ -1,5 +1,5 @@
 #ifndef UNIFORMNUMBER_H
-#define UNIFORMNUMBER_H "[0.0.3@CUniformNumber.h]"
+#define UNIFORMNUMBER_H "[0.0.4@CUniformNumber.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of in-shader uniform number (float, double, etc.)
@@ -93,12 +93,23 @@ public:
 			return;
 		}
 
+	#ifdef FWCPP17
+		if constexpr (std::is_same_v<T, int>) {
+			glUniform1i(_location, value);
+		} else 	if constexpr (std::is_same_v<T, unsigned int>) {
+			glUniform1ui(_location, value);
+		} else  if constexpr (std::is_floating_point_v<T>) {
+			glUniform1f(_location, value);
+		}
+	#else
 		if (std::is_same<T, int>::value) {
 			glUniform1i(_location, value);
 		} else 	if (std::is_same<T, unsigned int>::value) {
 			glUniform1ui(_location, value);
-		} else  if (std::is_floating_point<T>::value)
+		} else  if (std::is_floating_point<T>::value) {
 			glUniform1f(_location, value);
+		}
+	#endif
 	}
 };
 #endif
