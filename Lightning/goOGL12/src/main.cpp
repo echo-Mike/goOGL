@@ -74,8 +74,11 @@ int main()
 	lightCube->setShader(lightCubeShader);
 	//Передаём текстуры
 	WorldOrigin->pushTexture(&Texture(WorldOriginTPath.c_str()));
+	cube->pushTexture(&Texture(diffuseMap.c_str()), "material.diffuse");
+	cube->pushTexture(&Texture(specularMap.c_str()), "material.specular");
 	//Загружаем текстуры
 	WorldOrigin->loadAllTextures();
+	cube->loadAllTextures();
 	//Биндим действия в VAO модели
 	WorldOrigin->Build();
 	cube->Build();
@@ -90,22 +93,39 @@ int main()
 								glm::vec3(0.5f, 0.5f, 0.5f),
 								glm::vec3(1.0f, 1.0f, 1.0f));
 	DirectionalLightsourceAutomaticStorage<> directLight(light, cubeShader, "directionLight");
-	//directLight.push();
-	Vec3AutomaticStorage<> lightColor(&glm::vec3(1.0f), lightCubeShader, "lightColor");
 
+	std::vector<PointLightsourceAutomaticStorage<>> pointLights;
+	for (int _index = 0; _index < 4; _index++) {
+		pointLights.push_back(PointLightsourceAutomaticStorage<>(	
+			glm::vec4(pointLightPositions[_index], 1.0f),
+			pointLightColour[_index],
+			pointLightColour[_index],
+			pointLightColour[_index],
+			pointLightAttenuation[_index].x,
+			pointLightAttenuation[_index].y,
+			pointLightAttenuation[_index].z,
+			cubeShader,
+			"pointLights"));
+		pointLights.back()[_index];
 
-	/*glm::mat4 lightSourceScale = glm::scale(glm::mat4(), glm::vec3(0.1f));
-	lightCube->newInstance<LightsourceData>(LightsourceData(our::mat4(), light, nullptr, "model", "light"));
-	dynamic_cast<LightsourceData*>((*lightCube)[0])->modelMatrix.setShader(lightCubeShader);
-	dynamic_cast<LightsourceData*>((*lightCube)[0])->push(cubeShader);*/
-
-	TextureMaterialPOD container(diffuseMap, specularMap, 128.0f);
-
-	cube->newInstance<InstanceData>(InstanceData(our::translate(glm::mat4(), glm::vec3(0.0, 5.0, 0.0)), container, cubeShader, "model", "material"));
-	dynamic_cast<InstanceData*>((*cube)[0])->material.setTextureSlot(cube->getReservedSlot(0), TextureMaterialPOD::DIFFUSE);
-	dynamic_cast<InstanceData*>((*cube)[0])->material.setTextureSlot(cube->getReservedSlot(1), TextureMaterialPOD::SPECULAR);
-	dynamic_cast<InstanceData*>((*cube)[0])->material.setTextureUnit(cube->getReservedUnit(0), TextureMaterialPOD::DIFFUSE);
-	dynamic_cast<InstanceData*>((*cube)[0])->material.setTextureUnit(cube->getReservedUnit(1), TextureMaterialPOD::SPECULAR);
+		our::mat4 _buffMat = our::translate(glm::mat4(), pointLightPositions[_index]);
+		_buffMat = our::scale(_buffMat, glm::vec3(0.4f));
+		lightCube->newInstance<PointLightInstance>(PointLightInstance(_buffMat,
+			&pointLightColour[_index], lightCubeShader, "model", "lightColor"));
+	}
+	
+	for (int _index = 0; _index < 10; _index++) {
+		cube->newInstance<InstanceData>(InstanceData());
+		our::mat4 _buffMat = our::translate(glm::mat4(), cubePositions[_index]);
+		_buffMat = our::rotate(_buffMat, _index*20.0f, glm::vec3(1.0f, 0.3f, 0.5f));
+		dynamic_cast<InstanceData*>((*cube)[_index])->modelMatrix.setValue(_buffMat);
+		dynamic_cast<InstanceData*>((*cube)[_index])->modelMatrix.setName("model");
+		float _buffShi = 128.0f;
+		dynamic_cast<InstanceData*>((*cube)[_index])->material(_buffShi, TextureMaterialStructComponents::SHININESS);
+		dynamic_cast<InstanceData*>((*cube)[_index])->setShader(cubeShader);
+	}
+	//Texture bug fix
+	((MultipleTextureHandler<Texture, Shader>*)cube)->setShader(cubeShader);
 
 	camera = new SimpleCamera();
 	camera->setPerspectiveData(glm::radians(100.0f), (float)width / height, 0.1f, 1000.0f);
@@ -129,29 +149,19 @@ int main()
 											keys[GLFW_KEY_A], keys[GLFW_KEY_D], 
 											keys[GLFW_KEY_SPACE], keys[GLFW_KEY_LEFT_SHIFT]);
 
-		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+		glClearColor(0.522f, 0.384f, 0.165f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
 		//Update camera state
 		camera->Update();
 
 		offset += deltaTime;
-		/*LightsourceData* _buffptr = dynamic_cast<LightsourceData*>((*lightCube)[0]);
-		_buffptr->lightsource(glm::vec3(3.0f, 5.0f, 0.0f) + 1.0f * glm::vec3(0.0f, glm::sin(offset), glm::cos(offset)), LightsourcePOD::POSITION);
-		_buffptr->modelMatrix.setValue(glm::translate(glm::mat4(), _buffptr->lightsource(LightsourcePOD::POSITION)) * lightSourceScale);*/
 
-		//directLight(glm::rotate(glm::vec4(0.0f, -1.0f, 0.0f, 0.0f), offset, glm::vec3(1.0f, 0.0f, 0.0f)));
-		//lightColor.setValue(glm::vec3(glm::sin(glfwGetTime() * 2.0f), glm::sin(glfwGetTime() * 0.7f), glm::sin(glfwGetTime()*1.3f)));
-		//directLight(lightColor.getValue() * glm::vec3(0.2f), DirectionalLightStructComponents::AMBIENT);
-		//directLight(lightColor.getValue() * glm::vec3(0.5f), DirectionalLightStructComponents::DIFFUSE);
-
-		/*_buffptr->lightsource(lightColor.getValue() * glm::vec3(0.2f), LightsourcePOD::AMBIENT);
-		_buffptr->lightsource(lightColor.getValue() * glm::vec3(0.5f), LightsourcePOD::DIFFUSE);*/
 
 		offset = (float)glfwGetTime();
 		WorldOrigin->drawInstance();
-		cube->drawInstance();
-		//lightCube->drawInstance();
+		cube->drawInstances(0,10);
+		lightCube->drawInstances(0,4);
 
 		glfwSwapBuffers(window);
 		GLfloat currentFrame = (float)glfwGetTime();

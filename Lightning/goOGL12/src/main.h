@@ -40,7 +40,8 @@
 #include "scene/CCamera.h"
 #include "data.h"
 #include "assets/material/HMaterialCollection.h"
-#include "assets\light\VDebugLight.h"
+#include "assets\material\HDebugMaterial.h"
+#include "assets\light\HDebugLight.h"
 
 using std::cout;
 using std::endl;
@@ -84,7 +85,7 @@ struct InstanceData : public CommonInstance {
 
 	InstanceData() : CommonInstance(), material() {}
 
-	InstanceData(	our::mat4 _matrix, TextureMaterialPOD _material,  Shader *_shader, 
+	InstanceData(	our::mat4 _matrix, TextureMaterialPOD<> _material,  Shader *_shader, 
 					const char* _matName, const char* _structName) : 
 					CommonInstance(_matrix, _shader, _matName),
 					material(_material, _shader, _structName) {}
@@ -101,16 +102,37 @@ struct InstanceData : public CommonInstance {
 		modelMatrix.setShader(_shader); 
 	}
 
-	void operator() (	our::mat4 _matrix, TextureMaterialPOD _material, Shader *_shader, 
+	void operator() (	our::mat4 _matrix, TextureMaterialPOD<> _material, Shader *_shader, 
 						const char* _matName, const char* _structName) 
 	{
 		CommonInstance::operator()(_matrix, _shader, _matName);
 		material(_material, _shader, _structName);
 	}
 
-	void operator() (TextureMaterialPOD _material) { material(_material); }
+	void operator() (TextureMaterialPOD<> _material) { material(_material); }
 };
 
+struct PointLightInstance : public CommonInstance {
+	Vec3ManualObserver<> lightColor;
 
+	PointLightInstance() : CommonInstance(), lightColor() {}
+
+	PointLightInstance(	our::mat4 _matrix, glm::vec3* _color, Shader *_shader,
+						const char* _matName, const char* _colorName) :
+						CommonInstance(_matrix, _shader, _matName),
+						lightColor(_color, _shader, _colorName) {}
+
+	PointLightInstance(const PointLightInstance& other) : CommonInstance(other), lightColor(other.lightColor) {}
+	
+	void setShader(Shader *_shader) {
+		lightColor.setShader(_shader);
+		modelMatrix.setShader(_shader);
+	}
+
+	void bindData() {
+		modelMatrix.bindData();
+		lightColor.bindData();
+	}
+};
 
 

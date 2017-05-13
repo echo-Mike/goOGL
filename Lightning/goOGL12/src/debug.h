@@ -10,6 +10,7 @@
 #define DEBUG_CAMERA
 //CUniforms.h
 #define DEBUG_UNIFORMS
+//#define WARNINGS_UNIFORMS
 //CUniformStruct.h
 #define DEBUG_UNIFORMSTRUCT
 //CUniformStructCollection.h
@@ -28,8 +29,10 @@
 #define DEBUG_CAMERA
 //CInstanceLoader.h
 #define DEBUG_INSTANCELOADER
-
+//HDebugLight.h
 #define DEBUG_LIGHT
+//HDebugMaterial.h
+#define DEBUG_MATERIAL
 
 //Log output
 #ifndef DEBUG_OUT

@@ -92,7 +92,10 @@
     <ClInclude Include="..\..\Framework\assets\light\CDirectionalLight.h" />
     <ClInclude Include="..\..\Framework\assets\light\CPointLight.h" />
     <ClInclude Include="..\..\Framework\assets\light\CSpotlight.h" />
-    <ClInclude Include="..\..\Framework\assets\light\VDebugLight.h" />
+    <ClInclude Include="..\..\Framework\assets\light\HDebugLight.h" />
+    <ClInclude Include="..\..\Framework\assets\material\CMaterial.h" />
+    <ClInclude Include="..\..\Framework\assets\material\CTextureMaterial.h" />
+    <ClInclude Include="..\..\Framework\assets\material\HDebugMaterial.h" />
     <ClInclude Include="..\..\Framework\assets\material\HMaterialCollection.h" />
     <ClInclude Include="..\..\Framework\assets\material\SJewelry.h" />
     <ClInclude Include="..\..\Framework\assets\material\SMetals.h" />

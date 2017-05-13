@@ -169,8 +169,17 @@
     <ClInclude Include="..\..\Framework\general\CUniformVec4.h">
       <Filter>Заголовочные файлы\general</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Framework\assets\light\VDebugLight.h">
+    <ClInclude Include="..\..\Framework\assets\light\HDebugLight.h">
       <Filter>Заголовочные файлы\assets\light</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Framework\assets\material\CMaterial.h">
+      <Filter>Заголовочные файлы\assets\material</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Framework\assets\material\CTextureMaterial.h">
+      <Filter>Заголовочные файлы\assets\material</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Framework\assets\material\HDebugMaterial.h">
+      <Filter>Заголовочные файлы\assets\material</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

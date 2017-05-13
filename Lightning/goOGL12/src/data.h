@@ -205,7 +205,41 @@ glm::vec3 positions[] = {
 
 };
 
-MaterialPOD materials[] = {
+glm::vec3 cubePositions[] = {
+	glm::vec3( 0.0f,  0.0f,  1.23f), 
+	glm::vec3( 2.0f,  5.0f, -15.0f), 
+	glm::vec3(-1.5f, -2.2f, -2.5f),  
+	glm::vec3(-3.8f, -2.0f, -12.3f),  
+	glm::vec3( 2.4f, -0.4f, -3.5f),  
+	glm::vec3(-1.7f,  3.0f, -7.5f),  
+	glm::vec3( 1.3f, -2.0f, -2.5f),  
+	glm::vec3( 1.5f,  2.0f, -2.5f), 
+	glm::vec3( 1.5f,  0.2f, -1.5f), 
+	glm::vec3(-1.3f,  1.0f, -1.5f)  
+};
+
+glm::vec3 pointLightPositions[] = {
+	glm::vec3( 0.7f,  0.2f,  3.0f),
+	glm::vec3( 2.3f, -3.3f, -4.0f),
+	glm::vec3(-4.0f,  2.0f, -12.0f),
+	glm::vec3( 0.0f,  0.0f, -3.0f)
+};  
+
+glm::vec3 pointLightColour[] = {
+	glm::vec3(0.8f, 0.0f, 0.0f),
+	glm::vec3(0.72f, 0.34f, 0.11f),
+	glm::vec3(0.55f, 0.2f, 0.075f),
+	glm::vec3(0.9f, 0.45f, 0.3f)
+};
+
+glm::vec3 pointLightAttenuation[] = {
+	glm::vec3(1.0f, 0.7f, 1.8f),
+	glm::vec3(1.0f, 0.35f, 0.44f),
+	glm::vec3(1.0f, 0.022f, 0.0019f),
+	glm::vec3(1.0f, 0.7f, 1.8f)
+};
+
+MaterialPOD<> materials[] = {
 	material::Emerald,
 	material::Jade,
 	material::Obsidian,
@@ -234,3 +268,18 @@ MaterialPOD materials[] = {
 	material::WhiteRubber,
 	material::YellowRubber
 };
+/*
+Distance	Constant	Linear	Quadratic
+7			1.0			0.7		1.8
+13			1.0			0.35	0.44
+20			1.0			0.22	0.20
+32			1.0			0.14	0.07
+50			1.0			0.09	0.032
+65			1.0			0.07	0.017
+100			1.0			0.045	0.0075
+160			1.0			0.027	0.0028
+200			1.0			0.022	0.0019
+325			1.0			0.014	0.0007
+600			1.0			0.007	0.0002
+3250		1.0			0.0014	0.000007
+*/
