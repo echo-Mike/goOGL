@@ -106,11 +106,32 @@ public:
 
 	//Create new instance of type T by copy-constructing from reference
 	template < class T >
-	void newInstance(T &_valueptr) {
+	void newInstance(T &_value) {
 		if (std::is_base_of<InstanceInterface, T>::value) {
 			if (std::is_copy_constructible<T>::value) {
 				instances.push_back(nullptr);
-				instances.back() = new T(_valueptr);
+				instances.back() = new T(_value);
+			} else {
+				#ifdef DEBUG_INSTANCELOADER
+					DEBUG_OUT << "ERROR::MULTIPLE_INSTANCE_LOADER::newInstance::INVALID_TYPE" << DEBUG_NEXT_LINE;
+					DEBUG_OUT << "\tMessege: Type T isn't copy constructible." << DEBUG_NEXT_LINE;
+				#endif
+			}
+		} else {
+			#ifdef DEBUG_INSTANCELOADER
+				DEBUG_OUT << "ERROR::MULTIPLE_INSTANCE_LOADER::newInstance::INVALID_TYPE" << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "\tMessege: InstanceDataInterface must be the base class of T." << DEBUG_NEXT_LINE;
+			#endif
+		}
+	}
+
+	//Create new instance of type T by move-constructing from reference
+	template < class T >
+	void newInstance(T&& _value) {
+		if (std::is_base_of<InstanceInterface, T>::value) {
+			if (std::is_copy_constructible<T>::value) {
+				instances.push_back(nullptr);
+				instances.back() = new T(std::move(_value));
 			} else {
 				#ifdef DEBUG_INSTANCELOADER
 					DEBUG_OUT << "ERROR::MULTIPLE_INSTANCE_LOADER::newInstance::INVALID_TYPE" << DEBUG_NEXT_LINE;

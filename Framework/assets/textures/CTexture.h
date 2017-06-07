@@ -25,64 +25,103 @@
 	#endif
 #endif
 
-//Class definition: Texture
-class Texture {
-	std::string path;
-	unsigned char* image_data;
-	int load_status;
-public:
-	enum {
-		EMPTY,
-		IN_MEMORY,
-		IN_OPENGL,
-		IN_BOTH
-	};
+struct TextureDataStructure {
 	int width, height, depth;
+	int SOILLoadType;
 	GLuint GLId;
 	GLuint GLTarget;
 	GLuint GLStoreFormat;
 	GLuint PixelDataFormat;
 	GLuint PixelDataType;
+	GLboolean HaveMimpmap;
 	/*
 	GLuint WarpingS;
 	GLuint WarpingT;
 	GLuint FilterMin;
 	GLuint FilterMag;
 	*/
-	GLboolean HaveMimpmap;
-	int SOILLoadType;
 
-	Texture() {}
+	TextureDataStructure() : width(-1), height(-1),	depth(-1), GLId(0),						
+							 GLTarget(GL_TEXTURE_2D),	GLStoreFormat(GL_RGB),	
+							 PixelDataFormat(GL_RGB),	PixelDataType(GL_UNSIGNED_BYTE),
+							 HaveMimpmap(GL_TRUE),		SOILLoadType(SOIL_LOAD_RGB) {}
+
+	TextureDataStructure(const TextureDataStructure&) = default;
+
+	//VS2013 does not support implicit generation of move constructors and move assignment operators
+	TextureDataStructure(TextureDataStructure&& other) : width(std::move(other.width)), height(std::move(other.height)), depth(std::move(other.depth)), GLId(std::move(other.GLId)),
+														 GLTarget(std::move(other.GLTarget)), GLStoreFormat(std::move(other.GLStoreFormat)),
+														 PixelDataFormat(std::move(other.PixelDataFormat)), PixelDataType(std::move(other.PixelDataType)),
+														 HaveMimpmap(std::move(other.HaveMimpmap)), SOILLoadType(std::move(other.SOILLoadType)) {}
+
+	TextureDataStructure& operator=(const TextureDataStructure&) = default;
+};
+
+//Class definition: Texture
+class Texture : public TextureDataStructure {
+	std::string path;
+	unsigned char* image_data;
+	int load_status;
+public:
+	enum Load_Status : int {
+		EMPTY		= 0x0,
+		IN_MEMORY	= 0x1,
+		IN_OPENGL	= 0x2,
+		IN_BOTH		= 0x3,
+		UNSTABLE	= 0x4
+	};
+
+	Texture() : TextureDataStructure(), path(""), image_data(nullptr), load_status(UNSTABLE) {}
+
+	Texture(const char* texture_path, TextureDataStructure& texture_data) : TextureDataStructure(std::move(texture_data)),
+																			path(texture_path), 
+																			image_data(nullptr),
+																			load_status(EMPTY) {}
+
+	Texture(std::string &texture_path, TextureDataStructure& texture_data) : TextureDataStructure(std::move(texture_data)),
+																			 path(std::move(texture_path)), 
+																			 image_data(nullptr),
+																			 load_status(EMPTY) {}
 
 	Texture(const char* texture_path,			int load_type = SOIL_LOAD_RGB, 
 			GLuint target = GL_TEXTURE_2D,		GLuint how_to_store = GL_RGB, 
 			GLuint pixel_load_format = GL_RGB,	GLuint pixel_load_type = GL_UNSIGNED_BYTE,
-			GLuint texture_slot = GL_TEXTURE0,	GLboolean applay_mipmap = GL_TRUE) :	path(texture_path),				width(-1), 
-																						height(-1),						depth(-1),
-																						GLId(0),						GLTarget(target),
-																						GLStoreFormat(how_to_store),	PixelDataFormat(pixel_load_format),
-																						PixelDataType(pixel_load_type),	HaveMimpmap(applay_mipmap),	
-																						SOILLoadType(load_type),		load_status(EMPTY) {}
-	
+			GLboolean applay_mipmap = GL_TRUE) :TextureDataStructure(), path(texture_path), load_status(EMPTY)
+	{
+		GLTarget = target;
+		GLStoreFormat = how_to_store;
+		PixelDataFormat = pixel_load_format;
+		PixelDataType = pixel_load_type;
+		HaveMimpmap = applay_mipmap;
+		SOILLoadType = load_type;
+	}
+
 	Texture(std::string &texture_path,			int load_type = SOIL_LOAD_RGB, 
 			GLuint target = GL_TEXTURE_2D,		GLuint how_to_store = GL_RGB, 
 			GLuint pixel_load_format = GL_RGB,	GLuint pixel_load_type = GL_UNSIGNED_BYTE,
-			GLuint texture_slot = GL_TEXTURE0,	GLboolean applay_mipmap = GL_TRUE) :	path(texture_path),				width(-1), 
-																						height(-1),						depth(-1),
-																						GLId(0),						GLTarget(target),
-																						GLStoreFormat(how_to_store),	PixelDataFormat(pixel_load_format),
-																						PixelDataType(pixel_load_type),	HaveMimpmap(applay_mipmap),	
-																						SOILLoadType(load_type),		load_status(EMPTY) {}
+			GLboolean applay_mipmap = GL_TRUE) :TextureDataStructure(), path(std::move(texture_path)), load_status(EMPTY)
+	{
+		GLTarget = target;
+		GLStoreFormat = how_to_store;
+		PixelDataFormat = pixel_load_format;
+		PixelDataType = pixel_load_type;
+		HaveMimpmap = applay_mipmap;
+		SOILLoadType = load_type;
+	}
 
-	Texture(const Texture& t) : path(t.path),					width(t.width),
-								height(t.height),				depth(t.depth),
-								GLId(0),						GLTarget(t.GLTarget),
-								GLStoreFormat(t.GLStoreFormat),	PixelDataFormat(t.PixelDataFormat),
-								PixelDataType(t.PixelDataType), HaveMimpmap(t.HaveMimpmap),		
-								SOILLoadType(t.SOILLoadType),	load_status(EMPTY) {}
+	Texture(const Texture& other) : TextureDataStructure(other), path(other.path), image_data(nullptr), load_status(EMPTY) {}
+
+	Texture(Texture&& other) :	TextureDataStructure(std::move(other)),
+								path(std::move(other.path)), 
+								image_data(std::move(other.image_data)),
+								load_status(std::move(other.load_status))
+	{
+		if (load_status & IN_MEMORY)
+			other.image_data = nullptr;
+	}
 
 	~Texture() {
-		if (load_status == IN_MEMORY || load_status == IN_BOTH)
+		if (load_status & IN_MEMORY)
 			SOIL_free_image_data(image_data);
 		if (GLId)
 			glDeleteTextures(1, &GLId);
@@ -92,22 +131,15 @@ public:
 		if (&other == this)
 			return *this;
 		std::swap(path, other.path);
-		std::swap(width, other.width);
-		std::swap(height, other.height);
-		std::swap(depth, other.depth);
-		std::swap(GLStoreFormat, other.GLStoreFormat);
-		std::swap(PixelDataFormat, other.PixelDataFormat);
-		std::swap(PixelDataType, other.PixelDataType);
-		std::swap(HaveMimpmap, other.HaveMimpmap);
-		std::swap(SOILLoadType, other.SOILLoadType);
-		load_status = EMPTY;
+		TextureDataStructure::operator=(other);
 		GLId = 0;
+		load_status = EMPTY;
 		return *this;
 	}
 
 	//Load image data from disk to memory
 	void LoadToMemory() {
-		if (load_status == IN_MEMORY || load_status == IN_BOTH) {
+		if (load_status & IN_MEMORY) {
 			SOIL_free_image_data(image_data);
 		} else {
 			//IN_OPENGL to IN_BOTH, EMPTY to IN_MEMORY
@@ -129,6 +161,7 @@ public:
 	//Load image data from memory to OpenGL
 	void LoadFromMemoryToGL() {
 		switch (load_status) {
+			case UNSTABLE:
 			case EMPTY:
 			case IN_OPENGL:
 				#ifdef DEBUG_TEXTURE
@@ -178,7 +211,7 @@ public:
 
 	//Bind texture to OpenGL
 	void Use() { 
-		if (load_status == IN_OPENGL || load_status == IN_BOTH || !GLId) {
+		if (load_status & IN_MEMORY && !GLId) {
 			glBindTexture(GLTarget, GLId);
 		} else {
 			#ifdef DEBUG_TEXTURE
@@ -209,6 +242,14 @@ public:
 	//Setup new texture path
 	void NewTexturePath(const char* texture_path) {
 		path = std::string(texture_path);
+		#ifdef DEBUG_TEXTURE
+			DEBUG_OUT << "Texture path updated, new path:\n" << path << DEBUG_NEXT_LINE;
+		#endif
+	}
+
+	//Setup new texture path
+	void NewTexturePath(std::string texture_path) {
+		path = std::move(texture_path);
 		#ifdef DEBUG_TEXTURE
 			DEBUG_OUT << "Texture path updated, new path:\n" << path << DEBUG_NEXT_LINE;
 		#endif

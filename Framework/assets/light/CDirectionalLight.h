@@ -89,7 +89,7 @@ struct DirectionalLightsourceStorage : public TBase {
 	typedef TPOD POD;
 
 	static_assert(	std::is_base_of<TMemberInterface, TMemberVector4>::value && std::is_base_of<TMemberInterface, TMemberVector3>::value, 
-					"WARNING::DIRECTIONAL_LIGHTSOURCE_STORAGE::TMemberVector4 and TMemberVector3 must both be derived from TMemberInterface");
+					"ASSERT_ERROR::DIRECTIONAL_LIGHTSOURCE_STORAGE::TMemberVector4 and TMemberVector3 must both be derived from TMemberInterface");
 
 	DirectionalLightsourceStorage(	TVector4 direction,	TVector3 ambient,
 									TVector3 diffuse,	TVector3 specular,

@@ -99,7 +99,7 @@ struct PointLightsourceStorage : public TBase {
 	static_assert(	std::is_base_of<TMemberInterface, TMemberVector4>::value && 
 					std::is_base_of<TMemberInterface, TMemberVector3>::value &&
 					std::is_base_of<TMemberInterface, TMemberNumber>::value,
-					"WARNING::POINT_LIGHTSOURCE_STORAGE::TMemberVectors and TMemberNumber must all be derived from TMemberInterface");
+					"ASSERT_ERROR::POINT_LIGHTSOURCE_STORAGE::TMemberVectors and TMemberNumber must all be derived from TMemberInterface");
 
 
 
@@ -137,7 +137,7 @@ struct PointLightsourceStorage : public TBase {
 	PointLightsourceStorage() : PointLightsourceStorage(TVector4(), TVector3(), TVector3(), TVector3(), (TNumber)0, (TNumber)0, (TNumber)0, nullptr, "light") {}
 
 	PointLightsourceStorage(const PointLightsourceStorage& other) {
-		structName = other.structName.substr();
+		structName = other.structName;
 		TMemberInterface* _buff = nullptr;
 		_buff = other.data[0];
 		newElement<TMemberVector4>(dynamic_cast<TMemberVector4*>(_buff));
@@ -153,6 +153,24 @@ struct PointLightsourceStorage : public TBase {
 		newElement<TMemberNumber>(dynamic_cast<TMemberNumber*>(_buff));
 		_buff = other.data[6];
 		newElement<TMemberNumber>(dynamic_cast<TMemberNumber*>(_buff));
+	}
+
+	PointLightsourceStorage(PointLightsourceStorage&& other) : TBase(std::move(other)) {
+		/*TMemberInterface* _buff = nullptr;
+		_buff = other.data[0];
+		newElement<TMemberVector4>(std::move(*dynamic_cast<TMemberVector4*>(_buff)));
+		_buff = other.data[1];
+		newElement<TMemberVector3>(std::move(*dynamic_cast<TMemberVector3*>(_buff)));
+		_buff = other.data[2];
+		newElement<TMemberVector3>(std::move(*dynamic_cast<TMemberVector3*>(_buff)));
+		_buff = other.data[3];
+		newElement<TMemberVector3>(std::move(*dynamic_cast<TMemberVector3*>(_buff)));
+		_buff = other.data[4];
+		newElement<TMemberNumber>(std::move(*dynamic_cast<TMemberNumber*>(_buff)));
+		_buff = other.data[5];
+		newElement<TMemberNumber>(std::move(*dynamic_cast<TMemberNumber*>(_buff)));
+		_buff = other.data[6];
+		newElement<TMemberNumber>(std::move(*dynamic_cast<TMemberNumber*>(_buff)));*/
 	}
 
 	PointLightsourceStorage& operator=(PointLightsourceStorage other) {
@@ -235,19 +253,19 @@ struct PointLightsourceStorage : public TBase {
 		structName = std::move(_structName);
 		TMemberInterface* _buff = nullptr;
 		_buff = data[0];
-		dynamic_cast<TMemberVector4*>(_buff)->setName(structName.substr().append(POINT_LIGHT_NAMES[0]));
+		dynamic_cast<TMemberVector4*>(_buff)->setName(structName + POINT_LIGHT_NAMES[0]);
 		_buff = data[1];
-		dynamic_cast<TMemberVector3*>(_buff)->setName(structName.substr().append(POINT_LIGHT_NAMES[1]));
+		dynamic_cast<TMemberVector3*>(_buff)->setName(structName + POINT_LIGHT_NAMES[1]);
 		_buff = data[2];
-		dynamic_cast<TMemberVector3*>(_buff)->setName(structName.substr().append(POINT_LIGHT_NAMES[2]));
+		dynamic_cast<TMemberVector3*>(_buff)->setName(structName + POINT_LIGHT_NAMES[2]);
 		_buff = data[3];
-		dynamic_cast<TMemberVector3*>(_buff)->setName(structName.substr().append(POINT_LIGHT_NAMES[3]));
+		dynamic_cast<TMemberVector3*>(_buff)->setName(structName + POINT_LIGHT_NAMES[3]);
 		_buff = data[4];
-		dynamic_cast<TMemberNumber*>(_buff)->setName(structName.substr().append(POINT_LIGHT_NAMES[4]));
+		dynamic_cast<TMemberNumber*>(_buff)->setName(structName + POINT_LIGHT_NAMES[4]);
 		_buff = data[5];
-		dynamic_cast<TMemberNumber*>(_buff)->setName(structName.substr().append(POINT_LIGHT_NAMES[5]));
+		dynamic_cast<TMemberNumber*>(_buff)->setName(structName + POINT_LIGHT_NAMES[5]);
 		_buff = data[6];
-		dynamic_cast<TMemberNumber*>(_buff)->setName(structName.substr().append(POINT_LIGHT_NAMES[6]));
+		dynamic_cast<TMemberNumber*>(_buff)->setName(structName + POINT_LIGHT_NAMES[6]);
 	}
 
 	#ifdef FWCPP17

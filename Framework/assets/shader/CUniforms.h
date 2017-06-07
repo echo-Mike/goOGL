@@ -205,6 +205,8 @@ public:
 	virtual void push() = 0;
 	//Pull uniform from shader queue
 	virtual void pull() = 0;
+
+	virtual ~UniformAutomaticInteface() {};
 };
 
 /* Common base class for all automatic Uniform handlers.
@@ -320,6 +322,8 @@ class UniformManualInteface {
 public:
 	//Bind uniform to shader
 	virtual void bindData() = 0;
+
+	virtual ~UniformManualInteface() {};
 };
 
 /* Common base class for all manual Uniform handlers.

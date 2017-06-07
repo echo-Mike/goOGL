@@ -11,6 +11,7 @@
 //STD
 #include <string>
 #include <vector>
+#include <type_traits>
 //GLEW
 #include <GL/glew.h>
 //OUR
@@ -35,11 +36,28 @@
 */
 template < class Interface >
 struct StructContainerBase {
+	static_assert(	std::has_virtual_destructor<Interface>::value,
+					"ASSERT_ERROR::StructContainerBase::'Interface' class must have virtual destructor");
+
 	std::vector<Interface*> data;
 	std::string structName;
 	int index;
 
 	StructContainerBase() : structName(STRUCT_STD_SHADER_VARIABLE_NAME) {}
+
+	StructContainerBase(StructContainerBase&& other) :	structName(std::move(other.structName)), 
+														index(std::move(other.index))
+	{
+		for (auto &v : other.data) {
+			data.push_back(v);
+			v = nullptr;
+		}
+	}
+
+	~StructContainerBase() {
+		for (auto &v : data)
+			delete v;
+	}
 
 	StructContainerBase& operator=(StructContainerBase other) {
 		if (&other == this)
@@ -48,21 +66,35 @@ struct StructContainerBase {
 		data.swap(other.data);
 		return *this;
 	}
-
+/*
 	template< class T >
-	void newElement(T _value) {
+	void newElement(T& _value) {
+		static_assert(	std::is_base_of<Interface, T>::value, 
+						"ASSERT_ERROR::StructContainerBase::Only objects of class 'T' derived from 'Interface' can be created");
 		data.push_back(nullptr);
 		data.back() = new T(std::move(_value));
 	}
-
+*/
 	template< class T >
 	void newElement(T* _valueptr) {
+		static_assert(	std::is_base_of<Interface, T>::value, 
+						"ASSERT_ERROR::StructContainerBase::Only objects of class 'T' derived from 'Interface' can be created");
 		data.push_back(nullptr);
 		data.back() = new T(std::move(*_valueptr));
 	}
 
 	template< class T >
+	void newElement(T&& _value) {
+		static_assert(	std::is_base_of<Interface, T>::value, 
+						"ASSERT_ERROR::StructContainerBase::Only objects of class 'T' derived from 'Interface' can be created");
+		data.push_back(nullptr);
+		data.back() = new T(std::move(_value));
+	}
+
+	template< class T >
 	void setElement(int _index, T _value) {
+		static_assert(	std::is_base_of<Interface, T>::value, 
+						"ASSERT_ERROR::StructContainerBase::Only objects of class 'T' derived from 'Interface' can be created");
 		delete data.at(_index);
 		data.at(_index) = new T(std::move(_value));
 	}

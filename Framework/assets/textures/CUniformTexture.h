@@ -240,7 +240,19 @@ public:
 		"texture16", "texture17", "texture18", "texture19",
 		"texture20", "texture21", "texture22", "texture23",
 		"texture24", "texture25", "texture26", "texture27",
-		"texture28", "texture29", "texture30", "texture31"
+		"texture28", "texture29", "texture30", "texture31",
+		"texture32", "texture33", "texture34", "texture35",
+		"texture36", "texture37", "texture38", "texture39",
+		"texture40", "texture41", "texture42", "texture43",
+		"texture44", "texture45", "texture46", "texture47",
+		"texture48", "texture49", "texture50", "texture51",
+		"texture52", "texture53", "texture54", "texture55",
+		"texture56", "texture57", "texture58", "texture59",
+		"texture60", "texture61", "texture62", "texture63",
+		"texture64", "texture65", "texture66", "texture67",
+		"texture68", "texture69", "texture70", "texture71",
+		"texture72", "texture73", "texture74", "texture75",
+		"texture76", "texture77", "texture78", "texture79"
 	};
 #endif 
 

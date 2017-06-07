@@ -86,6 +86,8 @@ public:
 						Base(_matrix, _shader, _name) {}
 
 	MatrixManualStorage(const MatrixManualStorage& other) : Base(other) {}
+
+	MatrixManualStorage(MatrixManualStorage&& other) : Base(std::move(other)) {}
 	
 	//Bind matrix to shader
 	void bindData() {
