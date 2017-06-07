@@ -46,13 +46,8 @@ struct StructContainerBase {
 	StructContainerBase() : structName(STRUCT_STD_SHADER_VARIABLE_NAME) {}
 
 	StructContainerBase(StructContainerBase&& other) :	structName(std::move(other.structName)), 
-														index(std::move(other.index))
-	{
-		for (auto &v : other.data) {
-			data.push_back(v);
-			v = nullptr;
-		}
-	}
+														index(std::move(other.index)),
+														data(std::move(other.data)) {}
 
 	~StructContainerBase() {
 		for (auto &v : data)
@@ -130,6 +125,8 @@ struct StructManualContainer : public StructContainerBase<UniformManualInteface>
 
 	StructManualContainer() : StructContainerBase() {}
 
+	StructManualContainer(StructManualContainer&& other) : StructContainerBase<UniformManualInteface>(std::move(other)) {}
+
 	StructManualContainer& operator=(StructManualContainer other) {
 		if (&other == this)
 			return *this;
@@ -149,6 +146,8 @@ struct StructManualContainer : public StructContainerBase<UniformManualInteface>
 struct StructAutomaticContainer : public StructContainerBase<UniformAutomaticInteface> {
 
 	StructAutomaticContainer() : StructContainerBase() {}
+
+	StructAutomaticContainer(StructAutomaticContainer&& other) : StructContainerBase<UniformAutomaticInteface>(std::move(other)) {}
 
 	StructAutomaticContainer& operator=(StructAutomaticContainer other) {
 		if (&other == this)
