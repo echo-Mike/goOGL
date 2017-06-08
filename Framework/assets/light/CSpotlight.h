@@ -1,5 +1,5 @@
 #ifndef SPOTLIGHT_H
-#define SPOTLIGHT_H "[0.0.4@CSpotlight.h]"
+#define SPOTLIGHT_H "[0.0.5@CSpotlight.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of spotlight properties structure

@@ -1,5 +1,5 @@
 #ifndef UNIFORMNUMBER_H
-#define UNIFORMNUMBER_H "[0.0.4@CUniformNumber.h]"
+#define UNIFORMNUMBER_H "[0.0.5@CUniformNumber.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of in-shader uniform number (float, double, etc.)

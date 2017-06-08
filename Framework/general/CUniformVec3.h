@@ -1,5 +1,5 @@
 #ifndef UNIFORMVEC3_H
-#define UNIFORMVEC3_H "[0.0.4@CUniformVec3.h]"
+#define UNIFORMVEC3_H "[0.0.5@CUniformVec3.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of in-shader uniform vec3f handling classes and templates based on uniform handling.

@@ -1,5 +1,5 @@
 #ifndef MATERIAL_H
-#define MATERIAL_H "[0.0.4@CMaterial.h]"
+#define MATERIAL_H "[0.0.5@CMaterial.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of in-shader structure handler 
@@ -118,6 +118,8 @@ struct MaterialStorage : public TBase {
 		_buff = other.data[3];
 		newElement<TMemberNumber>(dynamic_cast<TMemberNumber*>(_buff));
 	}
+
+	MaterialStorage(MaterialStorage&& other) : TBase(std::move(other)) {}
 
 	MaterialStorage& operator=(MaterialStorage other) {
 		if (&other == this)

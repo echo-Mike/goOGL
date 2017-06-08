@@ -1,5 +1,5 @@
 #ifndef RUBBER_H
-#define RUBBER_H "[0.0.4@SRubber.h]"
+#define RUBBER_H "[0.0.5@SRubber.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of colorful rubber materials 

@@ -1,5 +1,5 @@
 #ifndef UNIFORMTEXTURE_H
-#define UNIFORMTEXTURE_H "[0.0.4@CUniformTexture.h]"
+#define UNIFORMTEXTURE_H "[0.0.5@CUniformTexture.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of in-shader uniform samplaer2D 
@@ -58,27 +58,30 @@ protected:
 	int textureUnit;
 public:
 
-	TextureStorage() :	Base(TTexture(), nullptr, TEXTURE_STD_SHADER_VARIABLE_NAME),
+	TextureStorage() :	TBase(),
 						textureSlot(GL_TEXTURE0), 
-						textureUnit(0) {}
+						textureUnit(0) 
+	{
+		TBase::setName(TEXTURE_STD_SHADER_VARIABLE_NAME);
+	}
 
 	TextureStorage(	TTexture *_texture, TShader *_shader,
 					GLuint _textureSlot = GL_TEXTURE0, int _textureUnit = 0,
 					const char* _name = TEXTURE_STD_SHADER_VARIABLE_NAME) :
-					Base(_texture, _shader, _name), 
+					TBase(_texture, _shader, _name), 
 					textureSlot(_textureSlot), textureUnit(_textureUnit) {}
 
 	TextureStorage(	TTexture *_texture, TShader *_shader,
 					GLuint _textureSlot = GL_TEXTURE0, int _textureUnit = 0,
 					std::string _name = std::string(TEXTURE_STD_SHADER_VARIABLE_NAME)) :
-					Base(_texture, _shader, _name),
+					TBase(_texture, _shader, _name),
 					textureSlot(_textureSlot), textureUnit(_textureUnit) {}
 	
-	TextureStorage(const TextureStorage& other) :	Base(other),
+	TextureStorage(const TextureStorage& other) :	TBase(other),
 													textureSlot(other.textureSlot), 
 													textureUnit(other.textureUnit) {}
 
-	TextureStorage(TextureStorage &&other) :	Base(other),
+	TextureStorage(TextureStorage &&other) :	TBase(std::move(other)),
 												textureSlot(std::move(other.textureSlot)), 
 												textureUnit(std::move(other.textureUnit)) {}
 
@@ -89,14 +92,14 @@ public:
 			return *this;
 		std::swap(textureSlot, other.textureSlot);
 		std::swap(textureUnit, other.textureUnit);
-		Base::operator=(other);
+		TBase::operator=(other);
 		return *this;
 	}
 
 	TextureStorage& operator=(TextureStorage &&other) {
 		textureSlot = std::move(other.textureSlot);
 		textureUnit = std::move(other.textureUnit);
-		Base::operator=(other);
+		TBase::operator=(std::move(other));
 		return *this;
 	}
 
@@ -154,7 +157,7 @@ public:
 	
 	TextureAutomaticStorage(const TextureAutomaticStorage& other) : Base(other) {}
 
-	TextureAutomaticStorage(TextureAutomaticStorage &&other) : Base(other) {}
+	TextureAutomaticStorage(TextureAutomaticStorage &&other) : Base(std::move(other)) {}
 
 	~TextureAutomaticStorage() = default;
 
@@ -164,7 +167,7 @@ public:
 	}
 
 	TextureAutomaticStorage& operator=(TextureAutomaticStorage &&other) {
-		Base::operator=(other);
+		Base::operator=(std::move(other));
 		return *this;
 	}
 
@@ -199,7 +202,7 @@ public:
 	
 	TextureManualStorage(const TextureManualStorage& other) : Base(other) {}
 
-	TextureManualStorage(TextureManualStorage &&other) : Base(other) {}
+	TextureManualStorage(TextureManualStorage &&other) : Base(std::move(other)) {}
 
 	~TextureManualStorage() = default;
 
@@ -209,7 +212,7 @@ public:
 	}
 
 	TextureManualStorage& operator=(TextureManualStorage &&other) {
-		Base::operator=(other);
+		Base::operator=(std::move(other));
 		return *this;
 	}
 
@@ -316,11 +319,8 @@ public:
 			return;
 		}
 		//Setup texture
-		if (_name) {
+		if (_name)
 			textures.back().setName(_name);
-		} else {
-			textures.back().push();
-		}
 		textures.back().setTextureSlot(GL_TEXTURE0 + (GLuint)(textures.size() - 1));
 		textures.back().setTextureUnit(textures.size() - 1);
 	}

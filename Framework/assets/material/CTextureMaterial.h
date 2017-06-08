@@ -1,5 +1,5 @@
 #ifndef TEXTUREMATERIAL_H
-#define TEXTUREMATERIAL_H "[0.0.4@CTextureMaterial.h]"
+#define TEXTUREMATERIAL_H "[0.0.5@CTextureMaterial.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of in-shader structure handler 
@@ -145,6 +145,8 @@ struct TextureMaterialStorage : public TBase {
 		dynamic_cast<TMemberTexture*>(data[0])->LoadTexture();
 		dynamic_cast<TMemberTexture*>(data[1])->LoadTexture();
 	}
+
+	TextureMaterialStorage(TextureMaterialStorage&& other) : TBase(std::move(other)) {}
 
 	TextureMaterialStorage& operator=(TextureMaterialStorage other) {
 		if (&other == this)

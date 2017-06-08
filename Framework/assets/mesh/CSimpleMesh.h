@@ -1,8 +1,8 @@
-#ifndef SIMPLEMODEL_H
-#define SIMPLEMODEL_H "[0.0.4@CSimpleModel.h]"
+#ifndef SIMPLEMESH_H
+#define SIMPLEMESH_H "[0.0.5@CSimpleMesh.h]"
 /*
 *	DESCRIPTION:
-*		Module contains implementation of model base class.
+*		Module contains implementation of mesh base class.
 *	AUTHOR:
 *		Mikhail Demchenko
 *		mailto:dev.echo.mike@gmail.com
@@ -15,9 +15,10 @@
 #include "assets/textures/CTexture.h"
 #include "assets/textures/CUniformTexture.h"
 #include "ogl/CGLBufferHandler.h"
-#include "CInstanceLoader.h"
+#include "CMeshInstanceLoader.h"
+#include "CMeshSharedDataHandler.h"
 //DEBUG
-#ifdef DEBUG_SIMPLEMODEL
+#ifdef DEBUG_SIMPLEMESH
 	#ifndef DEBUG_OUT
 		#define DEBUG_OUT std::cout
 	#endif
@@ -26,25 +27,29 @@
 	#endif
 #endif
 
-/* The base class for models, contains buffer allocator, instance loader and multiple texture handler.
+/* The base class for meshes, contains buffer allocator, instance loader and multiple texture handler.
 *  Class template definition: SimpleModel
 */
 template<	class TShader = Shader, class TTexture = Texture,
 			void (TShader::* ApplyShader)(void) = &TShader::Use>
-class SimpleModel : public GLBufferHandler, public MultipleInstanceLoader<TShader>, public MultipleTextureHandler<TTexture, TShader> {
+class SimpleMesh :	public GLBufferHandler, 
+					public MeshSharedDataHandler<TShader>, 
+					public MultipleMeshInstanceLoader<TShader>, 
+					public MultipleTextureHandler<TTexture, TShader> 
+{
 protected:
 	//Pointer to shader
 	TShader *shader;
 public:
-	SimpleModel() : GLBufferHandler(), MultipleTextureHandler(), shader(nullptr) {}
+	SimpleMesh() : GLBufferHandler(), MeshSharedDataHandler(), MultipleTextureHandler(), shader(nullptr) {}
 
-	~SimpleModel() { shader = nullptr; }
+	~SimpleMesh() { shader = nullptr; }
 
 	//Setup pointer to shader
 	void setShader(TShader *_shader) {
 		shader = _shader;
 		MultipleTextureHandler::setShader(_shader);
-		MultipleInstanceLoader::setShader(_shader);
+		MultipleMeshInstanceLoader::setShader(_shader);
 	}
 
 	//Draw one instance of model using instance data
@@ -55,8 +60,8 @@ public:
 		if (applay_shader == GL_TRUE)
 			(shader->*ApplyShader)();
 		if (count < 1) {
-			#ifdef DEBUG_SIMPLEMODEL
-				DEBUG_OUT << "ERROR::SIMPLE_MODEL::drawInstances::INVALID_COUNT: " << count << DEBUG_NEXT_LINE;
+			#ifdef DEBUG_SIMPLEMESH
+				DEBUG_OUT << "ERROR::SIMPLE_MESH::drawInstances::INVALID_COUNT: " << count << DEBUG_NEXT_LINE;
 			#endif
 			return;
 		}

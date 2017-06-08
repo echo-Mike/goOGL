@@ -1,5 +1,5 @@
 #ifndef UNIFORMSTRUCT_H
-#define UNIFORMSTRUCT_H "[0.0.4@CUniformStruct.h]"
+#define UNIFORMSTRUCT_H "[0.0.5@CUniformStruct.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of in-shader struct of uniform values handling classes and templates.
@@ -74,6 +74,8 @@ struct StructContainerBase {
 	void newElement(T* _valueptr) {
 		static_assert(	std::is_base_of<Interface, T>::value, 
 						"ASSERT_ERROR::StructContainerBase::Only objects of class 'T' derived from 'Interface' can be created");
+		static_assert(	std::is_move_constructible<T>::value,
+						"ASSERTION_ERROR::StructContainerBase::Provided class 'T' must be move-constructible.");
 		data.push_back(nullptr);
 		data.back() = new T(std::move(*_valueptr));
 	}
@@ -82,14 +84,18 @@ struct StructContainerBase {
 	void newElement(T&& _value) {
 		static_assert(	std::is_base_of<Interface, T>::value, 
 						"ASSERT_ERROR::StructContainerBase::Only objects of class 'T' derived from 'Interface' can be created");
+		static_assert(	std::is_move_constructible<T>::value,
+						"ASSERTION_ERROR::StructContainerBase::Provided class 'T' must be move-constructible.");
 		data.push_back(nullptr);
 		data.back() = new T(std::move(_value));
 	}
 
 	template< class T >
-	void setElement(int _index, T _value) {
+	void setElement(int _index, T&& _value) {
 		static_assert(	std::is_base_of<Interface, T>::value, 
 						"ASSERT_ERROR::StructContainerBase::Only objects of class 'T' derived from 'Interface' can be created");
+		static_assert(	std::is_move_constructible<T>::value,
+						"ASSERTION_ERROR::StructContainerBase::Provided class 'T' must be move-constructible.");
 		delete data.at(_index);
 		data.at(_index) = new T(std::move(_value));
 	}
@@ -159,6 +165,11 @@ struct StructAutomaticContainer : public StructContainerBase<UniformAutomaticInt
 	virtual void push() {
 		for (auto &v : data)
 			v->push();
+	}
+
+	virtual void pull() {
+		for (auto &v : data)
+			v->pull();
 	}
 };
 #endif

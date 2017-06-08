@@ -1,5 +1,5 @@
 #ifndef POINTLIGHT_H
-#define POINTLIGHT_H "[0.0.4@CPointLight.h]"
+#define POINTLIGHT_H "[0.0.5@CPointLight.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of point lightsource properties structure
@@ -155,23 +155,7 @@ struct PointLightsourceStorage : public TBase {
 		newElement<TMemberNumber>(dynamic_cast<TMemberNumber*>(_buff));
 	}
 
-	PointLightsourceStorage(PointLightsourceStorage&& other) : TBase(std::move(other)) {
-		/*TMemberInterface* _buff = nullptr;
-		_buff = other.data[0];
-		newElement<TMemberVector4>(std::move(*dynamic_cast<TMemberVector4*>(_buff)));
-		_buff = other.data[1];
-		newElement<TMemberVector3>(std::move(*dynamic_cast<TMemberVector3*>(_buff)));
-		_buff = other.data[2];
-		newElement<TMemberVector3>(std::move(*dynamic_cast<TMemberVector3*>(_buff)));
-		_buff = other.data[3];
-		newElement<TMemberVector3>(std::move(*dynamic_cast<TMemberVector3*>(_buff)));
-		_buff = other.data[4];
-		newElement<TMemberNumber>(std::move(*dynamic_cast<TMemberNumber*>(_buff)));
-		_buff = other.data[5];
-		newElement<TMemberNumber>(std::move(*dynamic_cast<TMemberNumber*>(_buff)));
-		_buff = other.data[6];
-		newElement<TMemberNumber>(std::move(*dynamic_cast<TMemberNumber*>(_buff)));*/
-	}
+	PointLightsourceStorage(PointLightsourceStorage&& other) : TBase(std::move(other)) {}
 
 	PointLightsourceStorage& operator=(PointLightsourceStorage other) {
 		if (&other == this)

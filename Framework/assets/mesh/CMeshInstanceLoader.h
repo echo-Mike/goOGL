@@ -1,9 +1,9 @@
-#ifndef INSTANCELOADER_H
-#define INSTANCELOADER_H "[0.0.4@CInstanceLoader.h]"
+#ifndef MESHINSTANCELOADER_H
+#define MESHINSTANCELOADER_H "[0.0.5@CMeshInstanceLoader.h]"
 /*
 *	DESCRIPTION:
-*		Module contains implementation of model instance loader class 
-*		and general model instance interface.
+*		Module contains implementation of mesh instance loader class 
+*		and general mesh instance interface.
 *	AUTHOR:
 *		Mikhail Demchenko
 *		mailto:dev.echo.mike@gmail.com
@@ -15,7 +15,7 @@
 //OUR
 #include "assets\shader\CShader.h"
 //DEBUG
-#ifdef DEBUG_INSTANCELOADER
+#ifdef DEBUG_MESHINSTANCELOADER
 	#ifndef DEBUG_OUT
 		#define DEBUG_OUT std::cout
 	#endif
@@ -24,26 +24,28 @@
 	#endif
 #endif
 
-/* Common interface class for InstanceData declaration.
-*  Class abstract template definition: InstanceDataInterface
+/* Common interface class for mesh instance data declaration.
+*  Class abstract template definition: MeshInstanceDataInterface
 */
 template< class TShader = Shader >
-class InstanceDataInterface {
+class MeshInstanceDataInterface {
 public:
 	//Bind instance data to shader
 	virtual void bindData() = 0;
 	//Set shader of instance
 	virtual void setShader(TShader *_shader) = 0;
+	//RTTI
+	virtual ~MeshInstanceDataInterface() {}
 };
 
-/* Load controller for instance data.
-*  Class definition: MultipleInstanceLoader
+/* Load controller for mesh instance data.
+*  Class definition: MultipleMeshInstanceLoader
 */
 template < class TShader = Shader >
-class MultipleInstanceLoader {
+class MultipleMeshInstanceLoader {
 public:
 	//The base interface class of handled instances
-	typedef InstanceDataInterface<TShader> InstanceInterface;
+	typedef MeshInstanceDataInterface<TShader> InstanceInterface;
 
 	//The type of instance container used
 	typedef std::vector<InstanceInterface*> InstanceContainer;
@@ -57,15 +59,15 @@ public:
 			instances.push_back(_data);
 		}
 		catch (std::length_error e) {
-			#ifdef DEBUG_INSTANCELOADER
-				DEBUG_OUT << "ERROR::MULTIPLE_INSTANCE_LOADER::pushInstance::OUT_OF_RANGE" << DEBUG_NEXT_LINE; 
+			#ifdef DEBUG_MESHINSTANCELOADER
+				DEBUG_OUT << "ERROR::MULTIPLE_MESH_INSTANCE_LOADER::pushInstance::OUT_OF_RANGE" << DEBUG_NEXT_LINE; 
 				DEBUG_OUT << "\tMessege: Can't push more instance data." << DEBUG_NEXT_LINE;
 				DEBUG_OUT << "\tError string: " << e.what() << DEBUG_NEXT_LINE;
 			#endif
 		}
 		catch (...) {
-			#ifdef DEBUG_INSTANCELOADER
-				DEBUG_OUT << "ERROR::MULTIPLE_INSTANCE_LOADER::pushInstance::UNKONWN"<< DEBUG_NEXT_LINE;
+			#ifdef DEBUG_MESHINSTANCELOADER
+				DEBUG_OUT << "ERROR::MULTIPLE_MESH_INSTANCE_LOADER::pushInstance::UNKONWN"<< DEBUG_NEXT_LINE;
 			#endif
 				throw;
 		}
@@ -74,8 +76,8 @@ public:
 	//Pop last instance data from instance array
 	void popInstance() {
 		if (instances.empty()) {
-			#ifdef DEBUG_INSTANCELOADER
-				DEBUG_OUT << "ERROR::MULTIPLE_INSTANCE_LOADER::popInstance::OUT_OF_RANGE" << DEBUG_NEXT_LINE; 
+			#ifdef DEBUG_MESHINSTANCELOADER
+				DEBUG_OUT << "ERROR::MULTIPLE_MESH_INSTANCE_LOADER::popInstance::OUT_OF_RANGE" << DEBUG_NEXT_LINE; 
 				DEBUG_OUT << "\tMessege: Can't pop from empty instance array." << DEBUG_NEXT_LINE;
 			#endif
 		} else {
@@ -83,49 +85,28 @@ public:
 		}
 	}
 
-	//Create new instance of type T by copy-constructing from pointer
+	//Create new instance of type T by move-constructing from pointer
 	template < class T >
 	void newInstance(T* _valueptr) {
 		if (std::is_base_of<InstanceInterface, T>::value) {
 			if (std::is_copy_constructible<T>::value) {
 				instances.push_back(nullptr);
-				instances.back() = new T(*_valueptr);
+				instances.back() = new T(std::move(*_valueptr));
 			} else {
-				#ifdef DEBUG_INSTANCELOADER
-					DEBUG_OUT << "ERROR::MULTIPLE_INSTANCE_LOADER::newInstance::INVALID_TYPE" << DEBUG_NEXT_LINE;
+				#ifdef DEBUG_MESHINSTANCELOADER
+					DEBUG_OUT << "ERROR::MULTIPLE_MESH_INSTANCE_LOADER::newInstance::INVALID_TYPE" << DEBUG_NEXT_LINE;
 					DEBUG_OUT << "\tMessege: Type T isn't copy constructible." << DEBUG_NEXT_LINE;
 				#endif
 			}
 		} else {
-			#ifdef DEBUG_INSTANCELOADER
-				DEBUG_OUT << "ERROR::MULTIPLE_INSTANCE_LOADER::newInstance::INVALID_TYPE" << DEBUG_NEXT_LINE;
+			#ifdef DEBUG_MESHINSTANCELOADER
+				DEBUG_OUT << "ERROR::MULTIPLE_MESH_INSTANCE_LOADER::newInstance::INVALID_TYPE" << DEBUG_NEXT_LINE;
 				DEBUG_OUT << "\tMessege: InstanceDataInterface must be the base class of T." << DEBUG_NEXT_LINE;
 			#endif
 		}
 	}
 
-	//Create new instance of type T by copy-constructing from reference
-	template < class T >
-	void newInstance(T &_value) {
-		if (std::is_base_of<InstanceInterface, T>::value) {
-			if (std::is_copy_constructible<T>::value) {
-				instances.push_back(nullptr);
-				instances.back() = new T(_value);
-			} else {
-				#ifdef DEBUG_INSTANCELOADER
-					DEBUG_OUT << "ERROR::MULTIPLE_INSTANCE_LOADER::newInstance::INVALID_TYPE" << DEBUG_NEXT_LINE;
-					DEBUG_OUT << "\tMessege: Type T isn't copy constructible." << DEBUG_NEXT_LINE;
-				#endif
-			}
-		} else {
-			#ifdef DEBUG_INSTANCELOADER
-				DEBUG_OUT << "ERROR::MULTIPLE_INSTANCE_LOADER::newInstance::INVALID_TYPE" << DEBUG_NEXT_LINE;
-				DEBUG_OUT << "\tMessege: InstanceDataInterface must be the base class of T." << DEBUG_NEXT_LINE;
-			#endif
-		}
-	}
-
-	//Create new instance of type T by move-constructing from reference
+	//Create new instance of type T by move-constructing
 	template < class T >
 	void newInstance(T&& _value) {
 		if (std::is_base_of<InstanceInterface, T>::value) {
@@ -133,14 +114,14 @@ public:
 				instances.push_back(nullptr);
 				instances.back() = new T(std::move(_value));
 			} else {
-				#ifdef DEBUG_INSTANCELOADER
-					DEBUG_OUT << "ERROR::MULTIPLE_INSTANCE_LOADER::newInstance::INVALID_TYPE" << DEBUG_NEXT_LINE;
+				#ifdef DEBUG_MESHINSTANCELOADER
+					DEBUG_OUT << "ERROR::MULTIPLE_MESH_INSTANCE_LOADER::newInstance::INVALID_TYPE" << DEBUG_NEXT_LINE;
 					DEBUG_OUT << "\tMessege: Type T isn't copy constructible." << DEBUG_NEXT_LINE;
 				#endif
 			}
 		} else {
-			#ifdef DEBUG_INSTANCELOADER
-				DEBUG_OUT << "ERROR::MULTIPLE_INSTANCE_LOADER::newInstance::INVALID_TYPE" << DEBUG_NEXT_LINE;
+			#ifdef DEBUG_MESHINSTANCELOADER
+				DEBUG_OUT << "ERROR::MULTIPLE_MESH_INSTANCE_LOADER::newInstance::INVALID_TYPE" << DEBUG_NEXT_LINE;
 				DEBUG_OUT << "\tMessege: InstanceDataInterface must be the base class of T." << DEBUG_NEXT_LINE;
 			#endif
 		}
@@ -159,16 +140,16 @@ protected:
 			instances.at(index)->bindData();
 		}
 		catch (std::out_of_range e) {
-			#ifdef DEBUG_INSTANCELOADER
-				DEBUG_OUT << "ERROR::MULTIPLE_INSTANCE_LOADER::bindInstance::OUT_OF_RANGE" << DEBUG_NEXT_LINE;
+			#ifdef DEBUG_MESHINSTANCELOADER
+				DEBUG_OUT << "ERROR::MULTIPLE_MESH_INSTANCE_LOADER::bindInstance::OUT_OF_RANGE" << DEBUG_NEXT_LINE;
 				DEBUG_OUT << "\tIn index: " << index << DEBUG_NEXT_LINE;
 				DEBUG_OUT << "Error string: " << e.what() << DEBUG_NEXT_LINE;
 			#endif
 			return;
 		}
 		catch (...) {
-			#ifdef DEBUG_INSTANCELOADER
-				DEBUG_OUT << "ERROR::MULTIPLE_INSTANCE_LOADER::bindInstance::UNKONWN"<< DEBUG_NEXT_LINE;
+			#ifdef DEBUG_MESHINSTANCELOADER
+				DEBUG_OUT << "ERROR::MULTIPLE_MESH_INSTANCE_LOADER::bindInstance::UNKONWN"<< DEBUG_NEXT_LINE;
 			#endif
 			throw;
 		}
@@ -190,8 +171,8 @@ public:
 	//Draw multiple instances of model using their data
 	virtual void drawInstances(int start_index = 0, int count = 1) {
 		if (count < 1) {
-			#ifdef DEBUG_INSTANCELOADER
-				DEBUG_OUT << "ERROR::MULTIPLE_INSTANCE_LOADER::drawInstances::INVALID_COUNT: " << count << DEBUG_NEXT_LINE;
+			#ifdef DEBUG_MESHINSTANCELOADER
+				DEBUG_OUT << "ERROR::MULTIPLE_MESH_INSTANCE_LOADER::drawInstances::INVALID_COUNT: " << count << DEBUG_NEXT_LINE;
 			#endif
 			return;
 		}

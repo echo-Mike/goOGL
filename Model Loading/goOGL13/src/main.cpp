@@ -1,22 +1,22 @@
 #include "main.h"
 
-static SimpleModel<> *WorldOrigin;
+static SimpleMesh<> *WorldOrigin;
 static Shader *WorldOriginShader;
-static const std::string WorldOriginVSP(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Lightning\goOGL12\src\GLSL\cuboid.vs)");
-static const std::string WorldOriginFSP(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Lightning\goOGL12\src\GLSL\cuboid.fs)");
+static const std::string WorldOriginVSP(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Model Loading\goOGL13\src\GLSL\cuboid.vs)");
+static const std::string WorldOriginFSP(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Model Loading\goOGL13\src\GLSL\cuboid.fs)");
 static const std::string WorldOriginTPath(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Assets\cubelayout.png)");
 
-static SimpleModel<> *cube;
+static SimpleMesh<> *cube;
 static Shader *cubeShader;
-static const std::string cubeVSP(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Lightning\goOGL12\src\GLSL\cube.vs)");
-static const std::string cubeFSP(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Lightning\goOGL12\src\GLSL\cube.fs)");
+static const std::string cubeVSP(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Model Loading\goOGL13\src\GLSL\cube.vs)");
+static const std::string cubeFSP(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Model Loading\goOGL13\src\GLSL\cube.fs)");
 static const std::string diffuseMap(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Assets\container2.png)");
 static const std::string specularMap(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Assets\container2_specular.png)");
 
-static SimpleModel<> *lightCube;
+static SimpleMesh<> *lightCube;
 static Shader *lightCubeShader;
-static const std::string lightCubeVSP(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Lightning\goOGL12\src\GLSL\lightCube.vs)");
-static const std::string lightCubeFSP(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Lightning\goOGL12\src\GLSL\lightCube.fs)");
+static const std::string lightCubeVSP(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Model Loading\goOGL13\src\GLSL\lightCube.vs)");
+static const std::string lightCubeFSP(R"(C:\Users\123\Desktop\OpenGL\PROJECTS\GOOPENGL\Model Loading\goOGL13\src\GLSL\lightCube.fs)");
 
 static SimpleCamera *camera;
 
@@ -61,9 +61,9 @@ int main()
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	//янгдю╗л лндекэ
-	WorldOrigin = new CombinedModel<>(CombinedModel<>::Layout(0,3, 5,3, 3,2, -1,3, 36, 0, false), WorldOriginV);
-	cube = new CombinedModel<>(CombinedModel<>::Layout(0,3, -1,0, 6,2, 3,3, 36, 0, false), vertices);
-	lightCube = new SeparateModel<>(8, 36, cubeV, nullptr, nullptr, nullptr, cubeI);
+	WorldOrigin = new CombinedMesh<>(CombinedMesh<>::Layout(0, 3, 5, 3, 3, 2, -1, 3, 36, 0, false), WorldOriginV);
+	cube = new CombinedMesh<>(CombinedMesh<>::Layout(0, 3, -1, 0, 6, 2, 3, 3, 36, 0, false), vertices);
+	lightCube = new SeparateMesh<>(8, 36, cubeV, nullptr, nullptr, nullptr, cubeI);
 	//янгдю╗л ьеидеп
 	WorldOriginShader = new Shader(WorldOriginVSP.c_str(), WorldOriginFSP.c_str());
 	cubeShader = new Shader(cubeVSP.c_str(), cubeFSP.c_str());
@@ -115,17 +115,12 @@ int main()
 	}
 	
 	for (int _index = 0; _index < 10; _index++) {
-		cube->newInstance<InstanceData>(std::move(InstanceData()));
 		our::mat4 _buffMat = our::translate(glm::mat4(), cubePositions[_index]);
 		_buffMat = our::rotate(_buffMat, _index*20.0f, glm::vec3(1.0f, 0.3f, 0.5f));
-		dynamic_cast<InstanceData*>((*cube)[_index])->modelMatrix.setValue(_buffMat);
-		dynamic_cast<InstanceData*>((*cube)[_index])->modelMatrix.setName("model");
-		float _buffShi = 128.0f;
-		dynamic_cast<InstanceData*>((*cube)[_index])->material(_buffShi, TextureMaterialStructComponents::SHININESS);
-		dynamic_cast<InstanceData*>((*cube)[_index])->setShader(cubeShader);
+		cube->newInstance<CommonInstance>(std::move(CommonInstance(_buffMat, cubeShader, "model")));
 	}
-	//Texture bug fix
-	((MultipleTextureHandler<Texture, Shader>*)cube)->setShader(cubeShader);
+	float _buff = 128.0f;
+	cube->newSharedData<NumberAutomaticStorage<>>(NumberAutomaticStorage<>(&_buff, cubeShader, "material.shininess"));
 
 	camera = new SimpleCamera();
 	camera->setPerspectiveData(glm::radians(100.0f), (float)width / height, 0.1f, 1000.0f);

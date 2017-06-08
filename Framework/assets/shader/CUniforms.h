@@ -1,5 +1,5 @@
 #ifndef UNIFORMS_H
-#define UNIFORMS_H "[0.0.4@CUniforms.h]"
+#define UNIFORMS_H "[0.0.5@CUniforms.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of in-shader uniform value handling classes and templates.
@@ -10,6 +10,7 @@
 */
 //STD
 #include <string>
+#include <type_traits>
 //GLEW
 #include <GL/glew.h>
 //DEBUG
@@ -95,6 +96,12 @@ public:
 template < class T, class TShader = Shader >
 class UniformStorage : public UniformBase<TShader> {
 protected:
+	static_assert(	std::is_move_constructible<T>::value,
+					"ASSERTION_ERROR::UniformStorage::Provided class 'T' must be move-constuctible.");
+	static_assert(	std::is_default_constructible<T>::value,
+					"ASSERTION_ERROR::UniformStorage::Provided class 'T' must have default constructor.");
+	static_assert(	std::is_copy_constructible<T>::value,
+					"ASSERTION_ERROR::UniformStorage::Provided class 'T' must be copy-constuctible.");
 	T value;
 public:
 	//Type of handled value
@@ -106,11 +113,11 @@ public:
 
 	UniformStorage(	T *_value, TShader *_shader = nullptr,
 					std::string _uniformName = std::string(UNIFORM_STD_SHADER_VARIABLE_NAME)) :
-					UniformBase(_shader, _uniformName), value(*_value) {}
+					UniformBase(_shader, _uniformName), value(std::move(*_value)) {}
 
 	UniformStorage(	T *_value, TShader *_shader = nullptr,
 					const char* _uniformName = UNIFORM_STD_SHADER_VARIABLE_NAME) : 
-					UniformBase(_shader, _uniformName), value(*_value) {}
+					UniformBase(_shader, _uniformName), value(std::move(*_value)) {}
 
 	UniformStorage(const UniformStorage &other) : UniformBase(other), value(other.value) {}
 

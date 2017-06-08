@@ -102,10 +102,11 @@
     <ClInclude Include="..\..\Framework\assets\material\SMetals.h" />
     <ClInclude Include="..\..\Framework\assets\material\SPlastic.h" />
     <ClInclude Include="..\..\Framework\assets\material\SRubber.h" />
-    <ClInclude Include="..\..\Framework\assets\model\CCombinedModel.h" />
-    <ClInclude Include="..\..\Framework\assets\model\CInstanceLoader.h" />
-    <ClInclude Include="..\..\Framework\assets\model\CSeparateModel.h" />
-    <ClInclude Include="..\..\Framework\assets\model\CSimpleModel.h" />
+    <ClInclude Include="..\..\Framework\assets\mesh\CCombinedMesh.h" />
+    <ClInclude Include="..\..\Framework\assets\mesh\CMeshInstanceLoader.h" />
+    <ClInclude Include="..\..\Framework\assets\mesh\CMeshSharedDataHandler.h" />
+    <ClInclude Include="..\..\Framework\assets\mesh\CSeparateMesh.h" />
+    <ClInclude Include="..\..\Framework\assets\mesh\CSimpleMesh.h" />
     <ClInclude Include="..\..\Framework\assets\shader\CShader.h" />
     <ClInclude Include="..\..\Framework\assets\shader\CUniforms.h" />
     <ClInclude Include="..\..\Framework\assets\shader\CUniformStruct.h" />

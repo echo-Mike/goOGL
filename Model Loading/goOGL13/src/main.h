@@ -23,25 +23,35 @@
 
 //OUR
 #include "debug.h"
-#include "assets/shader/CUniforms.h"
-#include "assets/shader/CUniformStruct.h"
-#include "general/ImprovedMath.h"
-#include "general/CUniformMatrix.h"
-#include "general/CUniformVec3.h"
-#include "general/CUniformNumber.h"
-#include "general/CUniformStructCollection.h"
-#include "general/CIndexPool.h"
-#include "assets/textures/CUniformTexture.h"
-#include "assets/shader/CShader.h"
-#include "assets/model/CSimpleModel.h"
-#include "assets/model/CSeparateModel.h"
-#include "assets/model/CCombinedModel.h"
-#include "assets/textures/Ctexture.h"
-#include "scene/CCamera.h"
-#include "data.h"
-#include "assets/material/HMaterialCollection.h"
+
+#include "assets\shader\CUniforms.h"
+#include "assets\shader\CUniformStruct.h"
+#include "assets\shader\CShader.h"
+
+#include "general\ImprovedMath.h"
+#include "general\CUniformMatrix.h"
+#include "general\CUniformVec3.h"
+#include "general\CUniformNumber.h"
+#include "general\CUniformStructCollection.h"
+//#include "general/CIndexPool.h"
+
+#include "assets\textures\CTexture.h"
+#include "assets\textures\CUniformTexture.h"
+
+#include "assets\mesh\CSimpleMesh.h"
+#include "assets\mesh\CSeparateMesh.h"
+#include "assets\mesh\CCombinedMesh.h"
+//#include "assets\mesh\CMeshSharedDataHandler.h"
+
+#include "assets\material\HMaterialCollection.h"
 #include "assets\material\HDebugMaterial.h"
+
 #include "assets\light\HDebugLight.h"
+
+#include "scene\CCamera.h"
+
+#include "data.h"
+
 
 using std::cout;
 using std::endl;
@@ -53,13 +63,13 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 //Scroll callback for GLFW
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
-struct CommonInstance : public InstanceDataInterface<Shader> {
+struct CommonInstance : public MeshInstanceDataInterface<Shader> {
 	MatrixManualStorage<> modelMatrix;
 	
 	CommonInstance() : modelMatrix() {}
 
-	CommonInstance(	our::mat4 _matrix, Shader *_shader, const char* _name) :
-					modelMatrix(&_matrix, _shader, _name) {}
+	CommonInstance(	our::mat4 _matrix, Shader *_shader, const char* _matName) :
+					modelMatrix(&_matrix, _shader, _matName) {}
 
 	CommonInstance(const CommonInstance& other) : modelMatrix(other.modelMatrix) {}
 
@@ -80,40 +90,6 @@ struct CommonInstance : public InstanceDataInterface<Shader> {
 	glm::vec3 getPosition() {
 		return glm::vec3((glm::mat4)modelMatrix.getValue() * glm::vec4());
 	}
-};
-
-struct InstanceData : public CommonInstance {
-	TextureMaterialManualStorage<> material;
-
-	InstanceData() : CommonInstance(), material() {}
-
-	InstanceData(	our::mat4 _matrix, TextureMaterialPOD<> _material,  Shader *_shader, 
-					const char* _matName, const char* _structName) : 
-					CommonInstance(_matrix, _shader, _matName),
-					material(_material, _shader, _structName) {}
-
-	InstanceData(const InstanceData& other) : CommonInstance(other), material(other.material) {}
-
-	InstanceData(InstanceData&& other) : CommonInstance(std::move(other)), material(std::move(other.material)) {}
-
-	void bindData() { 
-		modelMatrix.bindData(); 
-		material.bindData();
-	}
-
-	void setShader(Shader *_shader) { 
-		material(_shader);
-		modelMatrix.setShader(_shader); 
-	}
-
-	void operator() (	our::mat4 _matrix, TextureMaterialPOD<> _material, Shader *_shader, 
-						const char* _matName, const char* _structName) 
-	{
-		CommonInstance::operator()(_matrix, _shader, _matName);
-		material(_material, _shader, _structName);
-	}
-
-	void operator() (TextureMaterialPOD<> _material) { material(_material); }
 };
 
 struct PointLightInstance : public CommonInstance {

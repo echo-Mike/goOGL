@@ -1,9 +1,9 @@
-#ifndef COMBINEDMODEL_H
-#define COMBINEDMODEL_H "[0.0.4@CCombinedModel.h]"
+#ifndef COMBINEDMESH_H
+#define COMBINEDMESH_H "[0.0.5@CCombinedMesh.h]"
 /*
 *	DESCRIPTION:
-*		Module contains implementation of model storage.
-*		Model is represented by single array of data and layout structure.
+*		Module contains implementation of mesh storage.
+*		Mesh is represented by single array of data and layout structure.
 *	AUTHOR:
 *		Mikhail Demchenko
 *		mailto:dev.echo.mike@gmail.com
@@ -12,14 +12,14 @@
 //GLEW
 #include <GL/glew.h>
 //OUR
-#include "CSimpleModel.h"
+#include "CSimpleMesh.h"
 
-/* Implementation of storage of model represented by arrays of data and layout structure.
+/* Implementation of storage of mesh represented by arrays of data and layout structure.
 *  Class template definition: CombinedModel
 */
 template<	class TShader = Shader, class TTexture = Texture,
 			void (TShader::* ApplyShader)(void) = &TShader::Use>
-class CombinedModel : public SimpleModel<TShader, TTexture> {
+class CombinedMesh : public SimpleMesh<TShader, TTexture> {
 public:
 	struct Layout {
 		int vertex_offset,		vertex_length;
@@ -59,7 +59,7 @@ private:
 	const GLfloat *data;
 	const GLuint *elements;
 public:
-	CombinedModel(	const Layout _layout, 
+	CombinedMesh(	const Layout _layout,
 					const GLfloat *dataArray = nullptr,
 					const GLuint *indexesArray = nullptr) : data(dataArray), elements(indexesArray), layout(_layout)
 	{
@@ -67,15 +67,15 @@ public:
 		if (layout.vertex_offset > -1) {
 			bufferAlocator |= COMBINED;
 		} else {
-			throw std::invalid_argument("ERROR::COMBINED_MODEL::Constructor::Vertices array must be defined");
+			throw std::invalid_argument("ERROR::COMBINED_MESH::Constructor::Vertices array must be defined");
 		}
 		if (indexesArray != nullptr) {
 			bufferAlocator |= ELEMENT;
 		} else if (layout.indexed) {
-			throw std::invalid_argument("ERROR::COMBINED_MODEL::Constructor::Element array must be defined for indexed layout");
+			throw std::invalid_argument("ERROR::COMBINED_MESH::Constructor::Element array must be defined for indexed layout");
 		}
 		bufferAlocator |= VERTEXARRAY;
-		allocate(bufferAlocator);
+		SimpleMesh::allocate(bufferAlocator);
 	}
 
 	void drawInstance(int index = 0, GLboolean applay_shader = GL_TRUE) {

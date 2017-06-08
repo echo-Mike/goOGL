@@ -1,5 +1,5 @@
 #ifndef DIRECTIONALLIGHT_H
-#define DIRECTIONALLIGHT_H "[0.0.4@CDirectionalLight.h]"
+#define DIRECTIONALLIGHT_H "[0.0.5@CDirectionalLight.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of directional lightsource properties structure
@@ -121,6 +121,8 @@ struct DirectionalLightsourceStorage : public TBase {
 		_buff = other.data[3];
 		newElement<TMemberVector3>(dynamic_cast<TMemberVector3*>(_buff));
 	}
+
+	DirectionalLightsourceStorage(DirectionalLightsourceStorage&& other) : TBase(std::move(other)) {}
 
 	DirectionalLightsourceStorage& operator=(DirectionalLightsourceStorage other) {
 		if (&other == this)

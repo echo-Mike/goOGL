@@ -1,5 +1,5 @@
 #ifndef SHADER_H
-#define SHADER_H "[0.0.4@CShader.h]"
+#define SHADER_H "[0.0.5@CShader.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of shader class.

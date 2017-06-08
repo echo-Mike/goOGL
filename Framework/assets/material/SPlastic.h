@@ -1,5 +1,5 @@
 #ifndef PLASTIC_H
-#define PLASTIC_H "[0.0.4@SPlastic.h]"
+#define PLASTIC_H "[0.0.5@SPlastic.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of colorful plastic materials 

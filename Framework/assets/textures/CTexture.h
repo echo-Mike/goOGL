@@ -1,5 +1,5 @@
 #ifndef TEXTURE_H
-#define TEXTURE_H "[0.0.4@CTexture.h]"
+#define TEXTURE_H "[0.0.5@CTexture.h]"
 /*
 *	DESCRIPTION:
 *		Module contains implementation of texture class.
@@ -25,6 +25,10 @@
 	#endif
 #endif
 
+/* Structure for easy way of manipulating texture parameters.
+*  Support of move-construction an copy-construction.
+*  Struct definition: TextureDataStructure
+*/
 struct TextureDataStructure {
 	int width, height, depth;
 	int SOILLoadType;
@@ -57,7 +61,14 @@ struct TextureDataStructure {
 	TextureDataStructure& operator=(const TextureDataStructure&) = default;
 };
 
-//Class definition: Texture
+/* Main class of texture/image data manipulation.
+*  Responsibility: 
+*		- loading images to memory;
+*		- loading images to OpenGL;
+*		- proper copying and moving of image data.
+*  Heavily bounded with SOIL.
+*  Class definition: Texture
+*/
 class Texture : public TextureDataStructure {
 	std::string path;
 	unsigned char* image_data;
@@ -118,6 +129,9 @@ public:
 	{
 		if (load_status & IN_MEMORY)
 			other.image_data = nullptr;
+		if (other.GLId)
+			other.GLId = 0;
+		other.load_status = UNSTABLE;
 	}
 
 	~Texture() {
@@ -141,6 +155,14 @@ public:
 	void LoadToMemory() {
 		if (load_status & IN_MEMORY) {
 			SOIL_free_image_data(image_data);
+		} else if (load_status & UNSTABLE) {
+			#ifdef DEBUG_TEXTURE 
+				#ifdef WARNINGS_TEXTURE
+					DEBUG_OUT << "WARNING::TEXTURE::LoadToMemory" << DEBUG_NEXT_LINE;
+					DEBUG_OUT << "\tMessage: Can't load image by undefined path." << DEBUG_NEXT_LINE;
+				#endif
+			#endif
+			return;
 		} else {
 			//IN_OPENGL to IN_BOTH, EMPTY to IN_MEMORY
 			load_status++;
@@ -153,7 +175,10 @@ public:
 			#endif
 		} else {
 			#ifdef DEBUG_TEXTURE
-				DEBUG_OUT << "Texture loaded to Memory by path: \n" << path << DEBUG_NEXT_LINE;
+				#ifdef EVENTS_TEXTURE
+					DEBUG_OUT << "EVENT::TEXTURE::LoadToMemory" << DEBUG_NEXT_LINE;
+					DEBUG_OUT << "\tMessage: Texture loaded to Memory by path: \n" << path << DEBUG_NEXT_LINE;
+				#endif
 			#endif
 		}
 	}
@@ -166,7 +191,7 @@ public:
 			case IN_OPENGL:
 				#ifdef DEBUG_TEXTURE
 					DEBUG_OUT << "ERROR::TEXTURE::LoadFromMemoryToGL" << DEBUG_NEXT_LINE;
-					DEBUG_OUT << "\tMeesage: Attempt to load empty memory to OpenGL." << DEBUG_NEXT_LINE;
+					DEBUG_OUT << "\tMessage: Attempt to load empty memory to OpenGL." << DEBUG_NEXT_LINE;
 				#endif
 				break;
 			case IN_BOTH:
@@ -195,7 +220,10 @@ public:
 				glBindTexture(GLTarget, 0);
 				load_status = IN_BOTH;
 				#ifdef DEBUG_TEXTURE
-					DEBUG_OUT << "Texture loaded from Memory to OpenGL" << DEBUG_NEXT_LINE;
+					#ifdef EVENTS_TEXTURE
+						DEBUG_OUT << "EVENT::TEXTURE::LoadFromMemoryToGL" << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tMessage: Texture loaded from Memory to OpenGL" << DEBUG_NEXT_LINE;
+					#endif
 				#endif
 				break;
 		}
@@ -206,12 +234,13 @@ public:
 		LoadToMemory();
 		LoadFromMemoryToGL();
 		SOIL_free_image_data(image_data);
-		load_status = IN_OPENGL;
+		if (load_status & IN_OPENGL)
+			load_status = IN_OPENGL;
 	}
 
 	//Bind texture to OpenGL
 	void Use() { 
-		if (load_status & IN_MEMORY && !GLId) {
+		if ((load_status & IN_OPENGL) || (!GLId)) {
 			glBindTexture(GLTarget, GLId);
 		} else {
 			#ifdef DEBUG_TEXTURE
@@ -225,6 +254,8 @@ public:
 
 	//Setup warping parameters
 	void Warping(GLuint s_warp = GL_REPEAT, GLuint t_warp = GL_REPEAT) {
+		if (!GLId)
+			return;
 		glBindTexture(GLTarget, GLId);
 		glTexParameteri(GLTarget, GL_TEXTURE_WRAP_S, s_warp);
 		glTexParameteri(GLTarget, GL_TEXTURE_WRAP_T, t_warp);
@@ -233,6 +264,8 @@ public:
 
 	//Setup sampling filter parameters
 	void SamplingFilter(GLuint min = GL_LINEAR, GLuint mag = GL_LINEAR) {
+		if (!GLId)
+			return;
 		glBindTexture(GLTarget, GLId);
 		glTexParameteri(GLTarget, GL_TEXTURE_MIN_FILTER, min);
 		glTexParameteri(GLTarget, GL_TEXTURE_MAG_FILTER, mag);
@@ -243,7 +276,10 @@ public:
 	void NewTexturePath(const char* texture_path) {
 		path = std::string(texture_path);
 		#ifdef DEBUG_TEXTURE
-			DEBUG_OUT << "Texture path updated, new path:\n" << path << DEBUG_NEXT_LINE;
+			#ifdef EVENTS_TEXTURE
+				DEBUG_OUT << "EVENT::TEXTURE::NewTexturePath" << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "\tMessage: Texture path updated, new path:\n" << path << DEBUG_NEXT_LINE;
+			#endif
 		#endif
 	}
 
@@ -251,8 +287,14 @@ public:
 	void NewTexturePath(std::string texture_path) {
 		path = std::move(texture_path);
 		#ifdef DEBUG_TEXTURE
-			DEBUG_OUT << "Texture path updated, new path:\n" << path << DEBUG_NEXT_LINE;
+			#ifdef EVENTS_TEXTURE
+				DEBUG_OUT << "EVENT::TEXTURE::NewTexturePath" << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "\tMessage: Texture path updated, new path:\n" << path << DEBUG_NEXT_LINE;
+			#endif
 		#endif
 	}
+
+	//Read access to load_status value
+	int getLoadStatus() { return load_status; }
 };
 #endif

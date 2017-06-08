@@ -1,13 +1,20 @@
 //Log library
 #include <iostream>
-//Ctexture.h
+
+//CTexture.h
 #define DEBUG_TEXTURE
-//CSimpleModel.h
-#define DEBUG_SIMPLEMODEL
+#define WARNINGS_TEXTURE
+#define EVENTS_TEXTURE
+//CUniformTexture.h
+#define DEBUG_UNIFORMTEXTURE
+
+//CMeshInstanceLoader.h
+#define DEBUG_MESHINSTANCELOADER
+//CSimpleMesh.h
+#define DEBUG_SIMPLEMESH
+
 //CShader.h
 #define DEBUG_SHADER
-//CCamera.h
-#define DEBUG_CAMERA
 //CUniforms.h
 #define DEBUG_UNIFORMS
 //#define WARNINGS_UNIFORMS
@@ -15,22 +22,19 @@
 #define DEBUG_UNIFORMSTRUCT
 //CUniformStructCollection.h
 #define DEBUG_UNIFORMSTRUCTCOLLECTION
-//CIndexPool.h
-#define DEBUG_INDEXPOOL
 //CUniformMatrix.h
 #define DEBUG_UNIFORMMATRIX
 //CUniformVec3.h
 #define DEBUG_UNIFORMVEC3
 //CUniformNumber.h
 #define DEBUG_UNIFORMNUMBER
-//CUniformTexture.h
-#define DEBUG_UNIFORMTEXTURE
+
 //CCamera.h
 #define DEBUG_CAMERA
-//CInstanceLoader.h
-#define DEBUG_INSTANCELOADER
+
 //HDebugLight.h
 #define DEBUG_LIGHT
+
 //HDebugMaterial.h
 #define DEBUG_MATERIAL
 

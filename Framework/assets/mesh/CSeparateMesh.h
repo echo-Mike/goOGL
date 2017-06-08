@@ -1,9 +1,9 @@
-#ifndef SEPARATEMODEL_H
-#define SEPARATEMODEL_H "[0.0.4@CSeparateModel.h]"
+#ifndef SEPARATEMESH_H
+#define SEPARATEMESH_H "[0.0.5@CSeparateMesh.h]"
 /*
 *	DESCRIPTION:
-*		Module contains implementation of model storage.
-*		Model is represented by multiple arrays of data.
+*		Module contains implementation of mesh storage.
+*		Mesh is represented by multiple arrays of data.
 *	AUTHOR:
 *		Mikhail Demchenko
 *		mailto:dev.echo.mike@gmail.com
@@ -12,34 +12,34 @@
 //GLEW
 #include <GL/glew.h>
 //OUR
-#include "CSimpleModel.h"
+#include "CSimpleMesh.h"
 
-#ifndef SEPARATEMODEL_VERTEX_SIZE 
+#ifndef SEPARATEMESH_VERTEX_SIZE 
 	//Length of vertex position vector
-	#define SEPARATEMODEL_VERTEX_SIZE 3
+	#define SEPARATEMESH_VERTEX_SIZE 3
 #endif
  
-#ifndef SEPARATEMODEL_COLOR_SIZE
+#ifndef SEPARATEMESH_COLOR_SIZE
 	//Length of vertex color vector
-	#define SEPARATEMODEL_COLOR_SIZE 3
+	#define SEPARATEMESH_COLOR_SIZE 3
 #endif
 
-#ifndef SEPARATEMODEL_TEXCOORD_SIZE
+#ifndef SEPARATEMESH_TEXCOORD_SIZE
 	//Length of vertex texture coordinates vector
-	#define SEPARATEMODEL_TEXCOORD_SIZE 2
+	#define SEPARATEMESH_TEXCOORD_SIZE 2
 #endif
 
-#ifndef SEPARATEMODEL_NORMAL_SIZE
+#ifndef SEPARATEMESH_NORMAL_SIZE
 	//Length of vertex normal vector
-	#define SEPARATEMODEL_NORMAL_SIZE 3
+	#define SEPARATEMESH_NORMAL_SIZE 3
 #endif
 
-/* Implementation of storage of model represented by multiple arrays of data.
+/* Implementation of storage of mesh represented by multiple arrays of data.
 *  Class template definition: SeparateModel
 */
 template<	class TShader = Shader, class TTexture = Texture, 
 			void (TShader::* ApplyShader)(void) = &TShader::Use>
-class SeparateModel : public SimpleModel<TShader, TTexture> {
+class SeparateMesh : public SimpleMesh<TShader, TTexture> {
 	const GLfloat *vertices;
 	const GLfloat *colors;
 	const GLfloat *texCoords;
@@ -47,7 +47,7 @@ class SeparateModel : public SimpleModel<TShader, TTexture> {
 	const GLuint  *elements;
 	int vertices_count, indexes_count;
 public:
-	SeparateModel(	int verticesCount,							int indexesCount,
+	SeparateMesh(	int verticesCount,							int indexesCount,
 					const GLfloat *verticesArray = nullptr,		const GLfloat *colorsArray = nullptr,
 					const GLfloat *texCoordsArray = nullptr,	const GLfloat *normalsArray = nullptr,
 					const GLuint  *indexesArray = nullptr) :	vertices_count(verticesCount),	indexes_count(indexesCount),
@@ -60,7 +60,7 @@ public:
 			bufferAlocator |= VERTEX;
 		}
 		else {
-			throw std::invalid_argument("ERROR::SEPARATE_MODEL::Constructor::Vertices array must be defined");
+			throw std::invalid_argument("ERROR::SEPARATE_MESH::Constructor::Vertices array must be defined");
 		}
 		if (colors != nullptr)
 			bufferAlocator |= COLOR;
@@ -72,10 +72,10 @@ public:
 			bufferAlocator |= ELEMENT;
 		}
 		else {
-			throw std::invalid_argument("ERROR::SEPARATE_MODEL::Constructor::Element array must be defined");
+			throw std::invalid_argument("ERROR::SEPARATE_MESH::Constructor::Element array must be defined");
 		}
 		bufferAlocator |= VERTEXARRAY;
-		allocate(bufferAlocator);
+		SimpleMesh::allocate(bufferAlocator);
 	};
 
 	void drawInstance(int index = 0, GLboolean applay_shader = GL_TRUE) {
@@ -100,28 +100,28 @@ public:
 			// 1. Copy our vertices array in a vertex buffer for OpenGL to use
 			//Position attribute
 			bindBuffer(VERTEX);
-			glBufferData(GL_ARRAY_BUFFER, vertices_count * sizeof(GLfloat)* SEPARATEMODEL_VERTEX_SIZE, vertices, GL_STATIC_DRAW);
-			glVertexAttribPointer(0, SEPARATEMODEL_VERTEX_SIZE, GL_FLOAT, GL_FALSE, SEPARATEMODEL_VERTEX_SIZE * sizeof(GLfloat), (GLvoid*)0);
+			glBufferData(GL_ARRAY_BUFFER, vertices_count * sizeof(GLfloat)* SEPARATEMESH_VERTEX_SIZE, vertices, GL_STATIC_DRAW);
+			glVertexAttribPointer(0, SEPARATEMESH_VERTEX_SIZE, GL_FLOAT, GL_FALSE, SEPARATEMESH_VERTEX_SIZE * sizeof(GLfloat), (GLvoid*)0);
 			glEnableVertexAttribArray(0);
 			//Color attribute
 			if (colors != nullptr) {
 				bindBuffer(COLOR);
-				glBufferData(GL_ARRAY_BUFFER, vertices_count * sizeof(GLfloat)* SEPARATEMODEL_COLOR_SIZE, colors, GL_STATIC_DRAW);
-				glVertexAttribPointer(1, SEPARATEMODEL_COLOR_SIZE, GL_FLOAT, GL_FALSE, SEPARATEMODEL_COLOR_SIZE * sizeof(GLfloat), (GLvoid*)0);
+				glBufferData(GL_ARRAY_BUFFER, vertices_count * sizeof(GLfloat)* SEPARATEMESH_COLOR_SIZE, colors, GL_STATIC_DRAW);
+				glVertexAttribPointer(1, SEPARATEMESH_COLOR_SIZE, GL_FLOAT, GL_FALSE, SEPARATEMESH_COLOR_SIZE * sizeof(GLfloat), (GLvoid*)0);
 				glEnableVertexAttribArray(1);
 			}
 			//Texture coord attribute
 			if (texCoords != nullptr) {
 				bindBuffer(TEXCOORD);
-				glBufferData(GL_ARRAY_BUFFER, vertices_count * sizeof(GLfloat)* SEPARATEMODEL_TEXCOORD_SIZE, texCoords, GL_STATIC_DRAW);
-				glVertexAttribPointer(2, SEPARATEMODEL_TEXCOORD_SIZE, GL_FLOAT, GL_FALSE, SEPARATEMODEL_TEXCOORD_SIZE * sizeof(GLfloat), (GLvoid*)0);
+				glBufferData(GL_ARRAY_BUFFER, vertices_count * sizeof(GLfloat)* SEPARATEMESH_TEXCOORD_SIZE, texCoords, GL_STATIC_DRAW);
+				glVertexAttribPointer(2, SEPARATEMESH_TEXCOORD_SIZE, GL_FLOAT, GL_FALSE, SEPARATEMESH_TEXCOORD_SIZE * sizeof(GLfloat), (GLvoid*)0);
 				glEnableVertexAttribArray(2);
 			}
 			//Normal attribute
 			if (normals != nullptr) {
 				bindBuffer(NORMAL);
-				glBufferData(GL_ARRAY_BUFFER, vertices_count * sizeof(GLfloat)* SEPARATEMODEL_NORMAL_SIZE, normals, GL_STATIC_DRAW);
-				glVertexAttribPointer(3, SEPARATEMODEL_NORMAL_SIZE, GL_FLOAT, GL_FALSE, SEPARATEMODEL_NORMAL_SIZE * sizeof(GLfloat), (GLvoid*)0);
+				glBufferData(GL_ARRAY_BUFFER, vertices_count * sizeof(GLfloat)* SEPARATEMESH_NORMAL_SIZE, normals, GL_STATIC_DRAW);
+				glVertexAttribPointer(3, SEPARATEMESH_NORMAL_SIZE, GL_FLOAT, GL_FALSE, SEPARATEMESH_NORMAL_SIZE * sizeof(GLfloat), (GLvoid*)0);
 				glEnableVertexAttribArray(3);
 			}
 			// 2. Copy our index array in a element buffer for OpenGL to use

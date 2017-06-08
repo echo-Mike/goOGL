@@ -34,14 +34,14 @@
     <Filter Include="Заголовочные файлы\assets\textures">
       <UniqueIdentifier>{1f5dabde-44cc-4801-86aa-cc6840882bd3}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Заголовочные файлы\assets\model">
-      <UniqueIdentifier>{47617f75-d962-48c0-bd73-cf382f979288}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Заголовочные файлы\assets\material">
       <UniqueIdentifier>{cf1a25e9-4284-4dfb-9840-257bb83f962a}</UniqueIdentifier>
     </Filter>
     <Filter Include="Заголовочные файлы\assets\light">
       <UniqueIdentifier>{bcdf32ba-dfb5-4e02-b7d9-ec5d16c595e7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Заголовочные файлы\assets\mesh">
+      <UniqueIdentifier>{47617f75-d962-48c0-bd73-cf382f979288}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -90,18 +90,6 @@
     </ClInclude>
     <ClInclude Include="src\OLD.h">
       <Filter>Заголовочные файлы</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Framework\assets\model\CCombinedModel.h">
-      <Filter>Заголовочные файлы\assets\model</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Framework\assets\model\CInstanceLoader.h">
-      <Filter>Заголовочные файлы\assets\model</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Framework\assets\model\CSeparateModel.h">
-      <Filter>Заголовочные файлы\assets\model</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Framework\assets\model\CSimpleModel.h">
-      <Filter>Заголовочные файлы\assets\model</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Framework\assets\textures\CTexture.h">
       <Filter>Заголовочные файлы\assets\textures</Filter>
@@ -180,6 +168,21 @@
     </ClInclude>
     <ClInclude Include="..\..\Framework\assets\material\HDebugMaterial.h">
       <Filter>Заголовочные файлы\assets\material</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Framework\assets\mesh\CMeshInstanceLoader.h">
+      <Filter>Заголовочные файлы\assets\mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Framework\assets\mesh\CSimpleMesh.h">
+      <Filter>Заголовочные файлы\assets\mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Framework\assets\mesh\CCombinedMesh.h">
+      <Filter>Заголовочные файлы\assets\mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Framework\assets\mesh\CSeparateMesh.h">
+      <Filter>Заголовочные файлы\assets\mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Framework\assets\mesh\CMeshSharedDataHandler.h">
+      <Filter>Заголовочные файлы\assets\mesh</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
