@@ -17,13 +17,15 @@
 class GLBufferHandler {
 public: 
 	enum BufferType : int {
-		VERTEX		= 0x01,
-		COLOR		= 0x02,
-		TEXCOORD	= 0x04,
-		NORMAL		= 0x08,
-		ELEMENT		= 0x10,
-		VERTEXARRAY	= 0x20,
-		COMBINED	= 0x40
+		VERTEX		= 0x001,
+		COLOR		= 0x002,
+		TEXCOORD	= 0x004,
+		NORMAL		= 0x008,
+		TANGENT		= 0x010,
+		BITANGENT	= 0x020,
+		ELEMENT		= 0x040,
+		VERTEXARRAY	= 0x080,
+		COMBINED	= 0x100
 	};
 private:
 	//Allocator sorage
@@ -35,6 +37,8 @@ private:
 		GLuint color		= 0;
 		GLuint textureCoord	= 0;
 		GLuint normal		= 0;
+		GLuint tangent		= 0;
+		GLuint bitangent	= 0;
 		GLuint element		= 0;	//EBO
 		GLuint vertexArray	= 0;	//VAO
 		GLuint combined		= 0;	//VBO
@@ -52,6 +56,12 @@ private:
 					break;
 				case NORMAL:
 					return normal;
+					break;
+				case TANGENT:
+					return tangent;
+					break;
+				case BITANGENT:
+					return bitangent;
 					break;
 				case ELEMENT:
 					return element;
@@ -80,6 +90,10 @@ protected:
 			glGenBuffers(1, &GLbuffers.textureCoord);
 		if (allocator & NORMAL)
 			glGenBuffers(1, &GLbuffers.normal);
+		if (allocator & TANGENT)
+			glGenBuffers(1, &GLbuffers.tangent);
+		if (allocator & BITANGENT)
+			glGenBuffers(1, &GLbuffers.bitangent);
 		if (allocator & COMBINED)
 			glGenBuffers(1, &GLbuffers.combined);
 		if (allocator & ELEMENT)
@@ -108,6 +122,8 @@ public:
 		glDeleteBuffers(1, &GLbuffers.color);
 		glDeleteBuffers(1, &GLbuffers.textureCoord);
 		glDeleteBuffers(1, &GLbuffers.normal);
+		glDeleteBuffers(1, &GLbuffers.tangent);
+		glDeleteBuffers(1, &GLbuffers.bitangent);
 		glDeleteBuffers(1, &GLbuffers.element);
 		glDeleteBuffers(1, &GLbuffers.combined);
 		glDeleteVertexArrays(1, &GLbuffers.vertexArray);

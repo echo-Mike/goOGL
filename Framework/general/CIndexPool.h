@@ -10,8 +10,11 @@
 */
 //STD
 #include <cmath>
+#include <limits.h>
 #include <vector>
 #include <algorithm>
+#include <type_traits>
+#include <cstring>
 //DEBUG
 #ifdef DEBUG_INDEXPOOL
 	#ifndef DEBUG_OUT
@@ -167,5 +170,158 @@ public:
 	}
 
 	bool isAllowed(TIndex _index) { return !isIgnored(_index); }
+};
+
+template < class TIndex = int >
+class SimpleIndexPool {
+	static_assert(	std::is_integral<TIndex>::value,
+					"ASSERTION_ERROR::SIMPLE_INDEX_POOL::Provided type 'TIndex' must be integral.");
+	typedef unsigned int Bucket;
+	Bucket* pool;
+	unsigned int size;
+	unsigned int bucketBitSize;
+	unsigned int length;
+	unsigned int tail;
+	TIndex minIndex;
+	TIndex maxIndex;
+public:
+	typedef TIndex IndexType;
+
+	SimpleIndexPool(TIndex _min, TIndex _max) : 
+					minIndex(_min), maxIndex(_max)
+	{
+		if (_min > _max) {
+			maxIndex = _min;
+			minIndex = _max;
+		}
+
+		size = maxIndex - minIndex + 1;
+		bucketBitSize = sizeof(Bucket) * CHAR_BIT;
+
+		length = size / bucketBitSize;
+		tail = size % bucketBitSize;
+		if (tail)
+			length++;
+
+		pool = new Bucket[length];
+		if (!pool)
+			std::exception("SIMPLE_INDEX_POOL::System can't allocate memory.");
+
+		std::memset(pool, 0, length * sizeof(Bucket));
+	}
+
+	SimpleIndexPool(const SimpleIndexPool& other) : minIndex(other.minIndex),
+													maxIndex(other.maxIndex),
+													size(other.size),
+													tail(other.tail),
+													length(other.length)
+	{
+		pool = new Bucket[length];
+		std::memcpy(pool, other.pool, length * sizeof(Bucket));
+	}
+
+	SimpleIndexPool(SimpleIndexPool&& other) :  minIndex(other.minIndex),
+												maxIndex(std::move(other.maxIndex)),
+												size(std::move(other.size)),
+												pool(other.pool),
+												tail(std::move(other.tail)),
+												length(std::move(other.length))
+	{
+		other.pool = nullptr;
+	}
+
+	~SimpleIndexPool() { delete pool; }
+
+	unsigned int getSize() { return size; }
+
+	TIndex getMinIndex() { return minIndex; }
+
+	TIndex getMaxIndex() { return maxIndex; }
+
+	TIndex newIndex(unsigned int startFrom = 0) {
+		if (startFrom >= size)
+			startFrom = size - 1;
+		register Bucket* ptr(pool + startFrom / bucketBitSize);
+
+		for (;;) {
+			if (ptr == pool + length)
+				break;
+
+			if (tail && ptr == pool + length - 1) {
+				for (register unsigned int _index = 0; _index < tail; _index++) {
+					if (!(*ptr & (((Bucket)1) << _index))) {
+						*ptr |= ((Bucket)1) << _index;
+						return (TIndex)((ptr - pool) * bucketBitSize + _index + minIndex);
+					}
+				}
+			} else {
+				for (register unsigned int _index = 0; _index < bucketBitSize; _index++) {
+					if (!(*ptr & (((Bucket)1) << _index))) {
+						*ptr |= ((Bucket)1) << _index;
+						return (TIndex)((ptr - pool) * bucketBitSize + _index + minIndex);
+					}
+				}
+			}
+
+			ptr++;
+		}
+
+		throw std::out_of_range("ERROR::SIMPLE_INDEX_POOL::CAN'T_ALLOCATE_NEW_INDEX");
+		return (TIndex)0;
+	}
+
+	unsigned int newIndex(TIndex _array[], unsigned int _count) {
+		try {
+			_array[0] = newIndex(0);
+		}
+		catch (std::out_of_range e) {
+			#ifdef DEBUG_INDEXPOOL
+				#ifdef WARNINGS_INDEXPOOL
+					DEBUG_OUT << "WARNING::SIMPLE_INDEX_POOL::NO_MORE_INDEXES_CAN_BE_ALLOCATED" << DEBUG_NEXT_LINE;
+					DEBUG_OUT << "\tMessage: Final allocated count: 0" << DEBUG_NEXT_LINE;
+				#endif
+			#endif
+			return 0;
+		}
+		for (unsigned int _index = 1; _index < _count; _index++) {
+			try {
+				_array[_index] = newIndex(_array[_index-1] - minIndex + 1);
+			}
+			catch (std::out_of_range e) {
+				#ifdef DEBUG_INDEXPOOL
+					#ifdef WARNINGS_INDEXPOOL
+						DEBUG_OUT << "WARNING::SIMPLE_INDEX_POOL::NO_MORE_INDEXES_CAN_BE_ALLOCATED" << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tMessage: Final allocated count: " << _index << DEBUG_NEXT_LINE;
+					#endif
+				#endif
+				return _index;
+			}
+		}
+		return _count;
+	}
+
+	void deleteIndex(TIndex _index) {
+		if (_index < minIndex || _index > maxIndex)
+			return;
+
+		Bucket* ptr = pool + (_index - minIndex) / bucketBitSize;
+
+		unsigned int _tail = (_index - minIndex) % bucketBitSize;
+		
+		if (*ptr & (((Bucket)1) << _tail))
+			*ptr &= (!((Bucket)0)) ^ (((Bucket)1) << _tail) ;
+		return;
+	}
+
+	void deleteIndex(TIndex _start, TIndex _end) {
+		if (_start > _end) 
+			_start ^= _end ^= _start ^= _end;
+		if (_start < minIndex)
+			_start = minIndex;
+		if (_end > maxIndex)
+			_end = maxIndex;
+		for (TIndex _index = _start; _index <= _end; _index++)
+			deleteIndex(_index);
+	}
 };
 #endif

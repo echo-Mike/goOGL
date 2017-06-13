@@ -39,14 +39,30 @@
 	#define DEBUG_NEXT_LINE std::endl
 #endif
 
-//Class definition: Shader
+/* Stores information about uniform in-shader variable.
+*  Struct definition: UniformInformation
+*/
+struct UniformInformation {
+	UniformAutomaticInteface* ptr = nullptr;
+	GLint location = -1;
+
+	UniformInformation(UniformAutomaticInteface* _ptr, GLint _location = -1) : ptr(_ptr), location(_location) {}
+
+	UniformInformation(UniformInformation&& other) : ptr(std::move(other.ptr)), location(std::move(other.location)) {}
+
+	~UniformInformation() {	ptr = nullptr; }
+};
+
+/* This class represents a shader (fragment and vertex) of OpenGL pipeline.
+*  Class definition: Shader
+*/
 class Shader {
 	//NO STDCONSTRUCT, NO MOVECONSTRUCT, NO COPYCONSTRUCT
 	Shader() = delete;
 	Shader(const Shader& s) = delete;
 	Shader(const Shader&& s) = delete;
 	//Uniform container
-	std::map<std::string, UniformAutomaticInteface*> uniforms;
+	std::map<std::string, UniformInformation> uniforms;
 	//The program ID //SPO ID
 	GLuint Program;
 public:
@@ -86,20 +102,21 @@ public:
 
 	Shader(const GLchar* vertexPath, const GLchar* fragmentPath) :	vpath(vertexPath), 
 																	fpath(fragmentPath), 
-																	Program(0)
-	{ 
-		Reload(); 
-	}
-	
+																	Program(0) { Reload(); }
+
+	Shader(std::string& vertexPath, std::string& fragmentPath) : vpath(vertexPath),
+																 fpath(fragmentPath), 
+																 Program(0) { Reload(); }
+
 	~Shader() {
 		//Prevent external values from destructor calls
 		for (auto &v : uniforms)
-			v.second = nullptr;
+			v.second.ptr = nullptr;
 		glDeleteProgram(this->Program); 
 	}
 
 	void newUniform(std::string &_uniformName, UniformAutomaticInteface* _handler) {
-		uniforms[_uniformName] = _handler;
+		uniforms[_uniformName] = std::move(UniformInformation(_handler));
 	}
 
 	void deleteUniform(const char* _key) { uniforms.erase(std::string(_key)); }
@@ -112,7 +129,7 @@ public:
 	//Find uniform in queue by pointer to it
 	bool find(UniformAutomaticInteface* _toFind) {
 		for (auto &_value : uniforms)
-			if (_value.second == _toFind)
+			if (_value.second.ptr == _toFind)
 				return true;
 		return false;
 	}

@@ -33,7 +33,7 @@
 */
 template < class TShader = Shader >
 struct MeshSharedDataHandler {
-	//Dynamic container for shared data instances
+	//Dynamic container for data shared among all instances
 	std::vector<UniformAutomaticInteface*> sharedData;
 
 	MeshSharedDataHandler() {}

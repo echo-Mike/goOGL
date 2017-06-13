@@ -4,15 +4,18 @@ void Shader::Use() {
 	glUseProgram(Program);
 	GLint _location = 0;
 	for (auto &_value : uniforms) {
-		_location = glGetUniformLocation(Program, _value.first.c_str());
-		if (_location == -1) { //Check if uniform not found
-			#ifdef DEBUG_SHADERCPP
-				DEBUG_OUT << "ERROR::SHADER::Use::UNIFORM_NAME_MISSING"<< DEBUG_NEXT_LINE;
-				DEBUG_OUT << "\tName: " << _value.first << DEBUG_NEXT_LINE;
-			#endif
-			continue;
+		if (_value.second.location < 0) {
+			_location = glGetUniformLocation(Program, _value.first.c_str());
+			if (_location == -1) { //Check if uniform not found
+				#ifdef DEBUG_SHADERCPP
+					DEBUG_OUT << "ERROR::SHADER::Use::UNIFORM_NAME_MISSING"<< DEBUG_NEXT_LINE;
+					DEBUG_OUT << "\tName: " << _value.first << DEBUG_NEXT_LINE;
+				#endif
+				continue;
+			}
+			_value.second.location = _location;
 		}
-		_value.second->bindUniform(_location);
+		_value.second.ptr->bindUniform(_value.second.location);
 	}
 }
 
@@ -20,6 +23,7 @@ void Shader::Use() {
 void Shader::Reload() {
 	if (Program)
 		glDeleteProgram(Program);
+	uniforms.clear();
 	// 1. Retrieve the vertex/fragment source code from filePath
 	std::string vertexCode;
 	std::string fragmentCode;
