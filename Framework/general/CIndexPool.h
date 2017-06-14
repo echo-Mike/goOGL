@@ -172,6 +172,10 @@ public:
 	bool isAllowed(TIndex _index) { return !isIgnored(_index); }
 };
 
+/**
+*	Main singletone object of resource handling for all engine.
+*	Class definition: ResourceHandlingEngine
+**/
 template < class TIndex = int >
 class SimpleIndexPool {
 	static_assert(	std::is_integral<TIndex>::value,
@@ -238,24 +242,29 @@ public:
 
 	TIndex getMaxIndex() { return maxIndex; }
 
+	size_t usedMemory() { return length * sizeof(Bucket) + sizeof(SimpleIndexPool); }
+
+	/**
+	*	Performs a search of new index.
+	*	Accepts a 'startFrom' location value to speed up a search process.
+	*	Use 'obj.startLocation(last_given_index)' to obtain a new location for linear index search.
+	**/
 	TIndex newIndex(unsigned int startFrom = 0) {
 		if (startFrom >= size)
 			startFrom = size - 1;
 		register Bucket* ptr(pool + startFrom / bucketBitSize);
 
-		for (;;) {
-			if (ptr == pool + length)
-				break;
+		while (ptr != pool + length) {
 
 			if (tail && ptr == pool + length - 1) {
-				for (register unsigned int _index = 0; _index < tail; _index++) {
+				for (register unsigned int _index = startFrom % bucketBitSize; _index < tail; _index++) {
 					if (!(*ptr & (((Bucket)1) << _index))) {
 						*ptr |= ((Bucket)1) << _index;
 						return (TIndex)((ptr - pool) * bucketBitSize + _index + minIndex);
 					}
 				}
-			} else {
-				for (register unsigned int _index = 0; _index < bucketBitSize; _index++) {
+			} else if (~(*ptr)) {
+				for (register unsigned int _index = startFrom % bucketBitSize; _index < bucketBitSize; _index++) {
 					if (!(*ptr & (((Bucket)1) << _index))) {
 						*ptr |= ((Bucket)1) << _index;
 						return (TIndex)((ptr - pool) * bucketBitSize + _index + minIndex);
@@ -265,9 +274,11 @@ public:
 
 			ptr++;
 		}
-
-		throw std::out_of_range("ERROR::SIMPLE_INDEX_POOL::CAN'T_ALLOCATE_NEW_INDEX");
-		return (TIndex)0;
+		if (!startFrom) {
+			throw std::out_of_range("ERROR::SIMPLE_INDEX_POOL::CAN'T_ALLOCATE_NEW_INDEX");
+			return (TIndex)0;
+		}
+		try { return newIndex(); } catch (...) { throw; }
 	}
 
 	unsigned int newIndex(TIndex _array[], unsigned int _count) {
@@ -285,6 +296,9 @@ public:
 		}
 		for (unsigned int _index = 1; _index < _count; _index++) {
 			try {
+				//Less code but less perfomance solution:
+				//_index from 0
+				//_array[_index] = newIndex(_index ? _array[_index-1] - minIndex + 1 : 0);
 				_array[_index] = newIndex(_array[_index-1] - minIndex + 1);
 			}
 			catch (std::out_of_range e) {
@@ -300,17 +314,22 @@ public:
 		return _count;
 	}
 
+	/**
+	*	Provides the location to start searching for new index based on given index '_index'.
+	*	Use it with newIndex() to speed up linear index search process:
+	*		new_index = obj.newIndex(obj.startLocation(last_given_index));
+	**/
+	inline unsigned int startLocation(TIndex _index) { return _index - minIndex + 1; }
+
 	void deleteIndex(TIndex _index) {
 		if (_index < minIndex || _index > maxIndex)
 			return;
-
-		Bucket* ptr = pool + (_index - minIndex) / bucketBitSize;
-
-		unsigned int _tail = (_index - minIndex) % bucketBitSize;
-		
-		if (*ptr & (((Bucket)1) << _tail))
-			*ptr &= (!((Bucket)0)) ^ (((Bucket)1) << _tail) ;
-		return;
+		//Bucket position
+		register Bucket* ptr = pool + (_index - minIndex) / bucketBitSize;
+		//Biit position
+		register unsigned int _tail = (_index - minIndex) % bucketBitSize;
+		//Set bit to zero
+		*ptr &= ~(((Bucket)1) << _tail);
 	}
 
 	void deleteIndex(TIndex _start, TIndex _end) {
@@ -320,8 +339,26 @@ public:
 			_start = minIndex;
 		if (_end > maxIndex)
 			_end = maxIndex;
-		for (TIndex _index = _start; _index <= _end; _index++)
-			deleteIndex(_index);
+		//bucketBitSize * 2 was chosen to not handle a case with (_end == 1 + _start)
+		if ((unsigned int)(_end - _start) < bucketBitSize * 2) {
+			for (TIndex _index = _start; _index <= _end; _index++)
+				deleteIndex(_index);
+		} else {
+			//Get ptr to bucket next to one with _start index
+			//BTW: VS2013U doesn't allow you to use variable called "_sptr", so "_bptr" was used instead in which 'b' for begin.
+			Bucket* _bptr = pool + (_start - minIndex) / bucketBitSize + 1;
+			//Get ptr to bucket before one with _end index
+			Bucket* _eptr = pool + (_end - minIndex) / bucketBitSize - 1;
+			//Clear all buckets
+			std::memset(_bptr, 0, ((_eptr - _bptr) + 1) * sizeof(Bucket));
+			//Return to buckets with _start and _end indexes
+			_bptr--;
+			_eptr++;
+			//Set and apply mask for forward clearing
+			*_bptr &= ~((~((Bucket)0)) << ((_start - minIndex) % bucketBitSize));
+			//Set and apply mask for backward clearing
+			*_eptr &= (~((Bucket)0)) << ((_end - minIndex) % bucketBitSize + 1);
+		}
 	}
 };
 #endif
