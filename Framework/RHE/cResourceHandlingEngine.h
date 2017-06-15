@@ -11,7 +11,8 @@
 //STD
 #include <string>
 #include <vector>
-#include <map>
+#include <set>
+#include <memory>
 #include <iostream>
 #include <fstream>
 #include <functional>
@@ -253,7 +254,7 @@ namespace resources {
 	class ResourceHandler {
 		friend class ResourceHandlingEngine;
 		//Define resource storage type
-		typedef std::map<ResourceID, Resource*> Storage;
+		typedef std::set<std::shared_ptr<Resource>> Storage;
 		//Resource storage
 		Storage storage;
 		//Dinamyc array of cache files
@@ -270,7 +271,7 @@ namespace resources {
 
 		~ResourceHandler() {
 			for (auto &v : storage)
-				delete v.second;
+				delete v;
 		}
 
 		int Cache(int _count) {
@@ -278,9 +279,10 @@ namespace resources {
 		}
 
 		template < class T >
-		T* const inline newResource(T&& _value, ResourceID _Id) { 
-			storage[_Id] = new T(std::move(_value));
-			return dynamic_cast<T*>(storage[_Id]);
+		std::shared_ptr<T> inline newResource(T&& _value) {
+			std::shared_ptr<Resource> _newptr(new T(std::move(_value)));
+			storage.insert(_newptr);
+			return _newptr;
 		}
 
 		template < class T >
