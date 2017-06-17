@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 #include <set>
+#include <map>
 #include <memory>
 #include <iostream>
 #include <fstream>
@@ -254,7 +255,7 @@ namespace resources {
 	class ResourceHandler {
 		friend class ResourceHandlingEngine;
 		//Define resource storage type
-		typedef std::set<std::shared_ptr<Resource>> Storage;
+		typedef std::map<ResourceID, std::shared_ptr<Resource>> Storage;
 		//Resource storage
 		Storage storage;
 		//Dinamyc array of cache files
@@ -269,49 +270,42 @@ namespace resources {
 		
 		ResourceHandler() : status(ResourceHandlerStatus::UNDEFINED) {}
 
-		~ResourceHandler() {
-			for (auto &v : storage)
-				delete v;
-		}
+		~ResourceHandler() {}
 
 		int Cache(int _count) {
 
 		}
 
 		template < class T >
-		std::shared_ptr<T> inline newResource(T&& _value) {
+		inline std::shared_ptr<T> newResource(T&& _value, ResourceID _Id) {
 			std::shared_ptr<Resource> _newptr(new T(std::move(_value)));
-			storage.insert(_newptr);
-			return _newptr;
+			storage[_Id] = _newptr;
+			return std::dynamic_pointer_cast<T>(_newptr);
 		}
 
 		template < class T >
-		T* const inline newResource(T* _valueptr, ResourceID _Id) {
-			storage[_Id] = new T(std::move(*_valueptr));
-			return dynamic_cast<T*>(storage[_Id]);
+		inline std::shared_ptr<T> newResource(T* _valueptr, ResourceID _Id) {
+			std::shared_ptr<Resource> _newptr(new T(std::move(*_valueptr)));
+			storage[_Id] = _newptr;
+			return std::dynamic_pointer_cast<T>(_newptr);
 		}
 
 		template < class T >
-		T* const inline setResource(T&& _value, ResourceID _Id) {
-			delete (dynamic_cast<T*>(storage[_Id]));
-			storage[_Id] = new T(std::move(_value));
-			return dynamic_cast<T*>(storage[_Id]);
+		std::shared_ptr<T> setResource(T&& _value, ResourceID _Id) {
+			storage[_Id].reset<T>(new T(std::move(_value)));
+			return std::dynamic_pointer_cast<T>(storage[_Id]);
 		}
 
 		template < class T >
-		T* const inline setResource(T* _valueptr, ResourceID _Id) {
-			delete (dynamic_cast<T*>(storage[_Id]));
-			storage[_Id] = new T(std::move(*_valueptr));
-			return dynamic_cast<T*>(storage[_Id]);
+		std::shared_ptr<T> setResource(T* _valueptr, ResourceID _Id) {
+			storage[_Id].reset<T>(new T(std::move(*_valueptr)));
+			return std::dynamic_pointer_cast<T>(storage[_Id]);
 		}
 
-		void deleteResource(ResourceID _Id) {
-			delete (Storage::mapped_type)storage[_Id];
-			storage.erase(_Id);
-		}
+		void deleteResource(ResourceID _Id) { storage.erase(_Id); }
 	};
 
-	#define RHE_GLOBAL_MAX_RESOURCES ((ResourceID)0x40000)
+	#define RHE_GLOBAL_MAX_RESOURCES ((ResourceID)0xF4240)
 
 	/**
 	*	Main singletone object of resource handling for all engine.
@@ -325,6 +319,7 @@ namespace resources {
 		ResourceHandlingEngine() : indexPool(1, RHE_GLOBAL_MAX_RESOURCES) 
 		{
 			handlers[this] = new ResourceHandler();
+			handlers[this]->status = ResourceHandler::PUBLIC;
 		}
 
 		template < class T >

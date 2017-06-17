@@ -380,10 +380,24 @@ public:
 		unsigned int tailLength;
 		//Total count of allocated indexes
 		unsigned int totalAllocatedCount;
+		
+		MaxAllocationHelper() {};
+
+		MaxAllocationHelper(MaxAllocationHelper&& other) : 
+							partitions(std::move(other.partitions)),
+							allocatedCount(std::move(other.allocatedCount)),
+							realCount(std::move(other.realCount)),
+							length(std::move(other.length)),
+							tailLength(std::move(other.tailLength)),
+							totalAllocatedCount(std::move(other.totalAllocatedCount)) 
+		{
+			other.partitions = nullptr;
+		}
 		//Proper memory cleaning
 		~MaxAllocationHelper() {
-			for (int _index = 0; _index < realCount; _index++)
-				delete partitions[_index];
+			if (partitions)
+				for (unsigned int _index = 0; _index < realCount; _index++)
+					delete partitions[_index];
 			delete partitions;
 		}
 	};
@@ -510,7 +524,7 @@ public:
 			}
 		#else
 			try {
-				_array[0] = newIndex();
+				_array[0] = newIndex(-1);
 			}
 			catch (std::out_of_range e) {
 				#ifdef DEBUG_INDEXPOOL
@@ -577,7 +591,7 @@ public:
 		result.totalAllocatedCount = _totalAllocatedCount;
 		result.tailLength = _stepAllocated;
 
-		return result;
+		return std::move(result);
 	}
 
 	/**
