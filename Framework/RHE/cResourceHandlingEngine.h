@@ -254,7 +254,6 @@ namespace resources {
 	**/
 	class ResourceHandler {
 		friend class ResourceHandlingEngine;
-		friend class ResourceEngineFactory;
 		//Define resource storage type
 		typedef std::map<ResourceID, std::shared_ptr<Resource>> Storage;
 		//Resource storage
@@ -278,36 +277,38 @@ namespace resources {
 		}
 
 		template < class T >
-		inline bool directInsert(std::shared_ptr<T> _valueptr, ResourceID _Id) {
-			if (storage.find(_Id)) 
-				return false;
-			storage[_Id] = std::move(std::dynamic_pointer_cast<Resource>(_valueptr));
-			return true;
-		}
-
-		template < class T >
 		inline std::shared_ptr<T> newResource(T&& _value, ResourceID _Id) {
-			std::shared_ptr<Resource> _newptr(new T(std::move(_value)));
+			try { std::shared_ptr<T> _newptr(new T(std::move(_value))); }
+			catch (const std::exception& e) { throw std::logic_error(e.what()); }
+			catch (...) { throw std::logic_error("ERROR::RESOURCE_HANDLER::newResource::Object creation error."); }
 			storage[_Id] = _newptr;
-			return std::dynamic_pointer_cast<T>(_newptr);
+			return std::move(_newptr);
 		}
 
 		template < class T >
 		inline std::shared_ptr<T> newResource(T* _valueptr, ResourceID _Id) {
-			std::shared_ptr<Resource> _newptr(new T(std::move(*_valueptr)));
+			//Result of next two lines are the same, so less actions more performance.
+			/*std::shared_ptr<Resource> _newptr((Resource*)_valueptr);*/
+			std::shared_ptr<T> _newptr(_valueptr);
 			storage[_Id] = _newptr;
-			return std::dynamic_pointer_cast<T>(_newptr);
+			return std::move(_newptr);
 		}
 
 		template < class T >
 		inline std::shared_ptr<T> setResource(T&& _value, ResourceID _Id) {
-			storage[_Id].reset<T>(new T(std::move(_value)));
+			//Result of next two lines are the same, so less actions more performance.
+			/*storage.at(_Id).reset<Resource>((Resource*)(new T(std::move(_value))));*/
+			storage.at(_Id).reset<T>(new T(std::move(_value)));
+			//If exception isn't thrown by previous line then it safe to use operator[]
 			return std::dynamic_pointer_cast<T>(storage[_Id]);
 		}
 
 		template < class T >
 		inline std::shared_ptr<T> setResource(T* _valueptr, ResourceID _Id) {
-			storage[_Id].reset<T>(new T(std::move(*_valueptr)));
+			//Result of next two lines are the same, so less actions more performance.
+			/*storage.at(_Id).reset<Resource>((Resource*)_valueptr);*/
+			storage.at(_Id).reset<T>(_valueptr);
+			//If exception isn't thrown by previous line then it safe to use operator[]
 			return std::dynamic_pointer_cast<T>(storage[_Id]);
 		}
 
@@ -327,14 +328,12 @@ namespace resources {
 	*	Class definition: ResourceHandlingEngine
 	**/
 	class ResourceHandlingEngine : private Resource {
-		friend class ResourceEngineFactory;
-
 		SmartSimpleIndexPool<ResourceID> indexPool;
 		
 		typedef std::map<Resource*const, ResourceHandler*> HandlersStorage;
 		HandlersStorage handlers;
 		
-		ResourceID Id;
+	public:
 
 		ResourceHandlingEngine(	ResourceID _maxId = RHE_GLOBAL_MAX_RESOURCES, 
 								unsigned int _bandwidth = RHE_ALLOCATION_BANDWIDTH) : 
@@ -344,23 +343,64 @@ namespace resources {
 			handlers[this]->status = ResourceHandler::PUBLIC;
 		}
 
-	public:
-
-
 
 		template < class T >
-		std::shared_ptr<T> newResource(T&& _value, Resource* _owner) {
-			return handlers[_owner]->newResource<T>(std::move(_value), indexPool.newIndex());
+		bool newResource(T&& _value, Resource* _owner, std::shared_ptr<T>& _result) {
+			try { 
+				_result = std::move(handlers.at(_owner)->newResource<T>(std::move(_value), indexPool.newIndex())); 
+				return true;
+			}
+			catch (const std::out_of_range& e) {
+				#ifdef DEBUG_RHE
+					DEBUG_OUT << "ERROR::RHE::newResource" << DEBUG_NEXT_LINE;
+					if (std::string(e.what()).find("SMART_SIMPLE_INDEX_POOL") == std::string::npos) {
+						DEBUG_OUT << "\tMessage: Owner not found." << DEBUG_NEXT_LINE;
+					} else {
+						DEBUG_OUT << "\tMessage: Allocation limit reached." << DEBUG_NEXT_LINE;
+					}
+				#endif
+				return false;
+			}
+			catch (const std::logic_error& e) {
+				#ifdef DEBUG_RHE
+					DEBUG_OUT << "ERROR::RHE::newResource" << DEBUG_NEXT_LINE;
+					DEBUG_OUT << "\tMessage: Error occurred during new object move-constructing." << DEBUG_NEXT_LINE;
+					DEBUG_OUT << "\tException content:" << e.what() << DEBUG_NEXT_LINE;
+				#endif
+				return false;
+			}
 		}
 
 		template < class T >
-		std::shared_ptr<T> newResource(T* _valueptr, Resource* _owner) {
-			return handlers[_owner]->newResource<T>(std::move(_value), indexPool.newIndex());
+		bool newResource(T* _valueptr, Resource* _owner, std::shared_ptr<T>& _result) {
+			try { 
+				_result = std::move(handlers.at(_owner)->newResource<T>(_valueptr, indexPool.newIndex()));
+				return true;
+			}
+			catch (const std::out_of_range& e) {
+				#ifdef DEBUG_RHE
+					DEBUG_OUT << "ERROR::RHE::newResource" << DEBUG_NEXT_LINE;
+					if (std::string(e.what()).find("SMART_SIMPLE_INDEX_POOL") == std::string::npos) {
+						DEBUG_OUT << "\tMessage: Owner not found." << DEBUG_NEXT_LINE;
+					} else {
+						DEBUG_OUT << "\tMessage: Allocation limit reached." << DEBUG_NEXT_LINE;
+					}
+				#endif
+				return false;
+			}
+			catch (const std::logic_error& e) {
+				#ifdef DEBUG_RHE
+					DEBUG_OUT << "ERROR::RHE::newResource" << DEBUG_NEXT_LINE;
+					DEBUG_OUT << "\tMessage: Error occurred during new object move-constructing." << DEBUG_NEXT_LINE;
+					DEBUG_OUT << "\tException content:" << e.what() << DEBUG_NEXT_LINE;
+				#endif
+				return false;
+			}
 		}
 
 		template < class T >
-		std::shared_ptr<T> newResource(T&& _value, std::shared_ptr<Resource> _owner) {
-			return std::move(newResource<T>(std::move(_value), _owner.get()));
+		bool newResource(T&& _value, std::shared_ptr<Resource> _owner, std::shared_ptr<T>& _result) {
+			return newResource<T>(std::move(_value), _owner.get(), _result);
 		}
 
 		template < class T >
@@ -389,47 +429,11 @@ namespace resources {
 		}
 
 		void deleteResource(ResourceID _Id, Resource* _owner) {
-			if (_Id != Id) {
 
-			}
 		}
 
 		void deleteResource(ResourceID _Id, std::shared_ptr<Resource> _owner) {	deleteResource(_Id, _owner.get()); }
 	};
 
-	/**
-	*	DESCRIPTION
-	*	Class definition: ResourceEngineFactory
-	**/
-	class ResourceEngineFactory {
-	public:
-		std::shared_ptr<ResourceHandlingEngine> createResourceEngine(	ResourceID& _RHEId,
-																		ResourceID _maxId = RHE_GLOBAL_MAX_RESOURCES, 
-																		unsigned int _bandwidth = RHE_ALLOCATION_BANDWIDTH) 
-		{
-			if (_maxId < _bandwidth * 2) {
-				#ifdef DEBUG_RHE
-					DEBUG_OUT << "ERROR::RESOURCE_ENGINE_FACTORY::createResourceEngine" << DEBUG_NEXT_LINE;
-					DEBUG_OUT << "\tMessage: Input parameters must satisfy next condition: _maxId >= _bandwidth * 2" << DEBUG_NEXT_LINE;
-					DEBUG_OUT << "\t_maxId:" << _maxId << DEBUG_NEXT_LINE;
-					DEBUG_OUT << "\t_bandwidth * 2:" << _bandwidth * 2 << DEBUG_NEXT_LINE;
-				#endif
-				throw std::invalid_argument("ERROR::RESOURCE_ENGINE_FACTORY::createResourceEngine::Parameters are not satisfy internal conditions.");
-			}
-			std::shared_ptr<ResourceHandlingEngine> _newRHE(new ResourceHandlingEngine(_maxId, _bandwidth));
-			_RHEId = _newRHE->indexPool.newIndex();
-			_newRHE->handlers[_newRHE.get()]->directInsert<ResourceHandlingEngine>(_newRHE, _RHEId);
-			_newRHE->Id = _RHEId;
-			return _newRHE;
-		}
-
-		std::shared_ptr<ResourceHandlingEngine> operator() (	ResourceID& _RHEId,
-																ResourceID _maxId = RHE_GLOBAL_MAX_RESOURCES, 
-																unsigned int _bandwidth = RHE_ALLOCATION_BANDWIDTH) 
-		{
-			try { return std::move(createResourceEngine(_RHEId, _maxId, _bandwidth)); }
-			catch (...) { throw; }
-		}
-	};
 }
 #endif

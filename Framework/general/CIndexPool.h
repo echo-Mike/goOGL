@@ -663,6 +663,20 @@ public:
 			*_eptr &= (~((Bucket)0)) << ((_end - minIndex) % bucketBitSize + 1);
 		}
 	}
+
+	/**
+	*	Check index allocation status of '_index'.
+	**/
+	bool isUsed(TIndex _index) {
+		if (_index < minIndex || _index > maxIndex)
+			return false;
+		//Bucket position
+		register Bucket* ptr = pool + (_index - minIndex) / bucketBitSize;
+		//Biit position
+		register unsigned int _tail = (_index - minIndex) % bucketBitSize;
+		//Set bit to zero
+		return *ptr & (((Bucket)1) << _tail);
+	}
 };
 
 /**
@@ -801,6 +815,22 @@ public:
 	void deleteIndex(TIndex _begin, TIndex _end) {
 		SimpleIndexPool::deleteIndex(_begin, _end);
 		SimpleIndexPool::allocateSpecific(preallocatedPool, (unsigned int)(topPtr - preallocatedPool + 1));
+	}
+
+	/**
+	*	Check index allocation status of '_index'.
+	**/
+	bool isUsed(TIndex _index) {
+		if (_index < minIndex || _index > maxIndex)
+			return false;
+		if (SimpleIndexPool::isUsed(_index)) {
+			for (int _index0 = 0; _index0 <= topPtr - preallocatedPool; _index0++)
+				if (*(preallocatedPool + _index0) == _index0)
+					return false;
+			return true;
+		} else {
+			return false;
+		}
 	}
 };
 #endif
