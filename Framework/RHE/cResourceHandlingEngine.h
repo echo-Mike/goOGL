@@ -34,7 +34,7 @@
 #endif
 
 namespace resources {
-	//Enumiration of all types of handled resources
+	//Enumiration of all types of handled resources.
 	enum ResourceType : int {
 		UNKNOWN,
 		SHADER,
@@ -65,7 +65,7 @@ namespace resources {
 		LAST = FONT
 	};
 
-	//Unsigned integer type used as resources identificator
+	//Unsigned integer type used as resources identificator.
 	typedef unsigned int ResourceID;
 
 	/**
@@ -254,6 +254,7 @@ namespace resources {
 	**/
 	class ResourceHandler {
 		friend class ResourceHandlingEngine;
+		friend class ResourceEngineFactory;
 		//Define resource storage type
 		typedef std::map<ResourceID, std::shared_ptr<Resource>> Storage;
 		//Resource storage
@@ -277,6 +278,14 @@ namespace resources {
 		}
 
 		template < class T >
+		inline bool directInsert(std::shared_ptr<T> _valueptr, ResourceID _Id) {
+			if (storage.find(_Id)) 
+				return false;
+			storage[_Id] = std::move(std::dynamic_pointer_cast<Resource>(_valueptr));
+			return true;
+		}
+
+		template < class T >
 		inline std::shared_ptr<T> newResource(T&& _value, ResourceID _Id) {
 			std::shared_ptr<Resource> _newptr(new T(std::move(_value)));
 			storage[_Id] = _newptr;
@@ -291,13 +300,13 @@ namespace resources {
 		}
 
 		template < class T >
-		std::shared_ptr<T> setResource(T&& _value, ResourceID _Id) {
+		inline std::shared_ptr<T> setResource(T&& _value, ResourceID _Id) {
 			storage[_Id].reset<T>(new T(std::move(_value)));
 			return std::dynamic_pointer_cast<T>(storage[_Id]);
 		}
 
 		template < class T >
-		std::shared_ptr<T> setResource(T* _valueptr, ResourceID _Id) {
+		inline std::shared_ptr<T> setResource(T* _valueptr, ResourceID _Id) {
 			storage[_Id].reset<T>(new T(std::move(*_valueptr)));
 			return std::dynamic_pointer_cast<T>(storage[_Id]);
 		}
@@ -305,47 +314,122 @@ namespace resources {
 		void deleteResource(ResourceID _Id) { storage.erase(_Id); }
 	};
 
-	#define RHE_GLOBAL_MAX_RESOURCES ((ResourceID)0xF4240)
+	#ifndef RHE_GLOBAL_MAX_RESOURCES
+		#define RHE_GLOBAL_MAX_RESOURCES ((ResourceID)0xF4240)
+	#endif
+
+	#ifndef RHE_ALLOCATION_BANDWIDTH
+		#define RHE_ALLOCATION_BANDWIDTH ((unsigned int)0x9C4)
+	#endif
 
 	/**
 	*	Main singletone object of resource handling for all engine.
 	*	Class definition: ResourceHandlingEngine
 	**/
 	class ResourceHandlingEngine : private Resource {
-		SimpleIndexPool<ResourceID> indexPool;
+		friend class ResourceEngineFactory;
+
+		SmartSimpleIndexPool<ResourceID> indexPool;
+		
 		typedef std::map<Resource*const, ResourceHandler*> HandlersStorage;
 		HandlersStorage handlers;
-	public:
-		ResourceHandlingEngine() : indexPool(1, RHE_GLOBAL_MAX_RESOURCES) 
+		
+		ResourceID Id;
+
+		ResourceHandlingEngine(	ResourceID _maxId = RHE_GLOBAL_MAX_RESOURCES, 
+								unsigned int _bandwidth = RHE_ALLOCATION_BANDWIDTH) : 
+								indexPool(1, _maxId, _bandwidth)
 		{
 			handlers[this] = new ResourceHandler();
 			handlers[this]->status = ResourceHandler::PUBLIC;
 		}
 
-		template < class T >
-		void newResource(T&& _value, Resource* _owner) {
+	public:
 
-		}
 
-		template < class T >
-		void newResource(T* _valueptr, Resource* _owner) {
-
-		}
 
 		template < class T >
-		void setResource(T&& _value, ResourceID _Id, Resource* _owner) {
-
+		std::shared_ptr<T> newResource(T&& _value, Resource* _owner) {
+			return handlers[_owner]->newResource<T>(std::move(_value), indexPool.newIndex());
 		}
 
 		template < class T >
-		void setResource(T* _valueptr, ResourceID _Id, Resource* _owner) {
+		std::shared_ptr<T> newResource(T* _valueptr, Resource* _owner) {
+			return handlers[_owner]->newResource<T>(std::move(_value), indexPool.newIndex());
+		}
+
+		template < class T >
+		std::shared_ptr<T> newResource(T&& _value, std::shared_ptr<Resource> _owner) {
+			return std::move(newResource<T>(std::move(_value), _owner.get()));
+		}
+
+		template < class T >
+		std::shared_ptr<T> newResource(T* _valueptr, std::shared_ptr<Resource> _owner) {
+			return std::move(newResource<T>(_valueptr, _owner.get()));
+		}
+
+		template < class T >
+		std::shared_ptr<T> setResource(T&& _value, ResourceID _Id, Resource* _owner) {
 
 		}
 
-		void deleteResource() {
+		template < class T >
+		std::shared_ptr<T> setResource(T* _valueptr, ResourceID _Id, Resource* _owner) {
 
 		}
 
+		template < class T >
+		std::shared_ptr<T> setResource(T&& _value, ResourceID _Id, std::shared_ptr<Resource> _owner) {
+			return std::move(setResource<T>(std::move(_value), _Id, _owner.get()));
+		}
+
+		template < class T >
+		std::shared_ptr<T> setResource(T* _valueptr, ResourceID _Id, std::shared_ptr<Resource> _owner) {
+			return std::move(setResource<T>(_valueptr, _Id, _owner.get()));
+		}
+
+		void deleteResource(ResourceID _Id, Resource* _owner) {
+			if (_Id != Id) {
+
+			}
+		}
+
+		void deleteResource(ResourceID _Id, std::shared_ptr<Resource> _owner) {	deleteResource(_Id, _owner.get()); }
+	};
+
+	/**
+	*	DESCRIPTION
+	*	Class definition: ResourceEngineFactory
+	**/
+	class ResourceEngineFactory {
+	public:
+		std::shared_ptr<ResourceHandlingEngine> createResourceEngine(	ResourceID& _RHEId,
+																		ResourceID _maxId = RHE_GLOBAL_MAX_RESOURCES, 
+																		unsigned int _bandwidth = RHE_ALLOCATION_BANDWIDTH) 
+		{
+			if (_maxId < _bandwidth * 2) {
+				#ifdef DEBUG_RHE
+					DEBUG_OUT << "ERROR::RESOURCE_ENGINE_FACTORY::createResourceEngine" << DEBUG_NEXT_LINE;
+					DEBUG_OUT << "\tMessage: Input parameters must satisfy next condition: _maxId >= _bandwidth * 2" << DEBUG_NEXT_LINE;
+					DEBUG_OUT << "\t_maxId:" << _maxId << DEBUG_NEXT_LINE;
+					DEBUG_OUT << "\t_bandwidth * 2:" << _bandwidth * 2 << DEBUG_NEXT_LINE;
+				#endif
+				throw std::invalid_argument("ERROR::RESOURCE_ENGINE_FACTORY::createResourceEngine::Parameters are not satisfy internal conditions.");
+			}
+			std::shared_ptr<ResourceHandlingEngine> _newRHE(new ResourceHandlingEngine(_maxId, _bandwidth));
+			_RHEId = _newRHE->indexPool.newIndex();
+			_newRHE->handlers[_newRHE.get()]->directInsert<ResourceHandlingEngine>(_newRHE, _RHEId);
+			_newRHE->Id = _RHEId;
+			return _newRHE;
+		}
+
+		std::shared_ptr<ResourceHandlingEngine> operator() (	ResourceID& _RHEId,
+																ResourceID _maxId = RHE_GLOBAL_MAX_RESOURCES, 
+																unsigned int _bandwidth = RHE_ALLOCATION_BANDWIDTH) 
+		{
+			try { return std::move(createResourceEngine(_RHEId, _maxId, _bandwidth)); }
+			catch (...) { throw; }
+		}
 	};
 }
 #endif
