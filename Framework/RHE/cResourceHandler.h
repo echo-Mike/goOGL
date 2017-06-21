@@ -23,6 +23,7 @@
 //OUR
 #include "RHE\vResourceGeneral.h"
 #include "RHE\cResource.h"
+#include "RHE\cCacheFile.h"
 //DEBUG
 #ifdef DEBUG_RESOURCEHANDLER
 	#ifndef DEBUG_OUT
@@ -34,90 +35,6 @@
 #endif
 
 namespace resources {
-
-	#ifndef RHE_CACHE_FILE_SIZE_LIMIT
-		/**
-		*	Cache file size limit, 100MB by default.
-		**/
-		#define	RHE_CACHE_FILE_SIZE_LIMIT ((unsigned int)0x6400000)
-	#endif
-
-	/**
-	*	DESCRIPTION
-	*	Structure definition: CacheFile
-	**/
-	class CacheFile {
-		//Pointer to file stream
-		std::fstream* stream;
-		//State of cache file
-		int state;
-		//Path to cache file
-		std::string filePath;
-	public:
-		enum CacheFileState : int {
-			CLOSED		= 0x0,
-			OPEND		= 0x1,
-			READ		= 0x2,
-			OPENTOREAD	= 0x3,
-			WRITE		= 0x4,
-			OPENTOWRITE	= 0x5,
-			CREATED		= 0x8
-		};
-		//Identificators of cashed resources
-		std::set<ResourceID> resources;
-		
-		CacheFile() : state(CacheFileState::CLOSED) { filePath = std::tmpnam(nullptr); }
-
-		~CacheFile() {
-			if (state & CacheFileState::OPEND)
-				stream->close();
-			if (state & CacheFileState::CREATED) {
-				if (!std::remove(filePath.c_str())) {
-					#ifdef DEBUG_RESOURCEHANDLER
-						DEBUG_OUT << "ERROR::CACHE_FILE::~CacheFile" << DEBUG_NEXT_LINE;
-						DEBUG_OUT << "\tMessage: Error occurred during tmp file removal." << DEBUG_NEXT_LINE;
-						DEBUG_OUT << "\tFile path: " << filePath << DEBUG_NEXT_LINE;
-					#endif
-				}
-			}
-		}
-
-		bool Open(std::ios_base::openmode _mode) {
-			if (!(state & CacheFileState::CREATED)) {
-				stream = new std::fstream(filePath);
-				state |= CacheFileState::CREATED;
-			}
-		}
-
-		bool Close() {
-			
-		}
-
-		std::fstream& getStream(std::ios_base::openmode _mode = std::ios_base::in) {
-			if (!(state & CacheFileState::CREATED))
-				Open(_mode);
-			if (!(*stream)) {
-				#ifdef DEBUG_RESOURCEHANDLER
-					DEBUG_OUT << "ERROR::CACHE_FILE::getStream" << DEBUG_NEXT_LINE;
-					DEBUG_OUT << "\tMessage: Error occurred during last stream operation." << DEBUG_NEXT_LINE;
-					DEBUG_OUT << "\tFile path: " << filePath << DEBUG_NEXT_LINE;
-				#endif
-				std::ios_base::openmode _mode;
-				if (state & CacheFileState::READ){
-					_mode = std::ios_base::out;
-				} else if (state & CacheFileState::WRITE) {
-					_mode = std::ios_base::in;
-				} else {
-					throw std::exception("ERROR::CACHE_FILE::Undefined stream state.");
-				}
-				Close();
-				Open(_mode);
-			}
-			return *stream; 
-		}
-
-		int getState() { return state; }
-	};
 
 	#ifdef RESOURCE_HANDLER_STRICT
 		/**

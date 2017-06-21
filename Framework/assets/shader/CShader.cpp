@@ -47,7 +47,7 @@ void Shader::Reload() {
 		vertexCode = vShaderStream.str();
 		fragmentCode = fShaderStream.str();
 	}
-	catch (std::ifstream::failure e) {
+	catch (const std::ifstream::failure& e) {
 		#ifdef DEBUG_SHADERCPP
 			DEBUG_OUT << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ" << DEBUG_NEXT_LINE;
 		#endif
