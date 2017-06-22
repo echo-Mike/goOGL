@@ -115,7 +115,7 @@ namespace resources {
 		*	---- true - if no error occurred during open/creation process;
 		*	---- false - else.
 		*	Best end state : CacheFileState::CREATED | CacheFileState::OPEND | (_mode & CacheFileState::READORWRITE)
-		*	Worst end state: CacheFileState::CLOSED
+		*	Worst end state: (state | CacheFileState::INVALID) & ~CacheFileState::CREATED
 		*	Locks on CacheFileState::INVALID
 		**/
 		bool Open(int _mode) {
@@ -134,6 +134,7 @@ namespace resources {
 						DEBUG_OUT << "\tFile path: " << filePath << DEBUG_NEXT_LINE;
 					#endif
 					state &= ~CacheFileState::CREATED;
+					state |= CacheFileState::INVALID;
 					return false;
 				} else {
 					state |= CacheFileState::OPEND;
@@ -149,6 +150,8 @@ namespace resources {
 						DEBUG_OUT << "\tMessage: Error occurred during tmp file opening." << DEBUG_NEXT_LINE;
 						DEBUG_OUT << "\tFile path: " << filePath << DEBUG_NEXT_LINE;
 					#endif
+					state &= ~CacheFileState::CREATED;
+					state |= CacheFileState::INVALID;
 					return false;
 				} else {
 					state |= CacheFileState::OPEND;
@@ -171,6 +174,8 @@ namespace resources {
 					DEBUG_OUT << "\tMessage: Error occurred during seeking." << DEBUG_NEXT_LINE;
 					DEBUG_OUT << "\tFile path: " << filePath << DEBUG_NEXT_LINE;
 				#endif
+				state &= ~CacheFileState::CREATED;
+				state |= CacheFileState::INVALID;
 				return false;
 			}
 			stream->clear();
@@ -352,6 +357,16 @@ namespace resources {
 		*	Returns cached size of specified resource in bytes if it presented, else returns zero.
 		**/
 		unsigned int getResourceSize(ResourceID _Id) { return resources.count(_Id) ? resources[_Id] : 0; }
+
+		/**
+		*	Return current free space size in bytes.
+		**/
+		int getFreeSize() { return (long int)RHE_CACHE_FILE_SIZE_LIMIT - (long int)size; }
+
+		/**
+		*	Return count of currently handled resources.
+		**/
+		unsigned int holdedResourcesCount() { return resources.size(); }
 	};
 }
 #endif

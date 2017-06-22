@@ -11,13 +11,14 @@
 */
 //STD
 #include <map>
-#include <set>
 #include <vector>
 #include <memory>
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <cstdio>
+#include <iterator>
 //ASSIMP
 
 //OUR
@@ -35,6 +36,14 @@
 #endif
 
 namespace resources {
+
+	#ifndef RH_CAHCE_UNIQUE
+		/**
+		*	Cache files resource identifier pattern.
+		*	$ - will be replaced with resource id.
+		**/
+		#define RH_CAHCE_UNIQUE "[@@@$@@@]"
+	#endif
 
 	#ifdef RESOURCE_HANDLER_STRICT
 		/**
@@ -59,7 +68,7 @@ namespace resources {
 		//Resource storage
 		Storage storage;
 		//Dinamyc array of cache files
-		std::vector<std::unique_ptr<CacheFile>> cacheFiles;
+		std::vector<std::shared_ptr<CacheFile>> cacheFiles;
 		//Enumiration of all possible resource handler states
 		enum ResourceHandlerStatus : int {
 			UNDEFINED,
@@ -70,7 +79,7 @@ namespace resources {
 		
 		ResourceHandler() : status(ResourceHandlerStatus::UNDEFINED) 
 		{
-			cacheFiles.push_back(std::move(std::unique_ptr<CacheFile>(new CacheFile())));
+			cacheFiles.push_back(std::move(std::shared_ptr<CacheFile>(new CacheFile())));
 		}
 
 		~ResourceHandler() {}
@@ -87,16 +96,202 @@ namespace resources {
 			}
 		}
 
-		bool Cache(ResourceID _Id) {
+		bool recoverCacheFile(std::shared_ptr<CacheFile>& _invalidCacheFile) {
+			//Create new empty cache file
+			cacheFiles.push_back(std::move(std::shared_ptr<CacheFile>(new CacheFile())));
+			//Move resources of invalid file to new one
+			if (!(_invalidCacheFile->Recover(*cacheFiles.back())))
+				return false;
+			//Search and delete shared_ptr to invalid cache file
+			auto _begin = cacheFiles.begin();
+			auto _end = cacheFiles.end();
+			while (_begin != _end) {
+				if (_begin->get() == _invalidCacheFile.get()) {
+					cacheFiles.erase(_begin);
+					break;
+				}
+				_begin++;
+			}
+			return true;
+		}
 
+		bool cacheResource(ResourceID _Id, std::shared_ptr<CacheFile> _hint = nullptr) {
+			//Check resource owner: #1
+			if (storage.count(_Id)) {
+				//Ptr to cache resource
+				auto _resource = storage[_Id];
+				//Check that resource not already cached: #2
+				if (_resource->status & Resource::ResourceStatus::INVALID) {
+					#ifdef DEBUG_RESOURCEHANDLER
+						#ifdef EVENTS_RESOURCEHANDLER
+							DEBUG_OUT << "EVENT::RESOURCE_HANDLER::cacheResource" << DEBUG_NEXT_LINE;
+							DEBUG_OUT << "\tMessage: Attempt to cache invalid resource." << DEBUG_NEXT_LINE;
+							#ifdef RESOURCE_HANDLER_STRICT
+								DEBUG_OUT << "\tStrict mode: Resource will be removed." << DEBUG_NEXT_LINE;
+							#endif
+							DEBUG_OUT << "\tResource id: " << _Id << DEBUG_NEXT_LINE;
+						#endif
+					#endif
+					#ifdef RESOURCE_HANDLER_STRICT
+						deleteResource(_Id);
+					#endif 
+					return false;
+				}//#2
+				//Check that resource can be cached: #3
+				if (!_resource->canBeCached) {
+					#ifdef DEBUG_RESOURCEHANDLER
+						DEBUG_OUT << "ERROR::RESOURCE_HANDLER::cacheResource" << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tMessage: Object with '_Id': " << _Id << " is defined as uncached." << DEBUG_NEXT_LINE;
+					#endif
+					return false;
+				}//#3
+				//Check that resource not already cached: #4
+				if (_resource->status & Resource::ResourceStatus::CACHED) {
+					#ifdef DEBUG_RESOURCEHANDLER
+						#ifdef EVENTS_RESOURCEHANDLER
+							DEBUG_OUT << "EVENT::RESOURCE_HANDLER::cacheResource" << DEBUG_NEXT_LINE;
+							DEBUG_OUT << "\tMessage: Attempt to cache cached resource." << DEBUG_NEXT_LINE;
+						#endif
+					#endif
+					return false;
+				}//#4
+				//Acquire resource size information
+				auto _resSize = _resource->usedMemory();
+				//Setup cache file ptr
+				std::shared_ptr<CacheFile> _currCacheFile(_hint);
+				if (!_currCacheFile) { //#5
+					//Serach for suitable cache file
+					for (auto &v : cacheFiles) {
+						if (v->getFreeSize() > _resSize || !v->holdedResourcesCount()) {
+							_currCacheFile = v;
+							break;
+						}
+					}
+					//If suitable cache file not found create new one.
+					if (!_currCacheFile) {//#6
+						#ifdef DEBUG_RESOURCEHANDLER
+							#ifdef EVENTS_RESOURCEHANDLER
+								DEBUG_OUT << "EVENT::RESOURCE_HANDLER::cacheResource" << DEBUG_NEXT_LINE;
+								DEBUG_OUT << "\tMessage: No suitable cache file found. New cache file created." << DEBUG_NEXT_LINE;
+							#endif
+						#endif
+						cacheFiles.push_back(std::move(std::shared_ptr<CacheFile>(new CacheFile())));
+						_currCacheFile = cacheFiles.back();
+					}//#6
+				}//#5
+
+				//Open cache file stream to write mode : #7
+				if (_currCacheFile->Open(CacheFile::CacheFileState::WRITE)) {
+					//Acquire underlying filestream
+					auto _cacheStream = _currCacheFile->getStream();
+					//Check that filestream is valid : #8
+					if (_cacheStream) {
+						//Register new resource to cache file storage : #9
+						if (_currCacheFile->registerResource(_Id, _resSize)) {
+							//Create buffer stream
+							std::istringstream _outputBuffer;
+							//Transfer buffer stream to be filled with cache data : #10
+							if (_resource->Cache(_outputBuffer)) {
+								//Check for IO errors : #11
+								if (_outputBuffer) {
+									//Create unique identifier
+									std::string _identifier(RH_CAHCE_UNIQUE);
+									_identifier.replace(_identifier.find("$"), 1, std::to_string(_Id));
+									*_cacheStream << _identifier;
+									*_cacheStream << _outputBuffer.str();
+									*_cacheStream << _identifier;
+									*_cacheStream << std::endl;
+									if (_currCacheFile->Close()) { //#12
+										_resource->status |= Resource::ResourceStatus::CACHED;
+										return true;
+									}//#12
+									//Error during write operation _buffer -> fstream
+									#ifdef DEBUG_RESOURCEHANDLER
+										DEBUG_OUT << "ERROR::RESOURCE_HANDLER::cacheResource" << DEBUG_NEXT_LINE;
+										DEBUG_OUT << "\tMessage: Stream error occurred during unbuffering." << DEBUG_NEXT_LINE;
+									#endif
+									return false;
+								}//#11
+								//Stream error occurred during cache process in resource
+								#ifdef DEBUG_RESOURCEHANDLER
+									DEBUG_OUT << "ERROR::RESOURCE_HANDLER::cacheResource" << DEBUG_NEXT_LINE;
+									DEBUG_OUT << "\tMessage: Stream error occurred during resource caching." << DEBUG_NEXT_LINE;
+								#endif
+								return false;
+							}//#10
+							//Cache process doesn't succeeded in _resource
+							#ifdef DEBUG_RESOURCEHANDLER
+								DEBUG_OUT << "ERROR::RESOURCE_HANDLER::cacheResource" << DEBUG_NEXT_LINE;
+								DEBUG_OUT << "\tMessage: Error occurred during resource caching." << DEBUG_NEXT_LINE;
+							#endif
+							return false;
+						}//#9
+						//Cache file can't register resorce. This fork must never be used by reason : #4
+						#ifdef DEBUG_RESOURCEHANDLER
+							DEBUG_OUT << "ERROR::RESOURCE_HANDLER::cacheResource" << DEBUG_NEXT_LINE;
+							DEBUG_OUT << "\tMessage: _currCacheFile can't register a resource." << DEBUG_NEXT_LINE;
+						#endif
+						return false;
+					}//#8
+					//Cache file underlying stream error
+					recoverCacheFile(_currCacheFile);
+					return cacheResource(_Id, cacheFiles.back());
+				}//#7
+				//Cache file open internal error
+				recoverCacheFile(_currCacheFile);
+				return cacheResource(_Id, cacheFiles.back());
+			}//#1
+			//Resource not found in current RH
+			#ifdef DEBUG_RESOURCEHANDLER
+				DEBUG_OUT << "ERROR::RESOURCE_HANDLER::cacheResource" << DEBUG_NEXT_LINE;
+				DEBUG_OUT << "\tMessage: Object with '_Id': " << _Id << " not found." << DEBUG_NEXT_LINE;
+			#endif
+			return false;
 		}
 
 		int Cache(int _count = -1) {
 
 		}
 
-		bool Restore(ResourceID _Id) {
+		bool restoreResource(ResourceID _Id, std::shared_ptr<CacheFile> _hint = nullptr) {
+			if (storage.count(_Id)) {
+				std::shared_ptr<CacheFile> _currCacheFile(_hint);
+				if (!_currCacheFile || !_currCacheFile->isRegistred(_Id)) {
+					for (auto &v : cacheFiles) {
+						if (_currCacheFile->isRegistred(_Id))
+							_currCacheFile = v;
+					}
+					if (!_currCacheFile) {
+						return false;
+					}
+				}
+				
+				if (_currCacheFile->Open(CacheFile::CacheFileState::READ)) {
+					//Acquire underlying filestream
+					auto _cacheStream = _currCacheFile->getStream();
+					if (_cacheStream) {
+						//Create unique identifier
+						std::string _identifier(RH_CAHCE_UNIQUE);
+						_identifier.replace(_identifier.find("$"), 1, std::to_string(_Id));
+						std::istream_iterator<std::string> _iterator(*_cacheStream);
+						std::istream_iterator<std::string> _end;
+						while (_iterator != _end) {
+							if (_iterator->find(_identifier) != std::string::npos)
+								break;
+							_iterator++;
+						}
+						if (_iterator == _end) {
 
+						}
+					}
+
+					return false;
+				}
+
+				return false;
+			}
+
+			return false;
 		}
 
 		int Restore(int _count = -1) {

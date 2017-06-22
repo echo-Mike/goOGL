@@ -65,7 +65,7 @@ namespace resources {
 		//Enumiration of all possible resource states.
 		enum ResourceStatus : int {
 			UNDEFINED	= 0x0000,
-			//Resource have: Type, Id
+			//Resource have Type
 			DEFINED		= 0x0001,
 			//Load/Reload was called on resource 
 			LOADED		= 0x0002,
@@ -74,7 +74,9 @@ namespace resources {
 			//Resource was copied from other resource
 			COPIED		= 0x0100,
 			//Resource was moved from other resource
-			MOVED		= 0x0200
+			MOVED		= 0x0200,
+			//Resource are invalid
+			INVALID		= 0x8000
 		};
 
 		Resource() : type(resources::ResourceType::UNKNOWN),
@@ -177,7 +179,7 @@ namespace resources {
 		}
 
 		//A resource dependent implementation of safe resource caching.
-		virtual inline bool Cache(std::istream* const _cacheFile) {
+		virtual inline bool Cache(std::istream& _cacheFile) {
 			#ifdef DEBUG_RESOURCE
 				#ifdef WARNINGS_RHE
 					DEBUG_OUT << "WARNING::RESOURCE::Cache" << DEBUG_NEXT_LINE;
@@ -192,7 +194,7 @@ namespace resources {
 		}
 
 		//A resource dependent implementation of safe resource restoring from cached state.
-		virtual inline bool Restore(std::ostream* const _restoreFile) {
+		virtual inline bool Restore(std::ostream& _restoreFile) {
 			#ifdef DEBUG_RESOURCE
 				#ifdef WARNINGS_RHE
 					DEBUG_OUT << "WARNING::RESOURCE::Restore" << DEBUG_NEXT_LINE;
