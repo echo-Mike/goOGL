@@ -178,35 +178,37 @@ namespace resources {
 			return false; 
 		}
 
-		//A resource dependent implementation of safe resource caching.
-		virtual inline bool Cache(std::istream& _cacheFile) {
-			#ifdef DEBUG_RESOURCE
-				#ifdef WARNINGS_RHE
-					DEBUG_OUT << "WARNING::RESOURCE::Cache" << DEBUG_NEXT_LINE;
-					DEBUG_OUT << "\tMessage: This function must not be called if 'canBeCached' is true." << DEBUG_NEXT_LINE;
-					#ifdef RHE_USE_RESOURCE_NAMES
-						DEBUG_OUT << "\tResource name: " << __resourceName << DEBUG_NEXT_LINE;
+		#ifdef UNUSED_V006
+			//A resource dependent implementation of safe resource caching.
+			virtual inline bool Cache(std::istream& _cacheFile) {
+				#ifdef DEBUG_RESOURCE
+					#ifdef WARNINGS_RHE
+						DEBUG_OUT << "WARNING::RESOURCE::Cache" << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tMessage: This function must not be called if 'canBeCached' is true." << DEBUG_NEXT_LINE;
+						#ifdef RHE_USE_RESOURCE_NAMES
+							DEBUG_OUT << "\tResource name: " << __resourceName << DEBUG_NEXT_LINE;
+						#endif
+						DEBUG_OUT << "\tCache flag: " << canBeCached << DEBUG_NEXT_LINE;
 					#endif
-					DEBUG_OUT << "\tCache flag: " << canBeCached << DEBUG_NEXT_LINE;
 				#endif
-			#endif
-			return !canBeCached; 
-		}
+				return !canBeCached; 
+			}
 
-		//A resource dependent implementation of safe resource restoring from cached state.
-		virtual inline bool Restore(std::ostream& _restoreFile) {
-			#ifdef DEBUG_RESOURCE
-				#ifdef WARNINGS_RHE
-					DEBUG_OUT << "WARNING::RESOURCE::Restore" << DEBUG_NEXT_LINE;
-					DEBUG_OUT << "\tMessage: This function must not be called if 'canBeCached' is true." << DEBUG_NEXT_LINE;
-					#ifdef RHE_USE_RESOURCE_NAMES
-						DEBUG_OUT << "\tResource name: " << __resourceName << DEBUG_NEXT_LINE;
+			//A resource dependent implementation of safe resource restoring from cached state.
+			virtual inline bool Restore(std::ostream& _restoreFile) {
+				#ifdef DEBUG_RESOURCE
+					#ifdef WARNINGS_RHE
+						DEBUG_OUT << "WARNING::RESOURCE::Restore" << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tMessage: This function must not be called if 'canBeCached' is true." << DEBUG_NEXT_LINE;
+						#ifdef RHE_USE_RESOURCE_NAMES
+							DEBUG_OUT << "\tResource name: " << __resourceName << DEBUG_NEXT_LINE;
+						#endif
+						DEBUG_OUT << "\tCache flag: " << canBeCached << DEBUG_NEXT_LINE;
 					#endif
-					DEBUG_OUT << "\tCache flag: " << canBeCached << DEBUG_NEXT_LINE;
 				#endif
-			#endif
-			return !canBeCached; 
-		}
+				return !canBeCached; 
+			}
+		#endif // UNUSED_V006
 
 		//A resource dependent implementation of used memory counter, 1024 bytes used by default.
 		virtual inline size_t usedMemory() { return 1024; }
