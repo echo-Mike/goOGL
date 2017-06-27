@@ -9,11 +9,15 @@
 *		https://github.com/echo-Mike
 */
 //STD
-#include <string>
-#include <iostream>
-#include <fstream>
-//ASSIMP
-
+#ifdef DEBUG_RESOURCE
+	#include <iostream>
+#endif 
+#ifdef RHE_USE_RESOURCE_NAMES
+	#include <string>
+#endif
+#ifdef UNUSED_V006
+	#include <fstream>
+#endif
 //OUR
 #include "RHE\vResourceGeneral.h"
 //DEBUG
@@ -51,12 +55,14 @@ namespace resources {
 		//Resource status information
 		int status;
 	protected:
-		/**
-		*	Cache flag for derived classes.
-		*	This flag must be set, if resorce can be cached to file and restored back.
-		*	Derived class must implement Cache() and Restore() functions.
-		**/
-		bool canBeCached = false;
+		#ifdef UNUSED_V006
+			/**
+			*	Cache flag for derived classes.
+			*	This flag must be set, if resorce can be cached to file and restored back.
+			*	Derived class must implement Cache() and Restore() functions.
+			**/
+			bool canBeCached = false;
+		#endif // UNUSED_V006
 		#ifdef RHE_USE_RESOURCE_NAMES
 			//String identificator of resource.
 			std::string __resourceName;
