@@ -53,8 +53,9 @@ namespace resources {
 	class ResourceHandlingEngine : private Resource {
 		SmartSimpleIndexPool<ResourceID> indexPool;
 		
-		typedef std::map<Resource*const, ResourceHandler*> HandlersStorage;
+		using HandlersStorage = std::map<Resource*const, ResourceHandler*>;
 		HandlersStorage handlers;
+		
 		
 	public:
 
@@ -62,10 +63,8 @@ namespace resources {
 								unsigned int _bandwidth = RHE_ALLOCATION_BANDWIDTH) : 
 								indexPool(1, _maxId, _bandwidth)
 		{
-			handlers[this] = new ResourceHandler();
-			handlers[this]->status = ResourceHandler::PUBLIC;
+			handlers[this] = new ResourceHandler(ResourceHandler::ResourceHandlerStatus::PUBLIC, this);
 		}
-
 
 		template < class T >
 		bool newResource(T&& _value, Resource* _owner, std::shared_ptr<T>& _result) {
@@ -156,6 +155,15 @@ namespace resources {
 		}
 
 		void deleteResource(ResourceID _Id, std::shared_ptr<Resource> _owner) {	deleteResource(_Id, _owner.get()); }
+
+		void secureRemove(const ResourceID _Id, const ResourceHandler* const _owner) NOEXCEPT {
+			for (const auto& v : handlers) {
+				if (v.second == _owner) {
+					indexPool.deleteIndex(_Id);
+					return;
+				}
+			}
+		}
 	};
 }
 #endif

@@ -16,6 +16,8 @@
 #include <type_traits>
 #include <cstring>
 #include <string.h>
+//OUR
+#include "general\vs2013tweaks.h"
 //DEBUG
 #ifdef DEBUG_INDEXPOOL
 	#ifndef DEBUG_OUT
@@ -348,7 +350,7 @@ protected:
 	/**
 	*	Internal function for performing trustful index data change.
 	**/
-	void allocateSpecific(TIndex _array[], unsigned int _length) {
+	void allocateSpecific(TIndex _array[], unsigned int _length) NOEXCEPT {
 		//Bucket position
 		register Bucket* ptr = nullptr;
 		//Bit position
@@ -621,7 +623,7 @@ public:
 	/**
 	*	Deallocate index '_index'.
 	**/
-	void deleteIndex(TIndex _index) {
+	void deleteIndex(TIndex _index) NOEXCEPT {
 		if (_index < minIndex || _index > maxIndex)
 			return;
 		//Bucket position
@@ -802,7 +804,7 @@ public:
 	/**
 	*	Deallocate index '_index'.
 	**/
-	void deleteIndex(TIndex _index) {
+	void deleteIndex(TIndex _index) NOEXCEPT {
 		for (int _index = 0; _index <= topPtr - preallocatedPool; _index++)
 			if (*(preallocatedPool + _index) == _index)
 				return;

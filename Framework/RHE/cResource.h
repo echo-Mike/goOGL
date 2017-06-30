@@ -20,6 +20,7 @@
 #endif
 //OUR
 #include "RHE\vResourceGeneral.h"
+#include "general\vs2013tweaks.h"
 //DEBUG
 #ifdef DEBUG_RESOURCE
 	#ifndef DEBUG_OUT
@@ -36,12 +37,12 @@ namespace resources {
 		/**
 		*	Runtime identification of naming of resources.
 		**/
-		const bool __RHEUseNames = true;
+		CONST_OR_CONSTEXPR bool __RHEUseNames(true);
 	#else
 		/**
 		*	Runtime identification of naming of resources.
 		**/
-		const bool __RHEUseNames = false;
+		CONST_OR_CONSTEXPR bool __RHEUseNames(false);
 	#endif
 
 	/**
@@ -67,86 +68,87 @@ namespace resources {
 			//String identificator of resource.
 			std::string __resourceName;
 		#endif
+
+		/**
+		*	\brief Read access to status from derived classes.
+		*	\throw nothrow
+		*	\return Value of status.
+		**/
+		int getStatus() const NOEXCEPT { return status; }
+
+		/**
+		*	\brief Setup the INVALID flag in resource status.
+		*	Must be used in derived classes to specify that resource reached 
+		*	some invalid state and must be released from current handler.
+		*	\param[in]	_up	Specify the state of flag (true for up, false for down).
+		*	\throw nothrow
+		*	\return noreturn
+		**/
+		void invalidSignal(bool _up = true) NOEXCEPT { status &= _up ? ResourceStatus::INVALID : ~ResourceStatus::INVALID; }
 	public:
-		//Enumiration of all possible resource states.
+		//Enumiration of all possible resource state flags.
 		enum ResourceStatus : int {
-			UNDEFINED	= 0x0000,
-			//Resource have Type
-			DEFINED		= 0x0001,
+			UNDEFINED	= 0x00,
+			//Resource have defined Type
+			DEFINED		= 0x01,
 			//Load/Reload was called on resource 
-			LOADED		= 0x0002,
+			LOADED		= 0x02,
 			//Cache function was called on resource
-			CACHED		= 0x0004,
-			//Resource was copied from other resource
-			COPIED		= 0x0100,
-			//Resource was moved from other resource
-			MOVED		= 0x0200,
-			//Resource are invalid
-			INVALID		= 0x8000
+			CACHED		= 0x04,
+			//Resource is invalid
+			INVALID		= 0x10,
+			//End of bits indicator
+			MAX			= INVALID
 		};
 
-		Resource() : type(resources::ResourceType::UNKNOWN),
-					 #ifdef RHE_USERESOURCENAMES
-						 __resourceName(""),
-					 #endif
-					 status(ResourceStatus::UNDEFINED) {}
+#ifdef RHE_USE_RESOURCE_NAMES
+		Resource()	NOEXCEPT : 
+					type(resources::ResourceType::UNKNOWN),
+					__resourceName(""),
+					status(ResourceStatus::UNDEFINED) {}
 
-		Resource(	
-					#ifdef RHE_USE_RESOURCE_NAMES
-						std::string _name,
-					#endif
-					ResourceType _type) :
-					type(_type),
-					#ifdef RHE_USE_RESOURCE_NAMES
-						__resourceName(_name), 
-					#endif
-					status(0)
+		Resource( std::string _name, ResourceType _type) NOEXCEPT : 
+														 type(_type), 
+														 __resourceName(_name), 
+														 status(ResourceStatus::DEFINED) {}
+#else
+		Resource()	NOEXCEPT : 
+					type(ResourceType::UNKNOWN),
+					status(ResourceStatus::UNDEFINED) {}
+
+		Resource(ResourceType _type) NOEXCEPT : 
+									 type(_type),
+									 status(ResourceStatus::DEFINED) {}
+#endif	// RHE_USE_RESOURCE_NAMES
+
+		virtual ~Resource() NOEXCEPT;
+
+		Resource(const Resource& other) = default;
+
+		Resource& operator= (const Resource& other) = default;
+
+#ifdef MOVE_GENERATION
+		Resource(Resource&& other) = default;
+
+		Resource& operator= (Resource&& other) = default;
+#else
+		Resource(Resource&& other)  NOEXCEPT : 
+									type(std::move(other.type)),
+									#ifdef RHE_USE_RESOURCE_NAMES
+										__resourceName(std::move(other.__resourceName)),
+									#endif
+									status(std::move(other.status)) {}
+
+		Resource& operator= (Resource&& other) NOEXCEPT 
 		{
-			status |= ResourceStatus::DEFINED;
-		}
-
-		Resource(const Resource& other) : type(other.type),
-										  #ifdef RHE_USE_RESOURCE_NAMES
-											  __resourceName(other.__resourceName), 
-										  #endif
-										  status(other.status)
-
-		{
-			status |= ResourceStatus::COPIED;
-		}
-
-		Resource(Resource&& other) : type(std::move(other.type)), 
-									 #ifdef RHE_USE_RESOURCE_NAMES
-										 __resourceName(std::move(other.__resourceName)),
-									 #endif
-									 status(std::move(other.status)) 
-		{
-			status |= ResourceStatus::MOVED;
-		}
-		
-		virtual ~Resource();
-
-		Resource& operator= (const Resource& other) {
-			if (&other == this)
-				return *this;
-			#ifdef RHE_USE_RESOURCE_NAMES
-				__resourceName = other.__resourceName;
-			#endif
-			type = other.type;
-			status = other.status;
-			status |= ResourceStatus::COPIED;
-			return *this;
-		}
-
-		Resource& operator= (Resource&& other) {
 			#ifdef RHE_USE_RESOURCE_NAMES
 				__resourceName = std::move(other.__resourceName);
 			#endif
 			type = std::move(other.type);
 			status = std::move(other.status);
-			status |= ResourceStatus::MOVED;
 			return *this;
 		}
+#endif	// MOVE_GENERATION
 
 		//A resource dependent implementation of safe resource loading.
 		virtual inline bool Load() { 
@@ -217,7 +219,7 @@ namespace resources {
 		#endif // UNUSED_V006
 
 		//A resource dependent implementation of used memory counter, 1024 bytes used by default.
-		virtual inline size_t usedMemory() { return 1024; }
+		virtual inline size_t usedMemory() NOEXCEPT { return 1024; }
 	};
 }
 #endif

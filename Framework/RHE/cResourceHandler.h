@@ -1,13 +1,13 @@
 #ifndef RESOURCEHANDLER_H
 #define RESOURCEHANDLER_H "[0.0.5@cResourceHandler.h]"
-/*
+/**
 *	DESCRIPTION:
 *		Module contains implementation of internal resource handler class.
 *	AUTHOR:
 *		Mikhail Demchenko
 *		mailto:dev.echo.mike@gmail.com
 *		https://github.com/echo-Mike
-*/
+**/
 //STD
 #include <map>
 #include <memory>
@@ -61,13 +61,18 @@ namespace resources {
 		/**
 		*	Runtime identification of Resource Handler strict mode.
 		**/
-		const bool __RHStrictMode = true;
+		CONST_OR_CONSTEXPR bool __RHStrictMode(true);
 	#else
 		/**
 		*	Runtime identification of Resource Handler strict mode.
 		**/
-		const bool __RHStrictMode = false;
+		CONST_OR_CONSTEXPR bool __RHStrictMode(false);
 	#endif
+
+	/**
+	*	Forward declaration of ResourceHandlingEngine class.
+	**/
+	class ResourceHandlingEngine;
 
 	/**
 	*	Class that represents resource storage for one scene.
@@ -75,12 +80,14 @@ namespace resources {
 	*	Class have two modes NORMAL and STRICT defined in compile-time.
 	*	Class definition: ResourceHandler
 	**/
-	class ResourceHandler {
+	class ResourceHandler final {
 		friend class ResourceHandlingEngine;
 		//Define resource storage type
-		typedef std::map<ResourceID, std::shared_ptr<Resource>> Storage;
+		using Storage = std::map<ResourceID, std::shared_ptr<Resource>>;
 		//Resource storage
 		Storage storage;
+		//Owner RHE of current handler
+		ResourceHandlingEngine* owner;
 
 		#ifdef UNUSED_V006
 			//Dinamyc array of cache files
@@ -88,40 +95,198 @@ namespace resources {
 		#endif // UNUSED_V006
 
 		//Enumiration of all possible resource handler states
-		enum ResourceHandlerStatus : int {
+		enum class ResourceHandlerStatus {
 			UNDEFINED,
 			PUBLIC,
 			PRIVATE
 		};
-		ResourceHandlerStatus status;
-		
-		ResourceHandler() : status(ResourceHandlerStatus::UNDEFINED) 
+		ResourceHandlerStatus status{ ResourceHandlerStatus::UNDEFINED };
+
+		ResourceHandler(const ResourceHandlerStatus _status, ResourceHandlingEngine* _owner) : status(_status), owner(_owner)
 		{
 			#ifdef UNUSED_V006
 				cacheFiles.push_back(std::move(std::shared_ptr<CacheFile>(new CacheFile())));
 			#endif // UNUSED_V006
 		}
 
-		~ResourceHandler() {}
+		~ResourceHandler() NOEXCEPT {}
 
 		/**
 		*	\brief Counts amount of handled memory.
 		*	Corrects possible uint overflow with '_cary' parameter.
 		*	Linear complexity.
 		*	\param[out]	_cary	Carry uint to correct uint overflow.
-		*	\throw nothrow
+		*	\throw Ignore
 		*	\return Summed up amount of memory used by handled objects.
 		**/
 		unsigned int memoryHandled(unsigned int& _cary) {
 			_cary = 0;
 			unsigned int _result = 0;
 			unsigned int _buff = 0;
-			for (auto &v : storage) {
+			for (auto& v : storage) {
 				_buff = v.second->usedMemory();
 				if (_result + _buff < _result)
 					_cary++;
 				_result += _buff;
 			}
+		}
+
+		/**
+		*	\brief Flags to be used in checkResource.
+		**/
+		enum ResourceCheckFlags : int {
+			//Resource internal states:: (next <br> is intentional)
+
+			//Check that resource is defined 
+			DEFINED		= Resource::ResourceStatus::DEFINED,
+			//Check that resource is loaded or reloaded
+			LOADED		= Resource::ResourceStatus::LOADED,
+			//Check that resource is unloaded 
+			UNLOADED	= Resource::ResourceStatus::MAX << 1,
+			//UNUSED : Check that resource was cached
+			CACHED		= Resource::ResourceStatus::CACHED,
+			//Check that resource is valid
+			VALID		= Resource::ResourceStatus::INVALID,
+			//Resource states in storage:: (next <br> is intentional)
+
+			//Check that resource is presented in current storage
+			PRESENTED	= Resource::ResourceStatus::MAX << 2,
+			//Complex checks:: (next <br> is intentional)
+
+			//Check that resource defined and loaded
+			DEFLOAD		= DEFINED | LOADED,
+			//Check that resource defined and unloaded
+			DEFULOAD	= DEFINED | UNLOADED,
+			//Check that resource is presented and valid
+			PRESVAL		= PRESENTED | VALID,
+			//PRESVAL and DEFLOAD checks
+			PVDL		= PRESVAL | DEFLOAD,
+			//PRESVAL and DEFULOAD checks
+			PVDUL		= PRESVAL | DEFULOAD
+		};
+
+		/**
+		*	\brief Check resource status to satisfy certain flag arrangement with special way.
+		*	Check ResourceCheckFlags::PRESVAL every time.
+		*	Other checks performd in ANY OF manner.
+		*	Resource with INVALID status will be deleted after check.
+		*	\param[in]	_Id		Identificator of resource.
+		*	\param[in]	_flags	Flags to check.
+		*	\throw nothrow
+		*	\return Result of check
+		**/
+		bool checkResource(const ResourceID _Id, int _flags = ResourceCheckFlags::PRESVAL) NOEXCEPT{
+			//If object is presented performs other checks
+			auto _iterator = storage.find(_Id);
+			if (_iterator != storage.end())	{
+				//Unset PRESENTED flag in input flags
+				_flags &= ~ResourceCheckFlags::PRESENTED;
+				//Only PRESENTED check is needed
+				if (!_flags)
+					return true;
+				//Obtain status of resource
+				auto _status = _iterator->second->status;
+				//Other checks performed only if resource is valid
+				if (!(_status & ResourceCheckFlags::VALID)) {
+					//Unset INVALID flag in input flags
+					_flags &= ~ResourceCheckFlags::VALID;
+					//Only PRESVAL check
+					if (!_flags)
+						return true;
+					//Perform unusual checks
+					switch (_flags)	{
+						case ResourceCheckFlags::DEFLOAD:
+							return _status & ResourceCheckFlags::DEFINED && _status & ResourceCheckFlags::LOADED;
+							break;
+						case ResourceCheckFlags::DEFULOAD:
+							return _status & ResourceCheckFlags::DEFINED && !(_status & ResourceCheckFlags::LOADED);
+							break;
+						default:
+							return _status & _flags;
+							break;
+					}					
+				}
+				//Delete resource if it is invalid
+				//Hardcoded solution
+				forceDelete(_Id);
+			}
+			return false;
+		}
+
+		template < class T >
+		/**
+		*	\brief Constructs new resource with id '_Id' of type "T" by calling default constructor.
+		*	Actually calls operator new : new T().
+		*	NORMAL : Erase object with id '_Id' if it presented in current time before creating new one.
+		*	STRICT : Returns an shared pointer to nullptr if object with id '_Id' already exists. Returns without calling constructor.
+		*	\param[in]	_Id		Identificator of new object.
+		*	\param[in]	_defptr	Parameter to make template overload possible.
+		*	\throw std::logic_error On exception in object default constructor or operator new.
+		*	\return Shared pointer of type "T" to new object on success and to nullptr on error.
+		**/
+		inline std::shared_ptr<T> newResource(ResourceID _Id, T* _defptr = nullptr) {
+			//Find object with id '_Id'
+			if (storage.count(_Id)) {
+				#ifdef RESOURCE_HANDLER_STRICT
+					#ifdef DEBUG_RESOURCEHANDLER
+						DEBUG_OUT << "ERROR::RESOURCE_HANDLER::newResource" << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tMessage: Object with '_Id': " << _Id << " already exists." << DEBUG_NEXT_LINE;
+					#endif
+					return std::shared_ptr<T>(nullptr);
+				#endif
+				storage.erase(_Id);
+			}
+			//Try to default construct new object
+			try { std::shared_ptr<T> _newptr(new T()); }
+			catch (const std::exception& e) { throw std::logic_error(e.what()); } //Warp up external exception to std::logic_error
+			catch (...) { throw std::logic_error("ERROR::RESOURCE_HANDLER::newResource::Object creation error."); } //Provide any other throw with std::logic_error
+			//Insert new object to storage
+			storage[_Id] = _newptr;
+			return std::move(_newptr);
+		}
+
+		template < class T >
+		/**
+		*	\brief Performs an attempt to create '_count' objects by calling newResource with default constructor.
+		*	NORMAL : Increment result on every successful (nothrow) creation.
+		*	STRICT : Increment result only on non nullptr return of newResource.
+		*	\param[in]	_Id			Array of identificators.
+		*	\param[out]	_result		Array of shared pointers to new objects.
+		*	\param[in]	_count		Count of objects to be created.
+		*	\param[out]	_success	[Optional] Per object status of successful creation.
+		*	\throw Ignore : exception may occur if _Id or _result not long enougth.
+		*	\return Count of successfully allocated objects.
+		**/
+		inline unsigned int newResource(ResourceID _Id[], std::shared_ptr<T> _result[], unsigned int _count, bool _success[] = nullptr) {
+			if (!_count)
+				return _count;
+			if (!_result)
+				return 0;
+			//Counter of allocated objects
+			unsigned int _allocated = 0; 
+			for (unsigned int _index = 0; _index < _count; _index++) {
+				try { _result[_index] = newResource<T>(_Id[_index]); }
+				catch (...) { 
+					if (_success)
+						_success[_index] = false;
+					continue;
+				}
+				#ifdef RESOURCE_HANDLER_STRICT
+					if (_result[_index]) {
+						if (_success)
+							_success[_index] = true;
+						_allocated++;
+					} else {
+						if (_success)
+							_success[_index] = false;
+					}
+				#else
+					if (_success)
+						_success[_index] = true;
+					_allocated++;
+				#endif
+			}
+			return _allocated;
 		}
 
 		template < class T >
@@ -214,7 +379,7 @@ namespace resources {
 			//Counter of allocated objects
 			unsigned int _allocated = 0; 
 			for (unsigned int _index = 0; _index < _count; _index++) {
-				try { _result[_index] = newResource(std::move(T(_value)), _Id[_index]); }
+				try { _result[_index] = newResource<T>(std::move(T(_value)), _Id[_index]); }
 				catch (...) { 
 					if (_success)
 						_success[_index] = false;
@@ -446,7 +611,7 @@ namespace resources {
 				return 0;
 			unsigned int _allocated = 0;
 			for (unsigned int _index = 0; _index < _count; _index++) {
-				try { _result[_index] = setResource(std::move(T(_value)), _Id[_index]); }
+				try { _result[_index] = setResource<T>(std::move(T(_value)), _Id[_index]); }
 				catch (...) { 
 					if (_success)
 						_success[_index] = false;
@@ -497,7 +662,7 @@ namespace resources {
 		*	\return Shared pointer to object with id '_Id' or to nullptr on error.
 		**/
 		inline std::shared_ptr<T> getResource(ResourceID _Id, T* const _defptr = nullptr) {
-			try { return std::shared_ptr<T>(std::dynamic_pointer_cast<T>(storage.at(_Id))); }
+			try { return std::dynamic_pointer_cast<T>(storage.at(_Id)); }
 			catch (const std::out_of_range& e) {
 				#ifdef DEBUG_RESOURCEHANDLER
 					DEBUG_OUT << "ERROR::RESOURCE_HANDLER::getResource" << DEBUG_NEXT_LINE;
@@ -521,7 +686,7 @@ namespace resources {
 		*	\throw nothrow
 		*	\return True on successfull deletion, false on else.
 		**/
-		inline bool deleteResource(ResourceID _Id) { 
+		inline bool deleteResource(const ResourceID _Id) { 
 			#ifdef RESOURCE_HANDLER_STRICT
 				if (storage.count(_Id)) {
 					if (storage[_Id].use_count() > 1) {
@@ -536,6 +701,329 @@ namespace resources {
 			#endif	
 			storage.erase(_Id);
 			return true;
+		}
+
+		/**
+		*	\brief Force removal of resource with id '_Id'.
+		*	NORMAL/STRICT : Ignores all strict rules for deleteResource.
+		*	This function for internal use only.
+		*	\param[in]	_Id	Identificator of resource to be deleted.
+		*	\throw nothrow
+		*	\return Nothing
+		**/
+		void forceDelete(const ResourceID _Id) NOEXCEPT { 
+			owner->secureRemove(_Id, this);
+			storage.erase(_Id); 
+		}
+
+//#define RESOURCE_HANDLER_STRICT
+
+		inline bool loadResource(const ResourceID _Id) NOEXCEPT {
+		#ifdef RESOURCE_HANDLER_STRICT
+			if (checkResource(_Id, ResourceCheckFlags::DEFULOAD)) {
+		#else
+			if (checkResource(_Id)) {
+		#endif
+				try { return storage[_Id]->Load(); }
+				catch (const std::exception& e) {
+					#ifdef DEBUG_RESOURCEHANDLER && RESOURCEHANDLER_MINOR_ERRORS
+						DEBUG_OUT << "ERROR::RESOURCE_HANDLER::loadResource" << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tMessage: Error occurred during call to Load function. Exception captured." << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tResource id: " << _Id << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tException content:" << e.what() << DEBUG_NEXT_LINE;
+					#endif
+					return false;
+				}
+				catch (...) {
+					#ifdef DEBUG_RESOURCEHANDLER && RESOURCEHANDLER_MINOR_ERRORS
+						DEBUG_OUT << "ERROR::RESOURCE_HANDLER::loadResource" << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tMessage: Error occurred during call to Load function. Something was thrown." << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tResource id: " << _Id << DEBUG_NEXT_LINE;
+					#endif
+					return false;
+				}
+			}
+			return false;
+		}
+
+		bool loadResource(const ResourceID _Id[], const unsigned int _count, bool _result[] = nullptr) NOEXCEPT {
+			if (!_count)
+				return false;
+			bool result = true;
+			if (_result) {
+				for (unsigned int _index = 0; _index < _count; _index++) {
+					_result[_index] = loadResource(_Id[_index]);
+					result &= _result[_index];
+				}
+			} else {
+				for (unsigned int _index = 0; _index < _count; _index++)
+					result &= loadResource(_Id[_index]);
+			}
+			return result;
+		}
+
+		std::unique_ptr<bool> loadAll(unsigned int& _count) NOEXCEPT {
+			_count = storage.size();
+			std::unique_ptr<bool> _result(new bool[_count]);
+			unsigned int _counter = 0;
+			for (auto &v : storage) {
+				try { *(_result.get() + _counter) = v.second->Load(); }
+				catch (const std::exception& e) {
+					#ifdef DEBUG_RESOURCEHANDLER && RESOURCEHANDLER_MINOR_ERRORS
+						DEBUG_OUT << "ERROR::RESOURCE_HANDLER::loadAll" << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tMessage: Error occurred during call to Load function. Exception captured." << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tResource id: " << v.first << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tException content:" << e.what() << DEBUG_NEXT_LINE;
+					#endif
+					*(_result.get() + _counter) = false;
+				}
+				catch (...) {
+					#ifdef DEBUG_RESOURCEHANDLER && RESOURCEHANDLER_MINOR_ERRORS
+						DEBUG_OUT << "ERROR::RESOURCE_HANDLER::loadAll" << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tMessage: Error occurred during call to Load function. Something was thrown." << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tResource id: " << v.first << DEBUG_NEXT_LINE;
+					#endif
+					*(_result.get() + _counter) = false;
+				}
+				_counter++;
+			}
+			return std::move(_result);
+		}
+
+		bool loadAll() NOEXCEPT {
+			bool _result = true;
+			for (auto &v : storage) {
+				try { _result &= v.second->Load(); }
+				catch (const std::exception& e) {
+					#ifdef DEBUG_RESOURCEHANDLER && RESOURCEHANDLER_MINOR_ERRORS
+						DEBUG_OUT << "ERROR::RESOURCE_HANDLER::loadAll" << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tMessage: Error occurred during call to Load function. Exception captured." << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tResource id: " << v.first << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tException content:" << e.what() << DEBUG_NEXT_LINE;
+					#endif
+						_result = false;
+				}
+				catch (...) {
+					#ifdef DEBUG_RESOURCEHANDLER && RESOURCEHANDLER_MINOR_ERRORS
+						DEBUG_OUT << "ERROR::RESOURCE_HANDLER::loadAll" << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tMessage: Error occurred during call to Load function. Something was thrown." << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tResource id: " << v.first << DEBUG_NEXT_LINE;
+					#endif
+						_result = false;
+				}
+			}
+			return _result;
+		}
+
+		inline bool unloadResource(const ResourceID _Id) NOEXCEPT {
+		#ifdef RESOURCE_HANDLER_STRICT
+			if (checkResource(_Id, ResourceCheckFlags::DEFLOAD)) {
+		#else
+			if (checkResource(_Id)) {
+		#endif
+				try { return storage[_Id]->Unload(); }
+				catch (const std::exception& e) {
+					#ifdef DEBUG_RESOURCEHANDLER && RESOURCEHANDLER_MINOR_ERRORS
+						DEBUG_OUT << "ERROR::RESOURCE_HANDLER::unloadResource" << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tMessage: Error occurred during call to Unload function. Exception captured." << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tResource id: " << _Id << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tException content:" << e.what() << DEBUG_NEXT_LINE;
+					#endif
+					return false;
+				}
+				catch (...) {
+					#ifdef DEBUG_RESOURCEHANDLER && RESOURCEHANDLER_MINOR_ERRORS
+						DEBUG_OUT << "ERROR::RESOURCE_HANDLER::unloadResource" << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tMessage: Error occurred during call to Unload function. Something was thrown." << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tResource id: " << _Id << DEBUG_NEXT_LINE;
+					#endif
+					return false;
+				}
+			}
+			return false;
+		}
+
+		bool unloadResource(const ResourceID _Id[], const unsigned int _count, bool _result[] = nullptr) NOEXCEPT {
+			if (!_count)
+				return false;
+			bool result = true;
+			if (_result) {
+				for (unsigned int _index = 0; _index < _count; _index++) {
+					_result[_index] = unloadResource(_Id[_index]);
+					result &= _result[_index];
+				}
+			} else {
+				for (unsigned int _index = 0; _index < _count; _index++)
+					result &= unloadResource(_Id[_index]);
+			}
+			return result;
+		}
+
+		std::unique_ptr<bool> unloadAll(unsigned int& _count) NOEXCEPT {
+			_count = storage.size();
+			std::unique_ptr<bool> _result(new bool[_count]);
+			unsigned int _counter = 0;
+			for (auto &v : storage) {
+				try { *(_result.get() + _counter) = v.second->Unload(); }
+				catch (const std::exception& e) {
+					#ifdef DEBUG_RESOURCEHANDLER && RESOURCEHANDLER_MINOR_ERRORS
+						DEBUG_OUT << "ERROR::RESOURCE_HANDLER::unloadAll" << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tMessage: Error occurred during call to Unload function. Exception captured." << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tResource id: " << v.first << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tException content:" << e.what() << DEBUG_NEXT_LINE;
+					#endif
+					*(_result.get() + _counter) = false;
+				}
+				catch (...) {
+					#ifdef DEBUG_RESOURCEHANDLER && RESOURCEHANDLER_MINOR_ERRORS
+						DEBUG_OUT << "ERROR::RESOURCE_HANDLER::unloadAll" << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tMessage: Error occurred during call to Unload function. Something was thrown." << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tResource id: " << v.first << DEBUG_NEXT_LINE;
+					#endif
+					*(_result.get() + _counter) = false;
+				}
+				_counter++;
+			}
+			return std::move(_result);
+		}
+
+		bool unloadAll() NOEXCEPT {
+			bool _result = true;
+			for (auto &v : storage) {
+				try { _result &= v.second->Unload(); }
+				catch (const std::exception& e) {
+					#ifdef DEBUG_RESOURCEHANDLER && RESOURCEHANDLER_MINOR_ERRORS
+						DEBUG_OUT << "ERROR::RESOURCE_HANDLER::unloadAll" << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tMessage: Error occurred during call to Unload function. Exception captured." << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tResource id: " << v.first << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tException content:" << e.what() << DEBUG_NEXT_LINE;
+					#endif
+						_result = false;
+				}
+				catch (...) {
+					#ifdef DEBUG_RESOURCEHANDLER && RESOURCEHANDLER_MINOR_ERRORS
+						DEBUG_OUT << "ERROR::RESOURCE_HANDLER::unloadAll" << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tMessage: Error occurred during call to Unload function. Something was thrown." << DEBUG_NEXT_LINE;
+						DEBUG_OUT << "\tResource id: " << v.first << DEBUG_NEXT_LINE;
+					#endif
+						_result = false;
+				}
+			}
+			return _result;
+		}
+
+		inline bool reloadResource(const ResourceID _Id) NOEXCEPT {
+		#ifdef RESOURCE_HANDLER_STRICT
+			if (checkResource(_Id, ResourceCheckFlags::DEFULOAD)) {
+		#else
+			if (checkResource(_Id)) {
+		#endif
+				try { return storage[_Id]->Reload(); }
+				catch (const std::exception& e) {
+					#ifdef DEBUG_RESOURCEHANDLER && RESOURCEHANDLER_MINOR_ERRORS
+						DEBUG_NEW_MESSAGE
+							DEBUG_WRITE1("ERROR::RESOURCE_HANDLER::reloadResource");
+							DEBUG_WRITE1("\tMessage: Error occurred during call to Reload function. Exception captured.");
+							DEBUG_WRITE2("\tResource id: ", v.first);
+							DEBUG_WRITE2("\tException content:", e.what());
+						DEBUG_END_MESSAGE
+					#endif
+					return false;
+				}
+				catch (...) {
+					#ifdef DEBUG_RESOURCEHANDLER && RESOURCEHANDLER_MINOR_ERRORS
+						DEBUG_NEW_MESSAGE
+							DEBUG_WRITE1("ERROR::RESOURCE_HANDLER::reloadResource");
+							DEBUG_WRITE1("\tMessage: Error occurred during call to Reload function. Something was thrown.");
+							DEBUG_WRITE2("\tResource id: ", v.first);
+						DEBUG_END_MESSAGE
+					#endif
+					return false;
+				}
+			}
+			return false;
+		}
+
+		bool reloadResource(const ResourceID _Id[], const unsigned int _count, bool _result[] = nullptr) NOEXCEPT {
+			if (!_count)
+				return false;
+			bool result = true;
+			if (_result) {
+				for (unsigned int _index = 0; _index < _count; _index++) {
+					_result[_index] = loadResource(_Id[_index]);
+					result &= _result[_index];
+				}
+			} else {
+				for (unsigned int _index = 0; _index < _count; _index++)
+					result &= loadResource(_Id[_index]);
+			}
+			return result;
+		}
+
+		std::unique_ptr<bool> reloadAll(unsigned int& _count) NOEXCEPT {
+			_count = storage.size();
+			std::unique_ptr<bool> _result(new bool[_count]);
+			unsigned int _counter = 0;
+			for (auto &v : storage) {
+				try { *(_result.get() + _counter) = v.second->Reload(); }
+				catch (const std::exception& e) {
+					#ifdef DEBUG_RESOURCEHANDLER && RESOURCEHANDLER_MINOR_ERRORS
+						DEBUG_NEW_MESSAGE
+							DEBUG_WRITE1("ERROR::RESOURCE_HANDLER::reloadAll");
+							DEBUG_WRITE1("\tMessage: Error occurred during call to Reload function. Exception captured.");
+							DEBUG_WRITE2("\tResource id: ", v.first);
+							DEBUG_WRITE2("\tException content:", e.what());
+						DEBUG_END_MESSAGE
+					#endif
+					*(_result.get() + _counter) = false;
+				}
+				catch (...) {
+					#ifdef DEBUG_RESOURCEHANDLER && RESOURCEHANDLER_MINOR_ERRORS
+						DEBUG_NEW_MESSAGE
+							DEBUG_WRITE1("ERROR::RESOURCE_HANDLER::reloadAll");
+							DEBUG_WRITE1("\tMessage: Error occurred during call to Reload function. Something was thrown.");
+							DEBUG_WRITE2("\tResource id: ", v.first);
+						DEBUG_END_MESSAGE
+					#endif
+					*(_result.get() + _counter) = false;
+				}
+				_counter++;
+			}
+			return std::move(_result);
+		}
+
+		bool reloadAll() NOEXCEPT {
+			bool _result = true;
+			for (auto &v : storage) {
+				try { _result &= v.second->Reload(); }
+				catch (const std::exception& e) {
+					#ifdef DEBUG_RESOURCEHANDLER && RESOURCEHANDLER_MINOR_ERRORS
+						DEBUG_NEW_MESSAGE
+							DEBUG_WRITE1("ERROR::RESOURCE_HANDLER::reloadAll");
+							DEBUG_WRITE1("\tMessage: Error occurred during call to Reload function. Exception captured.");
+							DEBUG_WRITE2("\tResource id: ", v.first);
+							DEBUG_WRITE2("\tException content:", e.what());
+						DEBUG_END_MESSAGE
+					#endif
+					_result = false;
+				}
+				catch (...) {
+					#ifdef DEBUG_RESOURCEHANDLER && RESOURCEHANDLER_MINOR_ERRORS
+						DEBUG_NEW_MESSAGE
+							DEBUG_WRITE1("ERROR::RESOURCE_HANDLER::reloadAll");
+							DEBUG_WRITE1("\tMessage: Error occurred during call to Reload function. Something was thrown.");
+							DEBUG_WRITE2("\tResource id: ", v.first);
+						DEBUG_END_MESSAGE
+					#endif
+					_result = false;
+				}
+			}
+			return _result;
+		}
+
+
+		unsigned int collectGarbage(int _bandwidth = -1) {
+
 		}
 
 		#ifdef UNUSED_V006

@@ -11,7 +11,7 @@
 
 namespace resources {
 	//Enumiration of all types of handled resources.
-	enum ResourceType : int {
+	enum class ResourceType : int {
 		UNKNOWN,
 		SHADER,
 		TEXTURE,
