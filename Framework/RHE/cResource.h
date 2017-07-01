@@ -27,7 +27,7 @@
 		#define DEBUG_OUT std::cout
 	#endif
 	#ifndef DEBUG_NEXT_LINE
-		#define DEBUG_NEXT_LINE std::endl
+		#define DEBUG_NEXT_LINE "\n"
 	#endif
 #endif
 
@@ -150,26 +150,18 @@ namespace resources {
 		}
 #endif	// MOVE_GENERATION
 
+		//A resource dependent implementation of used memory counter, 1024 bytes used by default.
+		virtual inline size_t usedMemory() NOEXCEPT{ return 1024; }
+
 		//A resource dependent implementation of safe resource loading.
 		virtual inline bool Load() { 
 			#ifdef DEBUG_RESOURCE
-				DEBUG_OUT << "ERROR::RESOURCE::Load" << DEBUG_NEXT_LINE;
-				DEBUG_OUT << "\tMessage: This function must not be called." << DEBUG_NEXT_LINE;
-				#ifdef RHE_USE_RESOURCE_NAMES
-					DEBUG_OUT << "\tResource name: " << __resourceName << DEBUG_NEXT_LINE;
-				#endif
-			#endif
-			return false; 
-		}
-
-		//A resource dependent implementation of safe resource reloading.
-		virtual inline bool Reload() { 
-			#ifdef DEBUG_RESOURCE
-				DEBUG_OUT << "ERROR::RESOURCE::Reload" << DEBUG_NEXT_LINE;
-				DEBUG_OUT << "\tMessage: This function must not be called." << DEBUG_NEXT_LINE;
-				#ifdef RHE_USE_RESOURCE_NAMES
-					DEBUG_OUT << "\tResource name: " << __resourceName << DEBUG_NEXT_LINE;
-				#endif
+				DEBUG_NEW_MESSAGE("ERROR::RESOURCE::Load");
+					DEBUG_WRITE1("\tMessage: This function must not be called.");
+					#ifdef RHE_USE_RESOURCE_NAMES
+						DEBUG_WRITE2("\tResource name: ", __resourceName);
+					#endif
+				DEBUG_END_MESSAGE
 			#endif
 			return false; 
 		}
@@ -177,11 +169,25 @@ namespace resources {
 		//A resource dependent implementation of safe resource unloading.
 		virtual inline bool Unload() { 
 			#ifdef DEBUG_RESOURCE
-				DEBUG_OUT << "ERROR::RESOURCE::Unload" << DEBUG_NEXT_LINE;
-				DEBUG_OUT << "\tMessage: This function must not be called." << DEBUG_NEXT_LINE;
-				#ifdef RHE_USE_RESOURCE_NAMES
-					DEBUG_OUT << "\tResource name: " << __resourceName << DEBUG_NEXT_LINE;
-				#endif
+				DEBUG_NEW_MESSAGE("ERROR::RESOURCE::Unload");
+					DEBUG_WRITE1("\tMessage: This function must not be called.");
+					#ifdef RHE_USE_RESOURCE_NAMES
+						DEBUG_WRITE2("\tResource name: ", __resourceName);
+					#endif
+				DEBUG_END_MESSAGE
+			#endif
+			return false; 
+		}
+
+		//A resource dependent implementation of safe resource reloading.
+		virtual inline bool Reload() { 
+			#ifdef DEBUG_RESOURCE
+				DEBUG_NEW_MESSAGE("ERROR::RESOURCE::Reload");
+					DEBUG_WRITE1("\tMessage: This function must not be called.");
+					#ifdef RHE_USE_RESOURCE_NAMES
+						DEBUG_WRITE2("\tResource name: ", __resourceName);
+					#endif
+				DEBUG_END_MESSAGE
 			#endif
 			return false; 
 		}
@@ -217,9 +223,6 @@ namespace resources {
 				return !canBeCached; 
 			}
 		#endif // UNUSED_V006
-
-		//A resource dependent implementation of used memory counter, 1024 bytes used by default.
-		virtual inline size_t usedMemory() NOEXCEPT { return 1024; }
 	};
 }
 #endif
