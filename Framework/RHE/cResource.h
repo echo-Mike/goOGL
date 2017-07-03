@@ -9,6 +9,8 @@
 *		https://github.com/echo-Mike
 */
 //STD
+//TODO::DELETE AFTER TEST!!!
+#define DEBUG_RESOURCE
 #ifdef DEBUG_RESOURCE
 	#include <iostream>
 #endif 
@@ -23,6 +25,11 @@
 #include "general\vs2013tweaks.h"
 //DEBUG
 #ifdef DEBUG_RESOURCE
+	#ifndef OTHER_DEBUG
+		#include "general\debug.h"
+	#else
+		OTHER_DEBUG
+	#endif
 	#ifndef DEBUG_OUT
 		#define DEBUG_OUT std::cout
 	#endif
@@ -121,7 +128,7 @@ namespace resources {
 									 status(ResourceStatus::DEFINED) {}
 #endif	// RHE_USE_RESOURCE_NAMES
 
-		virtual ~Resource() NOEXCEPT;
+		virtual ~Resource() NOEXCEPT {};
 
 		Resource(const Resource& other) = default;
 
