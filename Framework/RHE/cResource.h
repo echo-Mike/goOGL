@@ -24,21 +24,26 @@
 #include "RHE\vResourceGeneral.h"
 #include "general\vs2013tweaks.h"
 //DEBUG
-#ifdef DEBUG_RESOURCE
-	#ifndef OTHER_DEBUG
-		#include "general\debug.h"
-	#else
-		OTHER_DEBUG
-	#endif
-	#ifndef DEBUG_OUT
-		#define DEBUG_OUT std::cout
-	#endif
-	#ifndef DEBUG_NEXT_LINE
-		#define DEBUG_NEXT_LINE "\n"
-	#endif
+#if defined(DEBUG_RESOURCE) && !defined(OTHER_DEBUG)
+	#include "general\mDebug.h"		
+#else
+	#include OTHER_DEBUG
 #endif
 
 namespace resources {
+
+	//Allocate strategy enum for Resource and ResourceHandler.
+	enum class allocateStrategy {
+		//Strategy used in copy or move cases, 
+		//defines that we must use allocation strategy of copied/moved object.
+		NON,
+		//Allocate resource using std::make_shared - suitable for SMALL resources.
+		SMALL,
+		//Allocate resource using std::shared_ptr(new ResType)  - suitable for BIG resources.
+		BIG,
+		//Small startegy is default (faster)
+		DEFAULT = SMALL
+	};
 
 	#ifdef RHE_USE_RESOURCE_NAMES
 		/**
@@ -91,7 +96,22 @@ namespace resources {
 		*	\throw nothrow
 		*	\return noreturn
 		**/
-		void invalidSignal(bool _up = true) NOEXCEPT { status &= _up ? ResourceStatus::INVALID : ~ResourceStatus::INVALID; }
+		inline void invalidSignal(bool _up = true) NOEXCEPT { status &= (_up ? ResourceStatus::INVALID : ~ResourceStatus::INVALID); }
+
+		/**
+		*	\brief Setup the ALLOCBIG flag in resource status.
+		*	Must be used in derived classes to specify resource allocation strategy.
+		*	\param[in]	_strategy	Specify the strategy.
+		*	\throw nothrow
+		*	\return noreturn
+		**/
+		inline void allocSignal(allocateStrategy _strategy = allocateStrategy::BIG) NOEXCEPT {
+			if (_strategy == allocateStrategy::BIG)	{
+				status |= ResourceStatus::ALLOCBIG;
+			} else {
+				status &= ~ResourceStatus::ALLOCBIG;
+			}
+		}
 	public:
 		//Enumiration of all possible resource state flags.
 		enum ResourceStatus : int {
@@ -102,6 +122,8 @@ namespace resources {
 			LOADED		= 0x02,
 			//Cache function was called on resource
 			CACHED		= 0x04,
+			//Use of BIG allocation strategy
+			ALLOCBIG	= 0x08,
 			//Resource is invalid
 			INVALID		= 0x10,
 			//End of bits indicator
@@ -123,9 +145,9 @@ namespace resources {
 					type(ResourceType::UNKNOWN),
 					status(ResourceStatus::UNDEFINED) {}
 
-		Resource(ResourceType _type) NOEXCEPT : 
-									 type(_type),
-									 status(ResourceStatus::DEFINED) {}
+		Resource(ResourceType _type) NOEXCEPT :
+									type(_type),
+									status(ResourceStatus::DEFINED) {}
 #endif	// RHE_USE_RESOURCE_NAMES
 
 		virtual ~Resource() NOEXCEPT {};
@@ -157,13 +179,13 @@ namespace resources {
 		}
 #endif	// MOVE_GENERATION
 
-		//A resource dependent implementation of used memory counter, 1024 bytes used by default.
-		virtual inline size_t usedMemory() NOEXCEPT{ return 1024; }
+		//A resource dependent implementation of used memory counter.
+		virtual inline size_t usedMemory() NOEXCEPT { return sizeof(Resource); }
 
 		//A resource dependent implementation of safe resource loading.
 		virtual inline bool Load() { 
 			#ifdef DEBUG_RESOURCE
-				DEBUG_NEW_MESSAGE("ERROR::RESOURCE::Load");
+				DEBUG_NEW_MESSAGE("ERROR::RESOURCE::Load")
 					DEBUG_WRITE1("\tMessage: This function must not be called.");
 					#ifdef RHE_USE_RESOURCE_NAMES
 						DEBUG_WRITE2("\tResource name: ", __resourceName);
@@ -176,7 +198,7 @@ namespace resources {
 		//A resource dependent implementation of safe resource unloading.
 		virtual inline bool Unload() { 
 			#ifdef DEBUG_RESOURCE
-				DEBUG_NEW_MESSAGE("ERROR::RESOURCE::Unload");
+				DEBUG_NEW_MESSAGE("ERROR::RESOURCE::Unload")
 					DEBUG_WRITE1("\tMessage: This function must not be called.");
 					#ifdef RHE_USE_RESOURCE_NAMES
 						DEBUG_WRITE2("\tResource name: ", __resourceName);
@@ -189,7 +211,7 @@ namespace resources {
 		//A resource dependent implementation of safe resource reloading.
 		virtual inline bool Reload() { 
 			#ifdef DEBUG_RESOURCE
-				DEBUG_NEW_MESSAGE("ERROR::RESOURCE::Reload");
+				DEBUG_NEW_MESSAGE("ERROR::RESOURCE::Reload")
 					DEBUG_WRITE1("\tMessage: This function must not be called.");
 					#ifdef RHE_USE_RESOURCE_NAMES
 						DEBUG_WRITE2("\tResource name: ", __resourceName);

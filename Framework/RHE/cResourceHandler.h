@@ -32,18 +32,10 @@
 #define DEBUG_RESOURCEHANDLER
 #define RESOURCEHANDLER_MINOR_ERRORS
 //#define RESOURCE_HANDLER_STRICT
-#ifdef DEBUG_RESOURCEHANDLER
-	#ifndef OTHER_DEBUG
-		#include "general\debug.h"
-	#else
-		OTHER_DEBUG
-	#endif
-	#ifndef DEBUG_OUT
-		#define DEBUG_OUT std::cout
-	#endif
-	#ifndef DEBUG_NEXT_LINE
-		#define DEBUG_NEXT_LINE "\n"
-	#endif
+#if defined(DEBUG_RESOURCEHANDLER) && !defined(OTHER_DEBUG)
+	#include "general\mDebug.h"		
+#else
+	#include OTHER_DEBUG
 #endif
 
 namespace resources {
@@ -153,6 +145,8 @@ namespace resources {
 			UNLOADED	= Resource::ResourceStatus::MAX << 1,
 			//UNUSED : Check that resource was cached
 			CACHED		= Resource::ResourceStatus::CACHED,
+			//Check that resource use BIG alloc trategy
+			ALLOCBIG	= Resource::ResourceStatus::ALLOCBIG,
 			//Check that resource is valid
 			VALID		= Resource::ResourceStatus::INVALID,
 			//Resource states in storage:: (next <br> is intentional)
@@ -170,7 +164,9 @@ namespace resources {
 			//PRESVAL and DEFLOAD checks
 			PVDL		= PRESVAL | DEFLOAD,
 			//PRESVAL and DEFULOAD checks
-			PVDUL		= PRESVAL | DEFULOAD
+			PVDUL		= PRESVAL | DEFULOAD,
+			//End of bits indicator
+			MAX			= PRESENTED
 		};
 
 		/**
@@ -188,32 +184,50 @@ namespace resources {
 		template < class T >
 		/**
 		*	\brief Constructs new resource with id '_Id' of type "T" by calling default constructor.
-		*	Actually calls operator new : new T().
+		*	Performs allocation via std::make_shared interface.
 		*	NORMAL : Erase object with id '_Id' if it presented in current time before creating new one.
 		*	STRICT : Returns an shared pointer to nullptr if object with id '_Id' already exists. Returns without calling constructor.
-		*	\param[in]	_Id		Identificator of new object.
-		*	\param[in]	_defptr	Parameter to make template overload possible.
+		*	\param[in]	_Id			Identificator of new object.
+		*	\param[in]	_strategy	Defines strategy of new object allocation.
+		*	\param[in]	_defptr		Parameter to make template overload possible.
 		*	\throw std::logic_error On exception in object default constructor or operator new.
+		*	\throw std::bad_alloc On not enougth memory in make_shared operation.
 		*	\return Shared pointer of type "T" to new object on success and to nullptr on error.
 		**/
-		inline std::shared_ptr<T> newResource(ResourceID _Id, T* _defptr = nullptr) {
+		inline std::shared_ptr<T> newResource(const ResourceID _Id, const allocateStrategy _strategy = allocateStrategy::DEFAULT, T* const _defptr = nullptr) {
 			//Find object with id '_Id'
-			if (storage.count(_Id)) {
+			auto _iterator = storage.find(_Id);
+			if (_iterator != storage.end()) {
 				#ifdef RESOURCE_HANDLER_STRICT
 					#ifdef DEBUG_RESOURCEHANDLER
 						DEBUG_NEW_MESSAGE("ERROR::RESOURCE_HANDLER::newResource")
 							DEBUG_WRITE3("\tMessage: Object with '_Id': ", _Id, " already exists.");
 						DEBUG_END_MESSAGE
 					#endif
-					return std::shared_ptr<T>(nullptr);
+					return std::move(std::shared_ptr<T>(nullptr));
 				#endif
-				storage.erase(_Id);
+				storage.erase(_iterator);
 			}
 			//Try to default construct new object
-			std::shared_ptr<T> _newptr{};
-			try { _newptr.reset(new T()); }
-			catch (const std::exception& e) { throw std::logic_error(e.what()); } //Warp up external exception to std::logic_error
-			catch (...) { throw std::logic_error("ERROR::RESOURCE_HANDLER::newResource::Object creation error."); } //Provide any other throw with std::logic_error
+			std::shared_ptr<T> _newptr(nullptr);
+			try {
+				if (_strategy == allocateStrategy::BIG) {
+					/**
+					*	Entry: https://stackoverflow.com/questions/620137/do-the-parentheses-after-the-type-name-make-a-difference-with-new
+					*	Comment by: https://stackoverflow.com/users/12711/michael-burr
+					*	"new T()" fits better than "new T"
+					**/
+					_newptr.reset(new T());
+				} else {
+					_newptr = std::move(std::make_shared<T>());
+				}
+			}
+			//std::make_shared exception : not enougth memory
+			catch (const std::bad_alloc&) { throw; }
+			//Warp up external exception to std::logic_error
+			catch (const std::exception& e) { throw std::logic_error(e.what()); }
+			//Provide any other throw with std::logic_error
+			catch (...) { throw std::logic_error("ERROR::RESOURCE_HANDLER::newResource::Object creation error."); }
 			//Insert new object to storage
 			storage[_Id] = _newptr;
 			return std::move(_newptr);
@@ -227,19 +241,20 @@ namespace resources {
 		*	\param[in]	_Id			Array of identificators.
 		*	\param[out]	_result		Array of shared pointers to new objects.
 		*	\param[in]	_count		Count of objects to be created.
+		*	\param[in]	_strategy	Defines strategy of new object allocation.
 		*	\param[out]	_success	[Optional] Per object status of successful creation.
 		*	\throw Ignore : exception may occur if _Id or _result not long enougth.
 		*	\return Count of successfully allocated objects.
 		**/
-		inline unsigned int newResource(ResourceID _Id[], std::shared_ptr<T> _result[], unsigned int _count, bool _success[] = nullptr) {
-			if (!_count)
-				return _count;
-			if (!_result)
+		inline unsigned int newResource(const ResourceID _Id[], std::shared_ptr<T> _result[], const unsigned int _count, 
+										const allocateStrategy _strategy = allocateStrategy::DEFAULT, bool _success[] = nullptr) 
+		{
+			if (!_count || !_result)
 				return 0;
 			//Counter of allocated objects
 			unsigned int _allocated = 0; 
 			for (unsigned int _index = 0; _index < _count; _index++) {
-				try { _result[_index].swap(newResource<T>(_Id[_index])); }
+				try { _result[_index] = std::move(newResource<T>(_Id[_index], _strategy)); }
 				catch (...) { 
 					if (_success)
 						_success[_index] = false;
@@ -268,29 +283,42 @@ namespace resources {
 		*	\brief Constructs new resource of type "T" by move-constructing from '_value' with id '_Id'.
 		*	NORMAL : Erase object with id '_Id' if it presented in current time before creating new one.
 		*	STRICT : Returns an shared pointer to nullptr if object with id '_Id' already exists. Returns without calling move-constructor.
-		*	\param[in]	_value	Move reference to object.
-		*	\param[in]	_Id		Identificator of new object.
+		*	\param[in]	_value		Move reference to object.
+		*	\param[in]	_Id			Identificator of new object.
+		*	\param[in]	_strategy	Defines strategy of new object allocation.
 		*	\throw std::logic_error On exception in object move-constructor or operator new.
+		*	\throw std::bad_alloc On not enougth memory in make_shared operation.
 		*	\return Shared pointer of type "T" to new object on success and to nullptr on error.
 		**/
-		inline std::shared_ptr<T> newResource(T&& _value, ResourceID _Id) {
+		inline std::shared_ptr<T> newResource(T&& _value, const ResourceID _Id, const allocateStrategy _strategy = allocateStrategy::DEFAULT) {
 			//Find object with id '_Id'
-			if (storage.count(_Id)) {
+			auto _iterator = storage.find(_Id);
+			if (_iterator != storage.end()) {
 				#ifdef RESOURCE_HANDLER_STRICT
 					#ifdef DEBUG_RESOURCEHANDLER
 						DEBUG_NEW_MESSAGE("ERROR::RESOURCE_HANDLER::newResource")
 							DEBUG_WRITE3("\tMessage: Object with '_Id': ", _Id, " already exists.");
 						DEBUG_END_MESSAGE
 					#endif
-					return std::shared_ptr<T>(nullptr);
+					return std::move(std::shared_ptr<T>(nullptr));
 				#endif
-				storage.erase(_Id);
+				storage.erase(_iterator);
 			}
 			//Try to move-construct new object
-			std::shared_ptr<T> _newptr{};
-			try { _newptr.reset(new T(std::move(_value))); }
-			catch (const std::exception& e) { throw std::logic_error(e.what()); } //Warp up external exception to std::logic_error
-			catch (...) { throw std::logic_error("ERROR::RESOURCE_HANDLER::newResource::Object creation error."); } //Provide any other throw with std::logic_error
+			std::shared_ptr<T> _newptr(nullptr);
+			try {
+				if (_strategy == allocateStrategy::BIG) {
+					_newptr.reset(new T(std::move(_value)));
+				} else {
+					_newptr = std::move(std::make_shared<T>(std::move(_value)));
+				}
+			}
+			//std::make_shared exception : not enougth memory
+			catch (const std::bad_alloc&) { throw; }
+			//Warp up external exception to std::logic_error
+			catch (const std::exception& e) { throw std::logic_error(e.what()); }
+			//Provide any other throw with std::logic_error
+			catch (...) { throw std::logic_error("ERROR::RESOURCE_HANDLER::newResource::Object creation error."); }
 			//Insert new object to storage
 			storage[_Id] = _newptr;
 			return std::move(_newptr);
@@ -308,7 +336,7 @@ namespace resources {
 		*	\throw nothrow
 		*	\return Shared pointer of type "T" to new object on success and to nullptr on error.
 		**/
-		inline std::shared_ptr<T> newResource(T* _valueptr, ResourceID _Id) {
+		inline std::shared_ptr<T> newResource(T* _valueptr, const ResourceID _Id) NOEXCEPT {
 			#ifdef RESOURCE_HANDLER_STRICT
 				if (!_valueptr) {
 					#ifdef DEBUG_RESOURCEHANDLER
@@ -316,20 +344,21 @@ namespace resources {
 							DEBUG_WRITE1("\tMessage: '_valueptr' is a nullptr." );
 						DEBUG_END_MESSAGE
 					#endif
-					return std::shared_ptr<T>(nullptr);
+					return std::move(std::shared_ptr<T>(nullptr));
 				}
 			#endif
 			//Find object with id '_Id'
-			if (storage.count(_Id)) {
+			auto _iterator = storage.find(_Id);
+			if (_iterator != storage.end()) {
 				#ifdef RESOURCE_HANDLER_STRICT
 					#ifdef DEBUG_RESOURCEHANDLER
 						DEBUG_NEW_MESSAGE("ERROR::RESOURCE_HANDLER::newResource")
 							DEBUG_WRITE3("\tMessage: Object with '_Id': ", _Id, " already exists.");
 						DEBUG_END_MESSAGE
 					#endif
-					return std::shared_ptr<T>(nullptr);
+					return std::move(std::shared_ptr<T>(nullptr));
 				#endif
-				storage.erase(_Id);
+				storage.erase(_iterator);
 			}
 			//Result of next two lines are the same, so less actions more performance.
 			/*std::shared_ptr<Resource> _newptr((Resource*)_valueptr);*/
@@ -347,17 +376,20 @@ namespace resources {
 		*	\param[in]	_Id			Array of identificators.
 		*	\param[out]	_result		Array of shared pointers to new objects.
 		*	\param[in]	_count		Count of objects to be created.
+		*	\param[in]	_strategy	Defines strategy of new object allocation.
 		*	\param[out]	_success	[Optional] Per object status of successful creation.
 		*	\throw nothrow
 		*	\return Count of successfully allocated objects.
 		**/
-		inline unsigned int newResource(const T& _value, ResourceID _Id[], std::shared_ptr<T> _result[], unsigned int _count, bool _success[] = nullptr) {
+		inline unsigned int newResource(const T& _value, const ResourceID _Id[], std::shared_ptr<T> _result[], const unsigned int _count,
+										const allocateStrategy _strategy = allocateStrategy::DEFAULT, bool _success[] = nullptr)
+		{
 			if (!_count)
 				return _count;
 			//Counter of allocated objects
 			unsigned int _allocated = 0;
 			for (unsigned int _index = 0; _index < _count; _index++) {
-				try { _result[_index].swap(newResource<T>(std::move(T(_value)), _Id[_index])); }
+				try { _result[_index] = std::move(newResource<T>(std::move(T(_value)), _Id[_index], _strategy)); }
 				catch (...) { 
 					if (_success)
 						_success[_index] = false;
@@ -390,12 +422,15 @@ namespace resources {
 		*	\param[in]	_Id			Array of identificators.
 		*	\param[out]	_result		Array of shared pointers to new objects.
 		*	\param[in]	_count		Count of objects to be created.
+		*	\param[in]	_strategy	Defines strategy of new object allocation.
 		*	\param[out]	_success	[Optional] Per object status of successful creation.
 		*	\throw nothrow
 		*	\return Count of successfully allocated objects.
 		**/
-		inline unsigned int newResource(const T* _valueptr, ResourceID _Id[], std::shared_ptr<T> _result[], unsigned int _count, bool _success[] = nullptr) {
-			return newResource(*_valueptr, _Id, _result, _count, _success);
+		inline unsigned int newResource(const T* _valueptr, const ResourceID _Id[], std::shared_ptr<T> _result[], const unsigned int _count, 
+										const allocateStrategy _strategy = allocateStrategy::DEFAULT, bool _success[] = nullptr) 
+		{
+			return newResource(*_valueptr, _Id, _result, _count, _strategy, _success);
 		}
 
 		template < class T >
@@ -406,37 +441,59 @@ namespace resources {
 		*	STRICT : Returns an shared pointer to nullptr if object with id '_Id' already exists. Returns without calling copy-constructor.
 		*	\param[in]	_sourceId	Identifier of the object from which the copy is made.
 		*	\param[in]	_Id			New object identificator.
+		*	\param[in]	_strategy	Defines strategy of new object allocation.
 		*	\param[in]	_defptr		Parameter to make template overload possible.
 		*	\throw std::logic_error On exception in object copy-constructor or operator new or dynamic_pointer_cast error.
+		*	\throw std::bad_alloc On not enougth memory in make_shared operation.
 		*	\return Shared pointer of type "T" to new object on success and to nullptr on error.
 		**/
-		inline std::shared_ptr<T> newCopy(ResourceID _sourceId, ResourceID _Id, T* const _defptr = nullptr) {
-			if (storage.count(_sourceId)) {
-				if (storage.count(_Id)) {
-					#ifdef RESOURCE_HANDLER_STRICT
-						#ifdef DEBUG_RESOURCEHANDLER
-							DEBUG_NEW_MESSAGE("ERROR::RESOURCE_HANDLER::newCopy")
-								DEBUG_WRITE3("\tMessage: Object with '_Id': ", _Id, " already exists.");
-							DEBUG_END_MESSAGE
-						#endif
-						return std::shared_ptr<T>(nullptr);
-					#endif
-					storage.erase(_Id);
-				}
-				std::shared_ptr<T> _newptr{};
-				try { _newptr.reset(new T(*(std::dynamic_pointer_cast<T>(storage[_sourceId])))); }
-				catch (const std::exception& e) { throw std::logic_error(e.what()); }
-				catch (...) { throw std::logic_error("ERROR::RESOURCE_HANDLER::newCopy::Object creation error."); }
-				storage[_Id] = _newptr;
-				return std::move(_newptr);
-			} else {
+		inline std::shared_ptr<T> newCopy(	const ResourceID _sourceId, const ResourceID _Id, 
+											const allocateStrategy _strategy = allocateStrategy::NON, T* const _defptr = nullptr)
+		{
+			if (_sourceId == _Id)
+				return std::move(std::shared_ptr<T>(nullptr));
+			auto _sourceIterator = storage.find(_sourceId);
+			if (_sourceIterator == storage.end()) {
 				#ifdef DEBUG_RESOURCEHANDLER
 					DEBUG_NEW_MESSAGE("ERROR::RESOURCE_HANDLER::newCopy")
 						DEBUG_WRITE2("\tMessage: Invalid '_sourceId': ", _sourceId);
 					DEBUG_END_MESSAGE
 				#endif
-				return std::shared_ptr<T>(nullptr);
+				return std::move(std::shared_ptr<T>(nullptr));
 			}
+			auto _destIterator = storage.find(_Id);
+			if (_destIterator != storage.end()) {
+				#ifdef RESOURCE_HANDLER_STRICT
+					#ifdef DEBUG_RESOURCEHANDLER
+						DEBUG_NEW_MESSAGE("ERROR::RESOURCE_HANDLER::newCopy")
+							DEBUG_WRITE3("\tMessage: Object with '_Id': ", _Id, " already exists.");
+						DEBUG_END_MESSAGE
+					#endif
+					return std::move(std::shared_ptr<T>(nullptr));
+				#endif
+				//_sourceIterator stays unaffected:
+				//Entry: http://en.cppreference.com/w/cpp/container/map/erase
+				storage.erase(_destIterator);
+			}
+			std::shared_ptr<T> _newptr(nullptr);
+			try {
+				if ((_strategy == allocateStrategy::NON &&
+					_sourceIterator->second->status & ResourceCheckFlags::ALLOCBIG) ||
+					_strategy == allocateStrategy::BIG)
+				{
+					_newptr.reset(new T(*(std::dynamic_pointer_cast<T>(_sourceIterator->second))));
+				} else {
+					_newptr = std::move(std::make_shared(*(std::dynamic_pointer_cast<T>(_sourceIterator->second))));
+				}
+			}
+			//std::make_shared exception : not enougth memory
+			catch (const std::bad_alloc&) { throw; }
+			//Warp up external exception to std::logic_error
+			catch (const std::exception& e) { throw std::logic_error(e.what()); }
+			//Provide any other throw with std::logic_error
+			catch (...) { throw std::logic_error("ERROR::RESOURCE_HANDLER::newCopy::Object creation error."); }
+			storage[_Id] = _newptr;
+			return std::move(_newptr);
 		}
 
 		template < class T >
@@ -446,40 +503,59 @@ namespace resources {
 		*	NORMAL/STRICT : Performs check on '_sourceId' and '_destId' objects, then creates new one.
 		*	\param[in]	_sourceId	Identifier of the object from which the copy is made.
 		*	\param[in]	_destId		Identifier of object rewritten with new copy.
+		*	\param[in]	_strategy	Defines strategy of new object allocation.
 		*	\param[in]	_defptr		Parameter to make template overload possible.
 		*	\throw std::logic_error On exception in object copy-constructor or operator new or dynamic_pointer_cast error.
+		*	\throw std::bad_alloc On not enougth memory in make_shared operation.
 		*	\return Shared pointer of type "T" to new object on success and to nullptr on error.
 		**/
-		inline std::shared_ptr<T> copyResource(ResourceID _sourceId, ResourceID _destId, T* const _defptr = nullptr) {
-			if (storage.count(_sourceId)) {
-				if (!storage.erase(_destId)) {
-					#ifdef DEBUG_RESOURCEHANDLER
-						DEBUG_NEW_MESSAGE("ERROR::RESOURCE_HANDLER::copyResource")
-							DEBUG_WRITE3("\tMessage: Object with '_destId': ", _destId, " doesn't exists.");
-						DEBUG_END_MESSAGE
-					#endif
-					return std::shared_ptr<T>(nullptr);
-				}
-				std::shared_ptr<T> _newptr{};
-				try { _newptr.reset(new T(*(std::dynamic_pointer_cast<T>(storage[_sourceId])))); }
-				catch (const std::exception& e) { throw std::logic_error(e.what()); }
-				catch (...) { throw std::logic_error("ERROR::RESOURCE_HANDLER::copyResource::Object creation error."); }
-				storage[_destId] = _newptr;
-				return std::move(_newptr);
-			} else {
+		inline std::shared_ptr<T> copyResource( const ResourceID _sourceId, const ResourceID _destId, 
+												const allocateStrategy _strategy = allocateStrategy::NON, T* const _defptr = nullptr) 
+		{
+			if (_sourceId == _destId)
+				return std::move(std::shared_ptr<T>(nullptr));
+			auto _sourceIterator = storage.find(_sourceId);
+			if (_sourceIterator == storage.end()) {
 				#ifdef DEBUG_RESOURCEHANDLER
 					DEBUG_NEW_MESSAGE("ERROR::RESOURCE_HANDLER::copyResource")
 						DEBUG_WRITE2("\tMessage: Invalid '_sourceId': ", _sourceId);
 					DEBUG_END_MESSAGE
 				#endif
-				return std::shared_ptr<T>(nullptr);
+				return std::move(std::shared_ptr<T>(nullptr));
 			}
+			if (!storage.erase(_destId)) {
+				#ifdef DEBUG_RESOURCEHANDLER
+					DEBUG_NEW_MESSAGE("ERROR::RESOURCE_HANDLER::copyResource")
+						DEBUG_WRITE3("\tMessage: Object with '_destId': ", _destId, " doesn't exists.");
+					DEBUG_END_MESSAGE
+				#endif
+				return std::move(std::shared_ptr<T>(nullptr));
+			}
+			std::shared_ptr<T> _newptr(nullptr);
+			try { 
+				if ((_strategy == allocateStrategy::NON &&
+					_sourceIterator->second->status & ResourceCheckFlags::ALLOCBIG) ||
+					_strategy == allocateStrategy::BIG)
+				{
+					_newptr.reset(new T(*(std::dynamic_pointer_cast<T>(_sourceIterator->second))));
+				} else {
+					_newptr = std::move(std::make_shared(*(std::dynamic_pointer_cast<T>(_sourceIterator->second))));
+				}
+			}
+			//std::make_shared exception : not enougth memory
+			catch (const std::bad_alloc&) { throw; }
+			//Warp up external exception to std::logic_error
+			catch (const std::exception& e) { throw std::logic_error(e.what()); }
+			//Provide any other throw with std::logic_error
+			catch (...) { throw std::logic_error("ERROR::RESOURCE_HANDLER::copyResource::Object creation error."); }
+			storage[_destId] = _newptr;
+			return std::move(_newptr);
 		}
 
 		template < class T >
 		/**
 		*	\brief Moves resource '_sourceId' to place of resource '_destId'.
-		*	Performs erase of '_destId' before moving and erase of '_sourceId' after.
+		*	Performs swap and erase strategy.
 		*	NORMAL : Erase object with id '_Id' if it presented in current time before creating new one.
 		*	STRICT : Returns an shared pointer to nullptr if object with id '_Id' already exists. Returns without calling copy-constructor.
 		*	\param[in]	_sourceId	Identifier of the object being moved.
@@ -488,29 +564,32 @@ namespace resources {
 		*	\throw nothrow
 		*	\return Shared pointer of type "T" to moved resource on success and to nullptr on error.
 		**/
-		inline std::shared_ptr<T> moveResource(ResourceID _sourceId, ResourceID _destId, T* const _defptr = nullptr) {
-			if (storage.count(_sourceId)) {
-				if (!storage.erase(_destId)) {
-					#ifdef RESOURCE_HANDLER_STRICT
-						#ifdef DEBUG_RESOURCEHANDLER
-							DEBUG_NEW_MESSAGE("ERROR::RESOURCE_HANDLER::moveResource")
-								DEBUG_WRITE2("\tMessage: Invalid '_destId': ", _destId);
-							DEBUG_END_MESSAGE
-						#endif
-						return std::shared_ptr<T>(nullptr);
-					#endif
-				}
-				storage[_destId] = storage[_sourceId];
-				storage.erase(_sourceId);
-				return storage[_destId];
-			} else {
+		inline std::shared_ptr<T> moveResource(const ResourceID _sourceId, const ResourceID _destId, T* const _defptr = nullptr) {
+			if (_sourceId == _destId)
+				return std::move(std::shared_ptr<T>(nullptr));
+			auto _sourceIterator = storage.find(_sourceId);
+			if (_sourceIterator == storage.end()) {
 				#ifdef DEBUG_RESOURCEHANDLER
 					DEBUG_NEW_MESSAGE("ERROR::RESOURCE_HANDLER::moveResource")
 						DEBUG_WRITE2("\tMessage: Invalid '_sourceId': ", _sourceId);
 					DEBUG_END_MESSAGE
 				#endif
-				return std::shared_ptr<T>(nullptr);
+				return std::move(std::shared_ptr<T>(nullptr));
 			}
+			auto _destIterator = storage.find(_destId);
+			if (_destIterator == storage.end()) {
+				#ifdef RESOURCE_HANDLER_STRICT
+					#ifdef DEBUG_RESOURCEHANDLER
+						DEBUG_NEW_MESSAGE("ERROR::RESOURCE_HANDLER::moveResource")
+							DEBUG_WRITE2("\tMessage: Invalid '_destId': ", _destId);
+						DEBUG_END_MESSAGE
+					#endif
+					return std::move(std::shared_ptr<T>(nullptr));
+				#endif
+			}
+			_destIterator->second.swap(_sourceIterator->second);
+			storage.erase(_sourceIterator);
+			return std::move(std::dynamic_pointer_cast<T>(_destIterator->second));
 		}
 
 		template < class T >
@@ -518,28 +597,37 @@ namespace resources {
 		*	\brief Setups new resource by move-constructing from '_value' in place of object with id '_Id'.
 		*	NORMAL : If object with id '_Id' not presented - calls newResource else resets saved pointer to own new object 
 		*			 of type "T" created with move-construction from '_value'.
-		*	STRICT : Doesn't call existence check on object with id '_Id'. If it doesn't exists throws exception.
-		*	\param[in]	_value	Move reference to object.
-		*	\param[in]	_Id		Identificator of new object.
+		*	STRICT : In same case returns std::shared_ptr to nullptr.
+		*	\param[in]	_value		Move reference to object.
+		*	\param[in]	_Id			Identificator of new object.
+		*	\param[in]	_strategy	Defines strategy of new object allocation.
 		*	\throw std::logic_error On exception in object move-constructor or operator new.
-		*	\throw std::out_of_range In STRICT mode if object with id '_Id' doesn't exist.
+		*	\throw std::bad_alloc On not enougth memory in make_shared operation.
 		*	\return Shared pointer of type "T" to new object resource on success and to nullptr on error.
 		**/
-		inline std::shared_ptr<T> setResource(T&& _value, ResourceID _Id) {
-			#ifndef RESOURCE_HANDLER_STRICT
-				if (!storage.count(_Id)) {
-					try { return std::move(newResource<T>(std::move(_value), _Id)); }
+		inline std::shared_ptr<T> setResource(T&& _value, const ResourceID _Id, const allocateStrategy _strategy = allocateStrategy::DEFAULT) {
+			auto _iterator = storage.find(_Id);
+			if (_iterator == storage.end()) {
+				#ifndef RESOURCE_HANDLER_STRICT
+					try { return std::move(newResource<T>(std::move(_value), _Id, _strategy)); }
 					catch (...) { throw; }
+				#endif // !RESOURCE_HANDLER_STRICT
+				return std::move(std::shared_ptr<T>(nullptr));
+			}
+			try {
+				if (_strategy == allocateStrategy::BIG) {
+					_iterator->second.reset(new T(std::move(value)));
+				} else {
+					_iterator->second = std::move(std::make_shared<T>(std::move(_value)));
 				}
-			#endif
-			//Result of next two lines are the same, so less actions more performance.
-			/*storage.at(_Id).reset<Resource>((Resource*)(new T(std::move(_value))));*/
-			try { storage.at(_Id).reset<T>(new T(std::move(_value))); }
-			catch (const std::out_of_range& e) { throw; }
+			}
+			//std::make_shared exception : not enougth memory
+			catch (const std::bad_alloc&) { throw; }
+			//Warp up external exception to std::logic_error
 			catch (const std::exception& e) { throw std::logic_error(e.what()); }
+			//Provide any other throw with std::logic_error
 			catch (...) { throw std::logic_error("ERROR::RESOURCE_HANDLER::setResource::Object creation error."); }
-			//If exception isn't thrown by previous line then it safe to use operator[]
-			return std::dynamic_pointer_cast<T>(storage[_Id]);
+			return std::move(std::dynamic_pointer_cast<T>(_iterator->second));
 		}
 
 		template < class T >
@@ -548,14 +636,14 @@ namespace resources {
 		*	Resource with id '_Id' is overwritten with newly obtained object.
 		*	NORMAL : If object with id '_Id' not presented - calls newResource else resets saved pointer to own object pointed by '_valueptr'.
 		*			 Accepts nullptr objects.
-		*	STRICT : Doesn't call existence check on object with id '_Id'. If it doesn't exists throws exception.
+		*	STRICT : If object with id '_Id' not presented - returns std::shared_ptr to nullptr.
 		*			 Doesn't accepts nullptr objects.
 		*	\param[in]	_valueptr	Pointer to resource.
 		*	\param[in]	_Id			Identificator of new object.
-		*	\throw std::out_of_range In STRICT mode if object with id '_Id' doesn't exist.
+		*	\throw nothrow
 		*	\return Shared pointer of type "T" to new object resource on success and to nullptr on error.
 		**/
-		inline std::shared_ptr<T> setResource(T* _valueptr, ResourceID _Id) {
+		inline std::shared_ptr<T> setResource(T* _valueptr, const ResourceID _Id) NOEXCEPT {
 			#ifdef RESOURCE_HANDLER_STRICT
 				if (!_valueptr) {
 					#ifdef DEBUG_RESOURCEHANDLER
@@ -563,21 +651,19 @@ namespace resources {
 							DEBUG_WRITE1("\tMessage: '_valueptr' is a nullptr.");
 						DEBUG_END_MESSAGE
 					#endif
-					return std::shared_ptr<T>(nullptr);
+					return std::move(std::shared_ptr<T>(nullptr));
 				}
 			#endif
-			#ifndef RESOURCE_HANDLER_STRICT
-				if (!storage.count(_Id)) {
-					try { return std::move(newResource<T>(_valueptr, _Id)); }
-					catch (...) { throw; }
-				}
-			#endif
-			//Result of next two lines are the same, so less actions more performance.
-			/*storage.at(_Id).reset<Resource>((Resource*)_valueptr);*/
-			try { storage.at(_Id).reset<T>(_valueptr); }
-			catch (const std::out_of_range& e) { throw; }
-			//If exception isn't thrown by previous line then it safe to use operator[]
-			return std::dynamic_pointer_cast<T>(storage[_Id]);
+			auto _iterator = storage.find(_Id);
+			if (_iterator == storage.end()) {
+				#ifndef RESOURCE_HANDLER_STRICT
+					return std::move(newResource<T>(_valueptr, _Id));
+				#else
+					return std::move(std::shared_ptr<T>(nullptr));
+				#endif // !RESOURCE_HANDLER_STRICT
+			}
+			_iterator->second.reset<T>(_valueptr);
+			return std::move(std::dynamic_pointer_cast<T>(_iterator->second));
 		}
 
 		template < class T >
@@ -589,16 +675,19 @@ namespace resources {
 		*	\param[in]	_Id			Array of identificators of objects that will be replaced.
 		*	\param[out]	_result		Array of shared pointers to new objects.
 		*	\param[in]	_count		Count of objects to be created.
+		*	\param[in]	_strategy	Defines strategy of new object allocation.
 		*	\param[out]	_success	[Optional] Per object status of successful creation.
 		*	\throw nothrow
 		*	\return Count of successfully allocated objects.
 		**/
-		inline unsigned int setResource(const T& _value, ResourceID _Id[], std::shared_ptr<T> _result[], unsigned int _count, bool _success[] = nullptr) {
+		inline unsigned int setResource(const T& _value, const ResourceID _Id[], std::shared_ptr<T> _result[], const unsigned int _count, 
+										const allocateStrategy _strategy = allocateStrategy::DEFAULT, bool _success[] = nullptr)
+		{
 			if (!_count)
 				return 0;
 			unsigned int _allocated = 0;
 			for (unsigned int _index = 0; _index < _count; _index++) {
-				try { _result[_index].swap(setResource<T>(std::move(T(_value)), _Id[_index])); }
+				try { _result[_index] = std::move(setResource<T>(std::move(T(_value)), _Id[_index], _strategy)); }
 				catch (...) { 
 					if (_success)
 						_success[_index] = false;
@@ -631,12 +720,15 @@ namespace resources {
 		*	\param[in]	_Id			Array of identificators.
 		*	\param[out]	_result		Array of shared pointers to new objects.
 		*	\param[in]	_count		Count of objects to be created.
+		*	\param[in]	_strategy	Defines strategy of new object allocation.
 		*	\param[out]	_success	[Optional] Per object status of successful creation.
 		*	\throw nothrow
 		*	\return Count of successfully allocated objects.
 		**/
-		inline unsigned int setResource(const T* _valueptr, ResourceID _Id[], std::shared_ptr<T> _result[], unsigned int _count, bool _success[] = nullptr) {
-			return setResource(*_valueptr, _Id, _result, _count, _success);
+		inline unsigned int setResource(const T* _valueptr, const ResourceID _Id[], std::shared_ptr<T> _result[], const unsigned int _count,
+										const allocateStrategy _strategy = allocateStrategy::DEFAULT, bool _success[] = nullptr) 
+		{
+			return setResource(*_valueptr, _Id, _result, _count, _strategy, _success);
 		}
 
 		template < class T >
@@ -648,7 +740,7 @@ namespace resources {
 		*	\throw nothrow
 		*	\return Shared pointer to object with id '_Id' or to nullptr on error.
 		**/
-		inline std::shared_ptr<T> getResource(ResourceID _Id, T* const _defptr = nullptr) {
+		inline std::shared_ptr<T> getResource(const ResourceID _Id, T* const _defptr = nullptr) NOEXCEPT {
 			try { return std::dynamic_pointer_cast<T>(storage.at(_Id)); }
 			catch (const std::out_of_range& e) {
 				#ifdef DEBUG_RESOURCEHANDLER
@@ -664,7 +756,7 @@ namespace resources {
 					DEBUG_END_MESSAGE
 				#endif
 			}
-			return std::shared_ptr<T>(nullptr);
+			return std::move(std::shared_ptr<T>(nullptr));
 		}
 
 		/**
@@ -677,20 +769,26 @@ namespace resources {
 		**/
 		inline bool deleteResource(const ResourceID _Id) { 
 			#ifdef RESOURCE_HANDLER_STRICT
-				if (storage.count(_Id)) {
-					if (storage[_Id].use_count() > 1) {
+				auto _iterator = storage.find(_Id);
+				if (_iterator != storage.end()) {
+					if (_iterator->second.use_count() > 1) {
 						#ifdef DEBUG_RESOURCEHANDLER
 							DEBUG_NEW_MESSAGE("ERROR::RESOURCE_HANDLER::deleteResource")
 								DEBUG_WRITE1("\tMessage: Only handler must own a resource to release it.");
 							DEBUG_END_MESSAGE
 						#endif
 						return false;
+					} else {
+						storage.erase(_iterator);
+						return true;
 					}
+				} else {
 					return false;
 				}
+			#else
+				storage.erase(_Id);
+				return true;
 			#endif	
-			storage.erase(_Id);
-			return true;
 		}
 
 		/**
