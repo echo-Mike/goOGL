@@ -53,7 +53,6 @@
 	#endif // HAS_CONSTEXPR
 #endif // !CONST_OR_CONSTEXPR
 
-
 /**
 *	ref-qualifier semantics not supported by vs2013
 *	MSDN :
@@ -74,4 +73,10 @@
 *	Uncomment if it supported in you compiller.
 **/
 //#define MOVE_GENERATION
+
+/**
+*	decltype(auto) statment not supported by vc2013
+*	Uncomment if it supported in you compiller.
+**/
+//#define HAS_DECLTYPE_AUTO
 #endif

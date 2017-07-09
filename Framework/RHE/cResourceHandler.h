@@ -25,6 +25,7 @@
 //OUR
 #include "RHE\vResourceGeneral.h"
 #include "RHE\cResource.h"
+#include "general\mConcepts.hpp"
 #ifdef UNUSED_V006
 	#include "RHE\cCacheFile.h"
 #endif
@@ -181,6 +182,10 @@ namespace resources {
 		**/
 		bool checkResource(const ResourceID _Id, int _flags = ResourceCheckFlags::PRESVAL) NOEXCEPT;
 
+		bool checkAll(const ResourceID _Id, int _upFlags, int _downFlags) NOEXCEPT;
+
+		bool checkAny(const ResourceID _Id, int _upFlags, int _downFlags) NOEXCEPT;
+
 		template < class T >
 		/**
 		*	\brief Constructs new resource with id '_Id' of type "T" by calling default constructor.
@@ -194,7 +199,13 @@ namespace resources {
 		*	\throw std::bad_alloc On not enougth memory in make_shared operation.
 		*	\return Shared pointer of type "T" to new object on success and to nullptr on error.
 		**/
-		inline std::shared_ptr<T> newResource(const ResourceID _Id, const allocateStrategy _strategy = allocateStrategy::DEFAULT, T* const _defptr = nullptr) {
+		inline auto newResource(const ResourceID _Id, const allocateStrategy _strategy = allocateStrategy::DEFAULT, 
+								T* const _defptr = nullptr) -> decltype(std::shared_ptr<CONCEPT_CLEAR_TYPE_T(T)>())
+		{
+			CONCEPT_CLEAR_TYPE(T, _ResType)
+			CONCEPT_DERIVED(_ResType, Resource, "ASSERTION_ERROR::RESOURCE_HANDLER::newResource::Provided type \"T\" must be derived from 'Resource'.")
+			CONCEPT_DEFCONSTR(_ResType, "ASSERTION_ERROR::RESOURCE_HANDLER::newResource::Provided type \"T\" must be default constuctible.")
+			std::shared_ptr<_ResType> _newptr(nullptr);
 			//Find object with id '_Id'
 			auto _iterator = storage.find(_Id);
 			if (_iterator != storage.end()) {
@@ -204,22 +215,21 @@ namespace resources {
 							DEBUG_WRITE3("\tMessage: Object with '_Id': ", _Id, " already exists.");
 						DEBUG_END_MESSAGE
 					#endif
-					return std::move(std::shared_ptr<T>(nullptr));
+					return _newptr;
 				#endif
 				storage.erase(_iterator);
 			}
 			//Try to default construct new object
-			std::shared_ptr<T> _newptr(nullptr);
 			try {
 				if (_strategy == allocateStrategy::BIG) {
 					/**
 					*	Entry: https://stackoverflow.com/questions/620137/do-the-parentheses-after-the-type-name-make-a-difference-with-new
 					*	Comment by: https://stackoverflow.com/users/12711/michael-burr
-					*	"new T()" fits better than "new T"
+					*	"new _ResType()" fits better than "new _ResType"
 					**/
-					_newptr.reset(new T());
+					_newptr.reset(new _ResType());
 				} else {
-					_newptr = std::move(std::make_shared<T>());
+					_newptr = std::move(std::make_shared<_ResType>());
 				}
 			}
 			//std::make_shared exception : not enougth memory
@@ -230,7 +240,7 @@ namespace resources {
 			catch (...) { throw std::logic_error("ERROR::RESOURCE_HANDLER::newResource::Object creation error."); }
 			//Insert new object to storage
 			storage[_Id] = _newptr;
-			return std::move(_newptr);
+			return _newptr;
 		}
 
 		template < class T >
@@ -249,6 +259,7 @@ namespace resources {
 		inline unsigned int newResource(const ResourceID _Id[], std::shared_ptr<T> _result[], const unsigned int _count, 
 										const allocateStrategy _strategy = allocateStrategy::DEFAULT, bool _success[] = nullptr) 
 		{
+			CONCEPT_NOT_CVRP(T, "ASSERTION_ERROR::RESOURCE_HANDLER::newResource::Provided type \"T\" must not be constant/volatile pointer or reference.")
 			if (!_count || !_result)
 				return 0;
 			//Counter of allocated objects
@@ -290,7 +301,14 @@ namespace resources {
 		*	\throw std::bad_alloc On not enougth memory in make_shared operation.
 		*	\return Shared pointer of type "T" to new object on success and to nullptr on error.
 		**/
-		inline std::shared_ptr<T> newResource(T&& _value, const ResourceID _Id, const allocateStrategy _strategy = allocateStrategy::DEFAULT) {
+		inline auto newResource(T&& _value, const ResourceID _Id, const allocateStrategy _strategy = allocateStrategy::DEFAULT)	
+								-> decltype(std::shared_ptr<CONCEPT_CLEAR_TYPE_T(T)>())
+		{
+			CONCEPT_CLEAR_TYPE(T, _ResType)
+			CONCEPT_UNREF(T, _value, "ASSERTION_ERROR::RESOURCE_HANDLER::newResource::Provided '_value' is not rvalue or lvalue reference.")
+			CONCEPT_DERIVED(_ResType, Resource, "ASSERTION_ERROR::RESOURCE_HANDLER::newResource::Provided type \"T\" must be derived from 'Resource'.")
+			CONCEPT_CONSTRUCTIBLE_F(_ResType, T, _value, "ASSERTION_ERROR::RESOURCE_HANDLER::newResource::Provided type \"T\" must be constructible from '_value'.")
+			std::shared_ptr<_ResType> _newptr(nullptr);
 			//Find object with id '_Id'
 			auto _iterator = storage.find(_Id);
 			if (_iterator != storage.end()) {
@@ -300,17 +318,16 @@ namespace resources {
 							DEBUG_WRITE3("\tMessage: Object with '_Id': ", _Id, " already exists.");
 						DEBUG_END_MESSAGE
 					#endif
-					return std::move(std::shared_ptr<T>(nullptr));
+					return _newptr;
 				#endif
 				storage.erase(_iterator);
 			}
 			//Try to move-construct new object
-			std::shared_ptr<T> _newptr(nullptr);
 			try {
 				if (_strategy == allocateStrategy::BIG) {
-					_newptr.reset(new T(std::move(_value)));
+					_newptr.reset(new _ResType(std::forward<T>(_value)));
 				} else {
-					_newptr = std::move(std::make_shared<T>(std::move(_value)));
+					_newptr = std::move(std::make_shared<_ResType>(std::forward<T>(_value)));
 				}
 			}
 			//std::make_shared exception : not enougth memory
@@ -321,7 +338,7 @@ namespace resources {
 			catch (...) { throw std::logic_error("ERROR::RESOURCE_HANDLER::newResource::Object creation error."); }
 			//Insert new object to storage
 			storage[_Id] = _newptr;
-			return std::move(_newptr);
+			return _newptr;
 		}
 
 		template < class T >
@@ -331,12 +348,17 @@ namespace resources {
 		*			 Accepts nullptr objects.
 		*	STRICT : Returns an shared pointer to nullptr if object with id '_Id' already exists.
 		*			 Doesn't accepts nullptr objects.
+		*			 Erases '_valueptr' via 'delete _valueptr;' on error.
 		*	\param[in]	_valueptr	Pointer to resource.
 		*	\param[in]	_Id			Identificator of new object.
 		*	\throw nothrow
 		*	\return Shared pointer of type "T" to new object on success and to nullptr on error.
 		**/
-		inline std::shared_ptr<T> newResource(T* _valueptr, const ResourceID _Id) NOEXCEPT {
+		inline auto newResource(T* const _valueptr, const ResourceID _Id) NOEXCEPT -> decltype(std::shared_ptr<CONCEPT_CLEAR_TYPE_T(T)>()) {
+			CONCEPT_NOT_CVPR(T, "ASSERTION_ERROR::RESOURCE_HANDLER::newResource::Provided type \"T\" must not be constant/volatile pointer or reference.")
+			CONCEPT_CLEAR_TYPE(T,_ResType)
+			CONCEPT_DERIVED(_ResType, Resource, "ASSERTION_ERROR::RESOURCE_HANDLER::newResource::Provided type \"T\" must be derived from 'Resource'.")
+			std::shared_ptr<_ResType> _newptr(nullptr);
 			#ifdef RESOURCE_HANDLER_STRICT
 				if (!_valueptr) {
 					#ifdef DEBUG_RESOURCEHANDLER
@@ -344,7 +366,7 @@ namespace resources {
 							DEBUG_WRITE1("\tMessage: '_valueptr' is a nullptr." );
 						DEBUG_END_MESSAGE
 					#endif
-					return std::move(std::shared_ptr<T>(nullptr));
+					return _newptr;
 				}
 			#endif
 			//Find object with id '_Id'
@@ -356,15 +378,15 @@ namespace resources {
 							DEBUG_WRITE3("\tMessage: Object with '_Id': ", _Id, " already exists.");
 						DEBUG_END_MESSAGE
 					#endif
-					return std::move(std::shared_ptr<T>(nullptr));
+					//Delete '_valueptr' to prevent resource leakage.
+					delete _valueptr;
+					return _newptr;
 				#endif
 				storage.erase(_iterator);
 			}
-			//Result of next two lines are the same, so less actions more performance.
-			/*std::shared_ptr<Resource> _newptr((Resource*)_valueptr);*/
-			std::shared_ptr<T> _newptr(_valueptr);
+			_newptr.reset(_valueptr);
 			storage[_Id] = _newptr;
-			return std::move(_newptr);
+			return _newptr;
 		}
 
 		template < class T >
@@ -384,12 +406,15 @@ namespace resources {
 		inline unsigned int newResource(const T& _value, const ResourceID _Id[], std::shared_ptr<T> _result[], const unsigned int _count,
 										const allocateStrategy _strategy = allocateStrategy::DEFAULT, bool _success[] = nullptr)
 		{
+			CONCEPT_NOT_CVPR(T, "ASSERTION_ERROR::RESOURCE_HANDLER::newResource::Provided type \"T\" must not be constant/volatile pointer or reference.")
+			CONCEPT_COPY_CONSTRUCTIBLE(T, "ASSERTION_ERROR::RESOURCE_HANDLER::newResource::Provided type \"T\" must be copy constructible.")
+			CONCEPT_DERIVED(T, Resource, "ASSERTION_ERROR::RESOURCE_HANDLER::newResource::Provided type \"T\" must be derived from 'Resource'.")
 			if (!_count)
 				return _count;
 			//Counter of allocated objects
 			unsigned int _allocated = 0;
 			for (unsigned int _index = 0; _index < _count; _index++) {
-				try { _result[_index] = std::move(newResource<T>(std::move(T(_value)), _Id[_index], _strategy)); }
+				try { _result[_index] = std::move(newResource(std::move(T(_value)), _Id[_index], _strategy)); }
 				catch (...) { 
 					if (_success)
 						_success[_index] = false;
@@ -427,7 +452,7 @@ namespace resources {
 		*	\throw nothrow
 		*	\return Count of successfully allocated objects.
 		**/
-		inline unsigned int newResource(const T* _valueptr, const ResourceID _Id[], std::shared_ptr<T> _result[], const unsigned int _count, 
+		inline unsigned int newResource(T* const _valueptr, const ResourceID _Id[], std::shared_ptr<T> _result[], const unsigned int _count, 
 										const allocateStrategy _strategy = allocateStrategy::DEFAULT, bool _success[] = nullptr) 
 		{
 			return newResource(*_valueptr, _Id, _result, _count, _strategy, _success);
@@ -447,11 +472,16 @@ namespace resources {
 		*	\throw std::bad_alloc On not enougth memory in make_shared operation.
 		*	\return Shared pointer of type "T" to new object on success and to nullptr on error.
 		**/
-		inline std::shared_ptr<T> newCopy(	const ResourceID _sourceId, const ResourceID _Id, 
-											const allocateStrategy _strategy = allocateStrategy::NON, T* const _defptr = nullptr)
+		inline auto newCopy(const ResourceID _sourceId, const ResourceID _Id, 
+							const allocateStrategy _strategy = allocateStrategy::NON, T* const _defptr = nullptr) 
+							-> decltype(std::shared_ptr<CONCEPT_CLEAR_TYPE_T(T)>())
 		{
+			CONCEPT_CLEAR_TYPE(T, _ResType)
+			CONCEPT_DERIVED(_ResType, Resource, "ASSERTION_ERROR::RESOURCE_HANDLER::newCopy::Provided type \"T\" must be derived from 'Resource'.")
+			CONCEPT_COPY_CONSTRUCTIBLE(_ResType, "ASSERTION_ERROR::RESOURCE_HANDLER::newCopy::Provided type \"T\" must be copy constuctible.")
+			std::shared_ptr<_ResType> _newptr(nullptr);
 			if (_sourceId == _Id)
-				return std::move(std::shared_ptr<T>(nullptr));
+				return _newptr;
 			auto _sourceIterator = storage.find(_sourceId);
 			if (_sourceIterator == storage.end()) {
 				#ifdef DEBUG_RESOURCEHANDLER
@@ -459,7 +489,7 @@ namespace resources {
 						DEBUG_WRITE2("\tMessage: Invalid '_sourceId': ", _sourceId);
 					DEBUG_END_MESSAGE
 				#endif
-				return std::move(std::shared_ptr<T>(nullptr));
+				return _newptr;
 			}
 			auto _destIterator = storage.find(_Id);
 			if (_destIterator != storage.end()) {
@@ -469,21 +499,20 @@ namespace resources {
 							DEBUG_WRITE3("\tMessage: Object with '_Id': ", _Id, " already exists.");
 						DEBUG_END_MESSAGE
 					#endif
-					return std::move(std::shared_ptr<T>(nullptr));
+					return _newptr;
 				#endif
 				//_sourceIterator stays unaffected:
 				//Entry: http://en.cppreference.com/w/cpp/container/map/erase
 				storage.erase(_destIterator);
 			}
-			std::shared_ptr<T> _newptr(nullptr);
 			try {
 				if ((_strategy == allocateStrategy::NON &&
 					_sourceIterator->second->status & ResourceCheckFlags::ALLOCBIG) ||
 					_strategy == allocateStrategy::BIG)
 				{
-					_newptr.reset(new T(*(std::dynamic_pointer_cast<T>(_sourceIterator->second))));
+					_newptr.reset(new _ResType(*(std::dynamic_pointer_cast<_ResType>(_sourceIterator->second))));
 				} else {
-					_newptr = std::move(std::make_shared(*(std::dynamic_pointer_cast<T>(_sourceIterator->second))));
+					_newptr = std::move(std::make_shared(*(std::dynamic_pointer_cast<_ResType>(_sourceIterator->second))));
 				}
 			}
 			//std::make_shared exception : not enougth memory
@@ -493,7 +522,7 @@ namespace resources {
 			//Provide any other throw with std::logic_error
 			catch (...) { throw std::logic_error("ERROR::RESOURCE_HANDLER::newCopy::Object creation error."); }
 			storage[_Id] = _newptr;
-			return std::move(_newptr);
+			return _newptr;
 		}
 
 		template < class T >
@@ -509,11 +538,16 @@ namespace resources {
 		*	\throw std::bad_alloc On not enougth memory in make_shared operation.
 		*	\return Shared pointer of type "T" to new object on success and to nullptr on error.
 		**/
-		inline std::shared_ptr<T> copyResource( const ResourceID _sourceId, const ResourceID _destId, 
-												const allocateStrategy _strategy = allocateStrategy::NON, T* const _defptr = nullptr) 
+		inline auto copyResource(	const ResourceID _sourceId, const ResourceID _destId, 
+									const allocateStrategy _strategy = allocateStrategy::NON, T* const _defptr = nullptr) 
+									-> decltype(std::shared_ptr<CONCEPT_CLEAR_TYPE_T(T)>())
 		{
+			CONCEPT_CLEAR_TYPE(T, _ResType)
+			CONCEPT_DERIVED(_ResType, Resource, "ASSERTION_ERROR::RESOURCE_HANDLER::copyResource::Provided type \"T\" must be derived from 'Resource'.")
+			CONCEPT_COPY_CONSTRUCTIBLE(_ResType, "ASSERTION_ERROR::RESOURCE_HANDLER::copyResource::Provided type \"T\" must be copy constuctible.")
+			std::shared_ptr<_ResType> _newptr(nullptr);
 			if (_sourceId == _destId)
-				return std::move(std::shared_ptr<T>(nullptr));
+				return _newptr;
 			auto _sourceIterator = storage.find(_sourceId);
 			if (_sourceIterator == storage.end()) {
 				#ifdef DEBUG_RESOURCEHANDLER
@@ -521,7 +555,7 @@ namespace resources {
 						DEBUG_WRITE2("\tMessage: Invalid '_sourceId': ", _sourceId);
 					DEBUG_END_MESSAGE
 				#endif
-				return std::move(std::shared_ptr<T>(nullptr));
+				return _newptr;
 			}
 			if (!storage.erase(_destId)) {
 				#ifdef DEBUG_RESOURCEHANDLER
@@ -529,17 +563,16 @@ namespace resources {
 						DEBUG_WRITE3("\tMessage: Object with '_destId': ", _destId, " doesn't exists.");
 					DEBUG_END_MESSAGE
 				#endif
-				return std::move(std::shared_ptr<T>(nullptr));
+				return _newptr;
 			}
-			std::shared_ptr<T> _newptr(nullptr);
 			try { 
 				if ((_strategy == allocateStrategy::NON &&
 					_sourceIterator->second->status & ResourceCheckFlags::ALLOCBIG) ||
 					_strategy == allocateStrategy::BIG)
 				{
-					_newptr.reset(new T(*(std::dynamic_pointer_cast<T>(_sourceIterator->second))));
+					_newptr.reset(new _ResType(*(std::dynamic_pointer_cast<_ResType>(_sourceIterator->second))));
 				} else {
-					_newptr = std::move(std::make_shared(*(std::dynamic_pointer_cast<T>(_sourceIterator->second))));
+					_newptr = std::move(std::make_shared(*(std::dynamic_pointer_cast<_ResType>(_sourceIterator->second))));
 				}
 			}
 			//std::make_shared exception : not enougth memory
@@ -549,7 +582,7 @@ namespace resources {
 			//Provide any other throw with std::logic_error
 			catch (...) { throw std::logic_error("ERROR::RESOURCE_HANDLER::copyResource::Object creation error."); }
 			storage[_destId] = _newptr;
-			return std::move(_newptr);
+			return _newptr;
 		}
 
 		template < class T >
@@ -565,8 +598,9 @@ namespace resources {
 		*	\return Shared pointer of type "T" to moved resource on success and to nullptr on error.
 		**/
 		inline std::shared_ptr<T> moveResource(const ResourceID _sourceId, const ResourceID _destId, T* const _defptr = nullptr) {
+			CONCEPT_DERIVED(T, Resource, "ASSERTION_ERROR::RESOURCE_HANDLER::moveResource::Provided type \"T\" must be derived from 'Resource'.")
 			if (_sourceId == _destId)
-				return std::move(std::shared_ptr<T>(nullptr));
+				return std::shared_ptr<T>(nullptr);
 			auto _sourceIterator = storage.find(_sourceId);
 			if (_sourceIterator == storage.end()) {
 				#ifdef DEBUG_RESOURCEHANDLER
@@ -574,7 +608,7 @@ namespace resources {
 						DEBUG_WRITE2("\tMessage: Invalid '_sourceId': ", _sourceId);
 					DEBUG_END_MESSAGE
 				#endif
-				return std::move(std::shared_ptr<T>(nullptr));
+				return std::shared_ptr<T>(nullptr);
 			}
 			auto _destIterator = storage.find(_destId);
 			if (_destIterator == storage.end()) {
@@ -584,7 +618,7 @@ namespace resources {
 							DEBUG_WRITE2("\tMessage: Invalid '_destId': ", _destId);
 						DEBUG_END_MESSAGE
 					#endif
-					return std::move(std::shared_ptr<T>(nullptr));
+					return std::shared_ptr<T>(nullptr);
 				#endif
 			}
 			_destIterator->second.swap(_sourceIterator->second);
@@ -605,20 +639,26 @@ namespace resources {
 		*	\throw std::bad_alloc On not enougth memory in make_shared operation.
 		*	\return Shared pointer of type "T" to new object resource on success and to nullptr on error.
 		**/
-		inline std::shared_ptr<T> setResource(T&& _value, const ResourceID _Id, const allocateStrategy _strategy = allocateStrategy::DEFAULT) {
+		inline auto setResource(T&& _value, const ResourceID _Id, const allocateStrategy _strategy = allocateStrategy::DEFAULT) 
+								-> decltype(std::shared_ptr<CONCEPT_CLEAR_TYPE_T(T)>())
+		{
+			CONCEPT_CLEAR_TYPE(T, _ResType)
+			CONCEPT_UNREF(T, _value, "ASSERTION_ERROR::RESOURCE_HANDLER::setResource::Provided '_value' is not rvalue or lvalue reference.")
+			CONCEPT_DERIVED(_ResType, Resource, "ASSERTION_ERROR::RESOURCE_HANDLER::setResource::Provided type \"T\" must be derived from 'Resource'.")
+			CONCEPT_CONSTRUCTIBLE_F(_ResType, T, _value, "ASSERTION_ERROR::RESOURCE_HANDLER::setResource::Provided type \"T\" must be constructible from '_value'.")
 			auto _iterator = storage.find(_Id);
 			if (_iterator == storage.end()) {
 				#ifndef RESOURCE_HANDLER_STRICT
-					try { return std::move(newResource<T>(std::move(_value), _Id, _strategy)); }
+					try { return std::move(newResource(std::forward<T>(_value), _Id, _strategy)); }
 					catch (...) { throw; }
 				#endif // !RESOURCE_HANDLER_STRICT
-				return std::move(std::shared_ptr<T>(nullptr));
+				return std::shared_ptr<_ResType>(nullptr);
 			}
 			try {
 				if (_strategy == allocateStrategy::BIG) {
-					_iterator->second.reset(new T(std::move(value)));
+					_iterator->second.reset(new _ResType(std::forward<T>(_value)));
 				} else {
-					_iterator->second = std::move(std::make_shared<T>(std::move(_value)));
+					_iterator->second = std::move(std::make_shared<_ResType>(std::forward<T>(_value)));
 				}
 			}
 			//std::make_shared exception : not enougth memory
@@ -627,7 +667,7 @@ namespace resources {
 			catch (const std::exception& e) { throw std::logic_error(e.what()); }
 			//Provide any other throw with std::logic_error
 			catch (...) { throw std::logic_error("ERROR::RESOURCE_HANDLER::setResource::Object creation error."); }
-			return std::move(std::dynamic_pointer_cast<T>(_iterator->second));
+			return std::move(std::dynamic_pointer_cast<_ResType>(_iterator->second));
 		}
 
 		template < class T >
@@ -643,7 +683,10 @@ namespace resources {
 		*	\throw nothrow
 		*	\return Shared pointer of type "T" to new object resource on success and to nullptr on error.
 		**/
-		inline std::shared_ptr<T> setResource(T* _valueptr, const ResourceID _Id) NOEXCEPT {
+		inline auto setResource(T* const _valueptr, const ResourceID _Id) NOEXCEPT -> decltype(std::shared_ptr<CONCEPT_CLEAR_TYPE_T(T)>()) {
+			CONCEPT_NOT_CVPR(T, "ASSERTION_ERROR::RESOURCE_HANDLER::setResource::Provided type \"T\" must not be constant/volatile pointer or reference.")
+			CONCEPT_CLEAR_TYPE(T,_ResType)
+			CONCEPT_DERIVED(_ResType, Resource, "ASSERTION_ERROR::RESOURCE_HANDLER::setResource::Provided type \"T\" must be derived from 'Resource'.")
 			#ifdef RESOURCE_HANDLER_STRICT
 				if (!_valueptr) {
 					#ifdef DEBUG_RESOURCEHANDLER
@@ -651,19 +694,19 @@ namespace resources {
 							DEBUG_WRITE1("\tMessage: '_valueptr' is a nullptr.");
 						DEBUG_END_MESSAGE
 					#endif
-					return std::move(std::shared_ptr<T>(nullptr));
+					return std::shared_ptr<_ResType>(nullptr);
 				}
 			#endif
 			auto _iterator = storage.find(_Id);
 			if (_iterator == storage.end()) {
 				#ifndef RESOURCE_HANDLER_STRICT
-					return std::move(newResource<T>(_valueptr, _Id));
+					return std::move(newResource(_valueptr, _Id));
 				#else
-					return std::move(std::shared_ptr<T>(nullptr));
+					return std::shared_ptr<_ResType>(nullptr);
 				#endif // !RESOURCE_HANDLER_STRICT
 			}
-			_iterator->second.reset<T>(_valueptr);
-			return std::move(std::dynamic_pointer_cast<T>(_iterator->second));
+			_iterator->second.reset(_valueptr);
+			return std::move(std::dynamic_pointer_cast<_ResType>(_iterator->second));
 		}
 
 		template < class T >
@@ -683,11 +726,14 @@ namespace resources {
 		inline unsigned int setResource(const T& _value, const ResourceID _Id[], std::shared_ptr<T> _result[], const unsigned int _count, 
 										const allocateStrategy _strategy = allocateStrategy::DEFAULT, bool _success[] = nullptr)
 		{
+			CONCEPT_NOT_CVPR(T, "ASSERTION_ERROR::RESOURCE_HANDLER::setResource::Provided type \"T\" must not be constant/volatile pointer or reference.")
+			CONCEPT_COPY_CONSTRUCTIBLE(T, "ASSERTION_ERROR::RESOURCE_HANDLER::setResource::Provided type \"T\" must be copy constructible.")
+			CONCEPT_DERIVED(T, Resource, "ASSERTION_ERROR::RESOURCE_HANDLER::setResource::Provided type \"T\" must be derived from 'Resource'.")
 			if (!_count)
 				return 0;
 			unsigned int _allocated = 0;
 			for (unsigned int _index = 0; _index < _count; _index++) {
-				try { _result[_index] = std::move(setResource<T>(std::move(T(_value)), _Id[_index], _strategy)); }
+				try { _result[_index] = std::move(setResource(std::move(T(_value)), _Id[_index], _strategy)); }
 				catch (...) { 
 					if (_success)
 						_success[_index] = false;
@@ -725,7 +771,7 @@ namespace resources {
 		*	\throw nothrow
 		*	\return Count of successfully allocated objects.
 		**/
-		inline unsigned int setResource(const T* _valueptr, const ResourceID _Id[], std::shared_ptr<T> _result[], const unsigned int _count,
+		inline unsigned int setResource(T* const _valueptr, const ResourceID _Id[], std::shared_ptr<T> _result[], const unsigned int _count,
 										const allocateStrategy _strategy = allocateStrategy::DEFAULT, bool _success[] = nullptr) 
 		{
 			return setResource(*_valueptr, _Id, _result, _count, _strategy, _success);
@@ -741,7 +787,9 @@ namespace resources {
 		*	\return Shared pointer to object with id '_Id' or to nullptr on error.
 		**/
 		inline std::shared_ptr<T> getResource(const ResourceID _Id, T* const _defptr = nullptr) NOEXCEPT {
-			try { return std::dynamic_pointer_cast<T>(storage.at(_Id)); }
+			CONCEPT_NOT_PR(T, "ASSERTION_ERROR::RESOURCE_HANDLER::getResource::Provided type \"T\" must not be pointer or reference type.")
+			CONCEPT_DERIVED(T, Resource, "ASSERTION_ERROR::RESOURCE_HANDLER::getResource::Provided type \"T\" must be derived from 'Resource'.")
+			try { return std::move(std::dynamic_pointer_cast<T>(storage.at(_Id))); }
 			catch (const std::out_of_range& e) {
 				#ifdef DEBUG_RESOURCEHANDLER
 					DEBUG_NEW_MESSAGE("ERROR::RESOURCE_HANDLER::getResource")
@@ -756,7 +804,7 @@ namespace resources {
 					DEBUG_END_MESSAGE
 				#endif
 			}
-			return std::move(std::shared_ptr<T>(nullptr));
+			return std::shared_ptr<T>(nullptr);
 		}
 
 		/**

@@ -73,6 +73,14 @@ namespace resources {
 		return false;
 	};
 
+	bool checkAll(const ResourceID _Id, int _upFlags, int _downFlags) NOEXCEPT {
+		return true;
+	};
+
+	bool checkAny(const ResourceID _Id, int _upFlags, int _downFlags) NOEXCEPT {
+		return true;
+	};
+
 	/**
 	*	\brief Force removal of resource with id '_Id'.
 	*	NORMAL/STRICT : Ignores all strict rules for deleteResource.

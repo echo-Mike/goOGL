@@ -32,19 +32,6 @@
 
 namespace resources {
 
-	//Allocate strategy enum for Resource and ResourceHandler.
-	enum class allocateStrategy {
-		//Strategy used in copy or move cases, 
-		//defines that we must use allocation strategy of copied/moved object.
-		NON,
-		//Allocate resource using std::make_shared - suitable for SMALL resources.
-		SMALL,
-		//Allocate resource using std::shared_ptr(new ResType)  - suitable for BIG resources.
-		BIG,
-		//Small startegy is default (faster)
-		DEFAULT = SMALL
-	};
-
 	#ifdef RHE_USE_RESOURCE_NAMES
 		/**
 		*	Runtime identification of naming of resources.
