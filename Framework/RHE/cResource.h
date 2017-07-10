@@ -26,7 +26,7 @@
 //DEBUG
 #if defined(DEBUG_RESOURCE) && !defined(OTHER_DEBUG)
 	#include "general\mDebug.h"		
-#else
+#elif defined(DEBUG_RESOURCE) && defined(OTHER_DEBUG)
 	#include OTHER_DEBUG
 #endif
 
@@ -168,6 +168,8 @@ namespace resources {
 
 		//A resource dependent implementation of used memory counter.
 		virtual inline size_t usedMemory() NOEXCEPT { return sizeof(Resource); }
+
+		virtual inline allocateStrategy getAllocStrategy() { return (status & ResourceStatus::ALLOCBIG) ? allocateStrategy::BIG : allocateStrategy::SMALL; }
 
 		//A resource dependent implementation of safe resource loading.
 		virtual inline bool Load() { 

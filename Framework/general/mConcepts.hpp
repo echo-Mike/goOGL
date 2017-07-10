@@ -1,5 +1,5 @@
 #ifndef CONCEPTS_H
-#define CONCEPTS_H "[multy@mConcepts.h]"
+#define CONCEPTS_H "[multy@mConcepts.hpp]"
 /**
 *	DESCRIPTION:
 *		Module contains implementation of some compile-time macro - concepts

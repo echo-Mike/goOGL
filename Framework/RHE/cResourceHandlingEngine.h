@@ -156,7 +156,7 @@ namespace resources {
 
 		void deleteResource(ResourceID _Id, std::shared_ptr<Resource> _owner) {	deleteResource(_Id, _owner.get()); }
 
-		void secureRemove(const ResourceID _Id, const ResourceHandler* const _owner) NOEXCEPT {
+		void secureRemove(const ResourceID _Id, ResourceHandler* const _owner) NOEXCEPT {
 			for (const auto& v : handlers) {
 				if (v.second == _owner) {
 					indexPool.deleteIndex(_Id);

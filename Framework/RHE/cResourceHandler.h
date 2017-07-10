@@ -25,7 +25,12 @@
 //OUR
 #include "RHE\vResourceGeneral.h"
 #include "RHE\cResource.h"
-#include "general\mConcepts.hpp"
+#include "general\vPolymorphicContainerGeneral.hpp"
+#ifdef RESOURCE_HANDLER_STRICT
+	#include "general\cStrictPolymorphicMap.hpp"
+#else
+	#include "general\cPolymorphicMap.hpp"
+#endif // RESOURCE_HANDLER_STRICT
 #ifdef UNUSED_V006
 	#include "RHE\cCacheFile.h"
 #endif
@@ -35,7 +40,7 @@
 //#define RESOURCE_HANDLER_STRICT
 #if defined(DEBUG_RESOURCEHANDLER) && !defined(OTHER_DEBUG)
 	#include "general\mDebug.h"		
-#else
+#elif defined(DEBUG_RESOURCEHANDLER) && defined(OTHER_DEBUG)
 	#include OTHER_DEBUG
 #endif
 
@@ -86,14 +91,16 @@ namespace resources {
 	*	Class have two modes NORMAL and STRICT defined in compile-time.
 	*	Class definition: ResourceHandler
 	**/
-	class ResourceHandler final {
+	class ResourceHandler final :
+	#ifdef RESOURCE_HANDLER_STRICT
+		public StrictPolymorphicMap<ResourceID, Resource, &Resource::getAllocStrategy>
+	#else
+		public PolymorphicMap<ResourceID, Resource, &Resource::getAllocStrategy>
+	#endif
+	{
 		friend class ResourceHandlingEngine;
 		//TODO::DELETE AFTER TEST!!!
 	public:
-		//Define resource storage type
-		using Storage = std::map<ResourceID, std::shared_ptr<Resource>>;
-		//Resource storage
-		Storage storage;
 		//Owner RHE of current handler
 		ResourceHandlingEngine* owner;
 
@@ -132,6 +139,7 @@ namespace resources {
 		**/
 		unsigned int memoryHandled(unsigned int& _cary);
 
+	public:
 		/**
 		*	\brief Flags to be used in checkResource.
 		**/
@@ -142,49 +150,53 @@ namespace resources {
 			DEFINED		= Resource::ResourceStatus::DEFINED,
 			//Check that resource is loaded or reloaded
 			LOADED		= Resource::ResourceStatus::LOADED,
-			//Check that resource is unloaded 
-			UNLOADED	= Resource::ResourceStatus::MAX << 1,
 			//UNUSED : Check that resource was cached
 			CACHED		= Resource::ResourceStatus::CACHED,
 			//Check that resource use BIG alloc trategy
 			ALLOCBIG	= Resource::ResourceStatus::ALLOCBIG,
 			//Check that resource is valid
-			VALID		= Resource::ResourceStatus::INVALID,
+			INVALID		= Resource::ResourceStatus::INVALID,
 			//Resource states in storage:: (next <br> is intentional)
 
 			//Check that resource is presented in current storage
-			PRESENTED	= Resource::ResourceStatus::MAX << 2,
+			PRESENTED	= Resource::ResourceStatus::MAX << 1,
 			//Complex checks:: (next <br> is intentional)
 
 			//Check that resource defined and loaded
 			DEFLOAD		= DEFINED | LOADED,
-			//Check that resource defined and unloaded
-			DEFULOAD	= DEFINED | UNLOADED,
-			//Check that resource is presented and valid
-			PRESVAL		= PRESENTED | VALID,
-			//PRESVAL and DEFLOAD checks
-			PVDL		= PRESVAL | DEFLOAD,
-			//PRESVAL and DEFULOAD checks
-			PVDUL		= PRESVAL | DEFULOAD,
+			//Check that resource defined and presented
+			PRESDEF		= DEFINED | PRESENTED,
+
 			//End of bits indicator
 			MAX			= PRESENTED
 		};
+		//TODO::UNCOMMENT AFTER TEST!!!
+	//private:
 
 		/**
-		*	\brief Check resource status to satisfy certain flag arrangement with special way.
-		*	Check ResourceCheckFlags::PRESVAL every time.
-		*	Other checks performd in ANY OF manner.
-		*	Resource with INVALID status will be deleted after check.
-		*	\param[in]	_Id		Identificator of resource.
-		*	\param[in]	_flags	Flags to check.
+		*	\brief Check resource status to satisfy certain flag arrangement.
+		*	Checks that ALL '_upFlags' are UP and ALL '_downFlags' are DOWN.
+		*	Resource with INVALID flag in UP state will be deleted after check.
+		*	Will always return false if any flag checked in UP and DOWN state simultaneously.
+		*	\param[in]	_Id			Identificator of resource.
+		*	\param[in]	_upFlags	Flags to check it's state is UP.
+		*	\param[in]	_downFlags	Flags to check it's state is DOWN.
 		*	\throw nothrow
 		*	\return Result of check
 		**/
-		bool checkResource(const ResourceID _Id, int _flags = ResourceCheckFlags::PRESVAL) NOEXCEPT;
+		bool checkResourceAll(const ResourceID _Id, int _upFlags = ResourceCheckFlags::PRESDEF, int _downFlags = ResourceCheckFlags::INVALID) NOEXCEPT;
 
-		bool checkAll(const ResourceID _Id, int _upFlags, int _downFlags) NOEXCEPT;
-
-		bool checkAny(const ResourceID _Id, int _upFlags, int _downFlags) NOEXCEPT;
+		/**
+		*	\brief Check resource status to satisfy certain flag arrangement.
+		*	Checks that ANY of '_upFlags' are UP or ANY of '_downFlags' are DOWN.
+		*	Resource with INVALID flag in UP state will be deleted after check.
+		*	\param[in]	_Id			Identificator of resource.
+		*	\param[in]	_upFlags	Flags to check it's state is UP.
+		*	\param[in]	_downFlags	Flags to check it's state is DOWN.
+		*	\throw nothrow
+		*	\return Result of check
+		**/
+		bool checkResourceAny(const ResourceID _Id, int _upFlags = ResourceCheckFlags::PRESDEF, int _downFlags = ResourceCheckFlags::INVALID) NOEXCEPT;
 
 		template < class T >
 		/**
@@ -818,20 +830,18 @@ namespace resources {
 		inline bool deleteResource(const ResourceID _Id) { 
 			#ifdef RESOURCE_HANDLER_STRICT
 				auto _iterator = storage.find(_Id);
-				if (_iterator != storage.end()) {
-					if (_iterator->second.use_count() > 1) {
-						#ifdef DEBUG_RESOURCEHANDLER
-							DEBUG_NEW_MESSAGE("ERROR::RESOURCE_HANDLER::deleteResource")
-								DEBUG_WRITE1("\tMessage: Only handler must own a resource to release it.");
-							DEBUG_END_MESSAGE
-						#endif
-						return false;
-					} else {
-						storage.erase(_iterator);
-						return true;
-					}
-				} else {
+				if (_iterator == storage.end())
 					return false;
+				if (_iterator->second.use_count() > 1) {
+					#ifdef DEBUG_RESOURCEHANDLER
+						DEBUG_NEW_MESSAGE("ERROR::RESOURCE_HANDLER::deleteResource")
+							DEBUG_WRITE1("\tMessage: Only handler must own a resource to release it.");
+						DEBUG_END_MESSAGE
+					#endif
+					return false;
+				} else {
+					storage.erase(_iterator);
+					return true;
 				}
 			#else
 				storage.erase(_Id);
@@ -859,9 +869,9 @@ namespace resources {
 		**/
 		inline bool loadResource(const ResourceID _Id) NOEXCEPT {
 		#ifdef RESOURCE_HANDLER_STRICT
-			if (checkResource(_Id, ResourceCheckFlags::DEFULOAD)) {
+			if (checkResourceAll(_Id, ResourceCheckFlags::PRESDEF,  ResourceCheckFlags::LOADED | ResourceCheckFlags::INVALID)) {
 		#else
-			if (checkResource(_Id)) {
+			if (checkResourceAll(_Id)) {
 		#endif
 				try { return storage[_Id]->Load(); }
 				catch (const std::exception& e) {
@@ -925,9 +935,9 @@ namespace resources {
 		**/
 		inline bool unloadResource(const ResourceID _Id) NOEXCEPT {
 		#ifdef RESOURCE_HANDLER_STRICT
-			if (checkResource(_Id, ResourceCheckFlags::DEFLOAD)) {
+			if (checkResourceAll(_Id, ResourceCheckFlags::DEFLOAD)) {
 		#else
-			if (checkResource(_Id)) {
+			if (checkResourceAll(_Id)) {
 		#endif
 				try { return storage[_Id]->Unload(); }
 				catch (const std::exception& e) {
@@ -989,7 +999,7 @@ namespace resources {
 		*	\return Return of Load call is resource passes check, false on exception or not pass.
 		**/
 		inline bool reloadResource(const ResourceID _Id) NOEXCEPT {
-			if (checkResource(_Id)) {
+			if (checkResourceAll(_Id)) {
 				try { return storage[_Id]->Reload(); }
 				catch (const std::exception& e) {
 					#if defined(DEBUG_RESOURCEHANDLER) && defined(RESOURCEHANDLER_MINOR_ERRORS)

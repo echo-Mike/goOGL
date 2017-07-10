@@ -24,61 +24,80 @@ namespace resources {
 	};
 
 	/**
-	*	\brief Check resource status to satisfy certain flag arrangement with special way.
-	*	Check ResourceCheckFlags::PRESVAL every time.
-	*	Other checks performd in ANY OF manner.
-	*	Resource with INVALID status will be deleted after check.
-	*	\param[in]	_Id		Identificator of resource.
-	*	\param[in]	_flags	Flags to check.
+	*	\brief Check resource status to satisfy certain flag arrangement.
+	*	Checks that ALL '_upFlags' are UP and ALL '_downFlags' are DOWN.
+	*	Resource with INVALID flag in UP state will be deleted after check.
+	*	Will always return false if any flag checked in UP and DOWN state simultaneously.
+	*	\param[in]	_Id			Identificator of resource.
+	*	\param[in]	_upFlags	Flags to check it's state is UP.
+	*	\param[in]	_downFlags	Flags to check it's state is DOWN.
 	*	\throw nothrow
 	*	\return Result of check
 	**/
-	bool ResourceHandler::checkResource(const ResourceID _Id, int _flags) NOEXCEPT {
-		//If object is presented performs other checks
+	bool ResourceHandler::checkResourceAll(const ResourceID _Id, int _upFlags, int _downFlags) NOEXCEPT {
 		auto _iterator = storage.find(_Id);
-		if (_iterator != storage.end())	{
-			//Unset PRESENTED flag in input flags
-			_flags &= ~ResourceCheckFlags::PRESENTED;
-			//Only PRESENTED check is needed
-			if (!_flags)
+		if (_iterator == storage.end())
+			if (_downFlags & ResourceCheckFlags::PRESENTED && !(_upFlags & ResourceCheckFlags::PRESENTED)) {
 				return true;
-			//Obtain status of resource
-			auto _status = _iterator->second->status;
-			//Other checks performed only if resource is valid
-			if (!(_status & ResourceCheckFlags::VALID)) {
-				//Unset INVALID flag in input flags
-				_flags &= ~ResourceCheckFlags::VALID;
-				//Only PRESVAL check
-				if (!_flags)
-					return true;
-				//Perform unusual checks
-				switch (_flags)	{
-					case ResourceCheckFlags::DEFLOAD:
-						return _status & ResourceCheckFlags::DEFINED && _status & ResourceCheckFlags::LOADED;
-						break;
-					case ResourceCheckFlags::DEFULOAD:
-						return _status & ResourceCheckFlags::DEFINED && !(_status & ResourceCheckFlags::LOADED);
-						break;
-					default:
-						//warning C4800: "!= 0" part needed.
-						//See for detail: https://msdn.microsoft.com/ru-ru/library/b6801kcy.aspx
-						return (_status & _flags) != 0;
-						break;
-				}
+			} else {
+				return false;
 			}
-			//Delete resource if it is invalid
-			//Hardcoded solution
+		_upFlags &= ~ResourceCheckFlags::PRESENTED;
+		_downFlags &= ~ResourceCheckFlags::PRESENTED;
+		if (!(_upFlags || _downFlags))
+			return true;
+		//Obtain status of resource
+		auto _status = _iterator->second->status;
+		/**
+		*	Check goal: All _upFlags are UP and ALL _downFlags are DOWN.
+		*	x1 - status;	x2 - flag
+		*	Flag up:		Flag down:		Together:
+		*	|x1|x2|f1|		|x1|x2|f2|		|f1|f2|f3|
+		*	| 0| 0| 1|		| 0| 0| 1|		| 0| 0| 0|
+		*	| 0| 1| 0|		| 0| 1| 1|		| 0| 1| 0|
+		*	| 1| 0| 1|		| 1| 0| 1|		| 1| 0| 0|
+		*	| 1| 1| 1|		| 1| 1| 0|		| 1| 1| 1|
+		*	!(~x1 & x2)		!(x1 & x2)		f1 & f2		=>
+		*	!(~x1 & x2) & !(x1 & x2) == !((~x1 & x2) | (x1 & x2))
+		*	_checkStatus = (~x1 & x2) | (x1 & x2);
+		**/
+		auto _checkStatus = (~_status & _upFlags) | (_status & _downFlags);
+		bool _result(true);
+		for (unsigned int _shifter = 0; ResourceCheckFlags::MAX >> _shifter > 0; _shifter++)
+			_result &= !(_checkStatus >> _shifter & 0x1);
+		if (_status & ResourceCheckFlags::INVALID)
 			forceDelete(_Id);
-		}
-		return false;
+		return _result;
 	};
 
-	bool checkAll(const ResourceID _Id, int _upFlags, int _downFlags) NOEXCEPT {
-		return true;
-	};
-
-	bool checkAny(const ResourceID _Id, int _upFlags, int _downFlags) NOEXCEPT {
-		return true;
+	/**
+	*	\brief Check resource status to satisfy certain flag arrangement.
+	*	Checks that ANY of '_upFlags' are UP or ANY of '_downFlags' are DOWN.
+	*	Resource with INVALID flag in UP state will be deleted after check.
+	*	\param[in]	_Id			Identificator of resource.
+	*	\param[in]	_upFlags	Flags to check it's state is UP.
+	*	\param[in]	_downFlags	Flags to check it's state is DOWN.
+	*	\throw nothrow
+	*	\return Result of check
+	**/
+	bool ResourceHandler::checkResourceAny(const ResourceID _Id, int _upFlags, int _downFlags) NOEXCEPT {
+		auto _iterator = storage.find(_Id);
+		if (_iterator == storage.end())
+			if (_downFlags & ResourceCheckFlags::PRESENTED && !(_upFlags & ResourceCheckFlags::PRESENTED)) {
+				return true;
+			} else {
+				return false;
+			}
+		_upFlags &= ~ResourceCheckFlags::PRESENTED;
+		_downFlags &= ~ResourceCheckFlags::PRESENTED;
+		if (!(_upFlags || _downFlags))
+			return true;
+		//Obtain status of resource
+		auto _status = _iterator->second->status;
+		bool _result = (_status & _upFlags) || (~_status & _downFlags);
+		if (_status & ResourceCheckFlags::INVALID)
+			forceDelete(_Id);
+		return _result;
 	};
 
 	/**
