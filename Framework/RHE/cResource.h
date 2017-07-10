@@ -9,8 +9,6 @@
 *		https://github.com/echo-Mike
 */
 //STD
-//TODO::DELETE AFTER TEST!!!
-#define DEBUG_RESOURCE
 #ifdef DEBUG_RESOURCE
 	#include <iostream>
 #endif 
@@ -23,6 +21,7 @@
 //OUR
 #include "RHE\vResourceGeneral.h"
 #include "general\vs2013tweaks.h"
+#include "general\vPolymorphicContainerGeneral.hpp"
 //DEBUG
 #if defined(DEBUG_RESOURCE) && !defined(OTHER_DEBUG)
 	#include "general\mDebug.h"		
@@ -69,13 +68,6 @@ namespace resources {
 		#endif
 
 		/**
-		*	\brief Read access to status from derived classes.
-		*	\throw nothrow
-		*	\return Value of status.
-		**/
-		int getStatus() const NOEXCEPT { return status; }
-
-		/**
 		*	\brief Setup the INVALID flag in resource status.
 		*	Must be used in derived classes to specify that resource reached 
 		*	some invalid state and must be released from current handler.
@@ -98,6 +90,21 @@ namespace resources {
 			} else {
 				status &= ~ResourceStatus::ALLOCBIG;
 			}
+		}
+
+		/**
+		*	\brief Give a chance to setup resource type after calling constructor but only once.
+		*	\param[in]	_type	Type of resource.
+		*	\throw nothrow
+		*	\return Is new resource type '_type' accepted.
+		**/
+		inline bool defineSignal(ResourceType _type) NOEXCEPT {
+			if (!(status & ResourceStatus::DEFINED)) {
+				type = _type;
+				status &= ResourceStatus::DEFINED;
+				return true;
+			}
+			return false;
 		}
 	public:
 		//Enumiration of all possible resource state flags.
@@ -169,7 +176,15 @@ namespace resources {
 		//A resource dependent implementation of used memory counter.
 		virtual inline size_t usedMemory() NOEXCEPT { return sizeof(Resource); }
 
-		virtual inline allocateStrategy getAllocStrategy() { return (status & ResourceStatus::ALLOCBIG) ? allocateStrategy::BIG : allocateStrategy::SMALL; }
+		//Realisation of polymorphic container allocation strategy reqest for base classes.
+		inline allocateStrategy getAllocStrategy() { return (status & ResourceStatus::ALLOCBIG) ? allocateStrategy::BIG : allocateStrategy::SMALL; }
+
+		/**
+		*	\brief Read access to status from derived classes.
+		*	\throw nothrow
+		*	\return Value of status.
+		**/
+		int getStatus() const NOEXCEPT { return status; }
 
 		//A resource dependent implementation of safe resource loading.
 		virtual inline bool Load() { 

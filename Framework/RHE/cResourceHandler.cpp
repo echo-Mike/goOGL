@@ -441,4 +441,40 @@ namespace resources {
 		}
 		return _result;
 	}
+
+	/**
+	*	\brief Preforms garbage collection round over handled objects with specified '_bandwidth'.
+	*	Negative '_bandwidth' is same as "delete as many as you can".
+	*	STRICT:	Resources with more then one allocated shared_ptr to it not erased.
+	*	\param[in]	_relMemo	Count of relesed memory in bytes(not overflow protected).
+	*	\param[in]	_bandwidth	Max count of objects to be deleted during round.
+	*	\throw unknown
+	*	\return Real count of deleted objects.
+	**/
+	unsigned int ResourceHandler::collectGarbage(unsigned int& _relMemo, int _bandwidth) {
+		_relMemo = 0;
+		if (!_bandwidth)
+			return 0;
+		if (_bandwidth < 0)
+			_bandwidth = storage.size();
+		auto _predicate = [](Storage::iterator& _iterator) -> bool { return _iterator->second || _iterator->second->getStatus() & ResourceCheckFlags::INVALID;};
+		auto _iterator  = storage.begin();
+		auto _siterator = storage.begin();
+		auto _eiterator = storage.end();
+		for (int _count = 0; _count < _bandwidth; _count++) {
+			_siterator = std::find_if(_siterator, _eiterator, _predicate);
+			if (_iterator == _eiterator)
+				return _count;
+			//Postincrement operation not defined by standard for 'Iterator' object but preincrement is.
+			_iterator = _siterator;
+			++_siterator;
+			#ifdef RESOURCE_HANDLER_STRICT
+			if (_iterator->second.use_count() > 1)
+				continue;
+			#endif // RESOURCE_HANDLER_STRICT
+			_relMemo += _iterator->second->usedMemory();
+			storage.erase(_iterator);
+		}
+		return _bandwidth;
+	}
 }

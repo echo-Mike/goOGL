@@ -2,7 +2,7 @@
 #define DEBUG_H "[multy@mDebug.h]"
 /*
 *	DESCRIPTION:
-*		DESCRIPTION
+*		Module contains implementation of debug macros.
 *	AUTHOR:
 *		Mikhail Demchenko
 *		mailto:dev.echo.mike@gmail.com

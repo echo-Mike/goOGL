@@ -36,8 +36,10 @@ public:
 	//Type of internal storage.
 	typedef std::map<_Index, Member> Storage;
 protected:
-	//Storage of pointers to handled objects.
-	//Accessible from derived classes.
+	/**
+	*	Storage of pointers to handled objects.
+	*	Accessible from derived classes.
+	**/
 	Storage storage;
 public:
 	//Public interface start
