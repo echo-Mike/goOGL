@@ -64,5 +64,19 @@ namespace resources {
 
 	//Unsigned integer type used as resources identificator.
 	typedef unsigned int ResourceID;
+
+	#ifndef RHE_GLOBAL_MAX_RESOURCES
+		/**
+		*	DESCRIPTION
+		**/
+		#define RHE_GLOBAL_MAX_RESOURCES ((ResourceID)0xF4240)
+	#endif
+
+	#ifndef RHE_ALLOCATION_BANDWIDTH
+		/**
+		*	DESCRIPTION
+		**/
+		#define RHE_ALLOCATION_BANDWIDTH ((unsigned int)0x9C4)
+	#endif
 }
 #endif

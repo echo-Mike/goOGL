@@ -42,6 +42,28 @@ protected:
 	**/
 	Storage storage;
 public:
+
+	PolymorphicMap() = default;
+
+	~PolymorphicMap() = default;
+
+	PolymorphicMap(const PolymorphicMap&) = delete;
+
+	PolymorphicMap& operator=(const PolymorphicMap&) = delete;
+
+#ifdef MOVE_GENERATION
+	PolymorphicMap(PolymorphicMap&&) = default;
+
+	PolymorphicMap& operator=(PolymorphicMap&&) = default;
+#else
+	PolymorphicMap(PolymorphicMap&& other) NOEXCEPT : storage(std::move(other.storage)) {}
+
+	PolymorphicMap& operator= (PolymorphicMap&& other) NOEXCEPT {
+		storage = std::move(other.storage);
+		return *this;
+	}
+#endif // MOVE_GENERATION
+
 	//Public interface start
 	template < class T >
 	/**

@@ -12,9 +12,6 @@
 //STD
 #include <memory>
 #include <algorithm>
-#ifdef DEBUG_RESOURCEHANDLER
-	#include <iostream>
-#endif
 #ifdef UNUSED_V006
 	#include <vector>
 	#include <fstream>
@@ -35,8 +32,8 @@
 	#include "RHE\cCacheFile.h"
 #endif
 //DEBUG
-#define DEBUG_RESOURCEHANDLER
-#define RESOURCEHANDLER_MINOR_ERRORS
+//#define DEBUG_RESOURCEHANDLER
+//#define RESOURCEHANDLER_MINOR_ERRORS
 //#define RESOURCE_HANDLER_STRICT
 #if defined(DEBUG_RESOURCEHANDLER) && !defined(OTHER_DEBUG)
 	#include "general\mDebug.h"		
@@ -79,11 +76,7 @@ namespace resources {
 	/**
 	*	Forward declaration of ResourceHandlingEngine class.
 	**/
-	class ResourceHandlingEngine 
-	//TODO::DELETE AFTER TEST!!!
-	{
-		int lol;
-	};
+	class ResourceHandlingEngine;
 
 	/**
 	*	Class that represents resource storage for one scene.
@@ -99,8 +92,11 @@ namespace resources {
 	#endif
 	{
 		friend class ResourceHandlingEngine;
-		//TODO::DELETE AFTER TEST!!!
-	public:
+		#ifdef RESOURCE_HANDLER_STRICT
+			using Base = StrictPolymorphicMap<ResourceID, Resource, &Resource::getAllocStrategy>
+		#else
+			using Base = PolymorphicMap<ResourceID, Resource, &Resource::getAllocStrategy>;
+		#endif
 		//Owner RHE of current handler
 		ResourceHandlingEngine* owner;
 
@@ -117,8 +113,7 @@ namespace resources {
 		};
 		ResourceHandlerStatus status{ ResourceHandlerStatus::UNDEFINED };
 
-		//TODO::DELETE AFTER TEST!!!
-		ResourceHandler() : status(ResourceHandlerStatus::UNDEFINED), owner(nullptr) {}
+		ResourceHandler() = delete;
 
 		ResourceHandler(const ResourceHandlerStatus _status, ResourceHandlingEngine* _owner) : status(_status), owner(_owner)
 		{
@@ -128,6 +123,24 @@ namespace resources {
 		}
 
 		~ResourceHandler() NOEXCEPT { owner = nullptr; }
+
+		ResourceHandler(const ResourceHandler&) = delete;
+
+		ResourceHandler& operator= (const ResourceHandler&) = delete;
+
+		ResourceHandler(ResourceHandler&& other)  NOEXCEPT : Base(std::move(other)), status(std::move(other.status)) 
+		{
+			other.owner = nullptr;
+		}
+
+		ResourceHandler& operator= (ResourceHandler&& other) NOEXCEPT
+		{
+			owner = other.owner;
+			other.owner = nullptr;
+			status = std::move(other.status);
+			Base::operator=(std::move(other));
+			return *this;
+		}
 
 		/**
 		*	\brief Counts amount of handled memory.
@@ -170,8 +183,8 @@ namespace resources {
 			//End of bits indicator
 			MAX			= PRESENTED
 		};
-		//TODO::UNCOMMENT AFTER TEST!!!
-	//private:
+		
+	private:
 
 		/**
 		*	\brief Check resource status to satisfy certain flag arrangement.
@@ -410,6 +423,18 @@ namespace resources {
 		*	\return Real count of deleted objects.
 		**/
 		unsigned int collectGarbage(unsigned int& _relMemo, int _bandwidth = -1);
+
+		/**
+		*	\brief Preforms garbage collection round over handled objects with specified '_bandwidth'.
+		*	Negative '_bandwidth' is same as "delete as many as you can".
+		*	\param[in]	_bandwidth	Max count of objects to be deleted during round.
+		*	\throw unknown
+		*	\return Real count of deleted objects.
+		**/
+		unsigned int collectGarbage(int _bandwidth = -1) { 
+			unsigned int _trash = 0;
+			return collectGarbage(_trash, _bandwidth);
+		}
 
 		#ifdef UNUSED_V006
 			bool recoverCacheFile(std::shared_ptr<CacheFile>& _invalidCacheFile) {

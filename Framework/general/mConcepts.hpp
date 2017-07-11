@@ -59,4 +59,7 @@
 #define CONCEPT_NOT_CVPR(_Type, _msg) static_assert(!(std::is_volatile<_Type>::value || std::is_const<_Type>::value || std::is_reference<_Type>::value || std::is_pointer<_Type>::value), _msg);
 //Check that provided type '_Type' is not constant/volatile and not pointer or reference.
 #define CONCEPT_NOT_CVRP(_Type, _msg) static_assert(!(std::is_volatile<_Type>::value || std::is_const<_Type>::value || std::is_reference<_Type>::value || std::is_pointer<_Type>::value), _msg);
+
+//Check that provided type '_Type' is integral type.
+#define CONCEPT_INTEGRAL(_Type, _mag) static_assert(std::is_integral<_Type>::value, _msg);
 #endif

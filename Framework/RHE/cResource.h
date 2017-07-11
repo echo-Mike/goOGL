@@ -9,9 +9,6 @@
 *		https://github.com/echo-Mike
 */
 //STD
-#ifdef DEBUG_RESOURCE
-	#include <iostream>
-#endif 
 #ifdef RHE_USE_RESOURCE_NAMES
 	#include <string>
 #endif
@@ -75,7 +72,13 @@ namespace resources {
 		*	\throw nothrow
 		*	\return noreturn
 		**/
-		inline void invalidSignal(bool _up = true) NOEXCEPT { status &= (_up ? ResourceStatus::INVALID : ~ResourceStatus::INVALID); }
+		inline void invalidSignal(bool _up = true) NOEXCEPT { 
+			if (_up) {
+				status |= ResourceStatus::INVALID;
+			} else {
+				status &= ~ResourceStatus::INVALID;
+			}
+		}
 
 		/**
 		*	\brief Setup the ALLOCBIG flag in resource status.
@@ -146,9 +149,9 @@ namespace resources {
 
 		virtual ~Resource() NOEXCEPT {};
 
-		Resource(const Resource& other) = default;
+		Resource(const Resource&) = default;
 
-		Resource& operator= (const Resource& other) = default;
+		Resource& operator= (const Resource&) = default;
 
 #ifdef MOVE_GENERATION
 		Resource(Resource&& other) = default;

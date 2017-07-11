@@ -11,59 +11,61 @@
 //STD
 #include <map>
 #include <memory>
-#include <string>
-#include <iostream>
-//ASSIMP
-
 //OUR
+#include "general\vs2013tweaks.h"
+#include "general\mConcepts.hpp"
 #include "general\CIndexPool.h"
 #include "RHE\vResourceGeneral.h"
 #include "RHE\cResource.h"
 #include "RHE\cResourceHandler.h"
 //DEBUG
-#ifdef DEBUG_RHE
-	#ifndef DEBUG_OUT
-		#define DEBUG_OUT std::cout
-	#endif
-	#ifndef DEBUG_NEXT_LINE
-		#define DEBUG_NEXT_LINE std::endl
-	#endif
+#if defined(DEBUG_RHE) && !defined(OTHER_DEBUG)
+	#include "general\mDebug.h"		
+#elif defined(DEBUG_RHE) && defined(OTHER_DEBUG)
+	#include OTHER_DEBUG
 #endif
 
 namespace resources {
-
-	#ifndef RHE_GLOBAL_MAX_RESOURCES
-		/**
-		*	DESCRIPTION
-		**/
-		#define RHE_GLOBAL_MAX_RESOURCES ((ResourceID)0xF4240)
-	#endif
-
-	#ifndef RHE_ALLOCATION_BANDWIDTH
-		/**
-		*	DESCRIPTION
-		**/
-		#define RHE_ALLOCATION_BANDWIDTH ((unsigned int)0x9C4)
-	#endif
 
 	/**
 	*	Main singletone object of resource handling for all engine.
 	*	Class definition: ResourceHandlingEngine
 	**/
 	class ResourceHandlingEngine : private Resource {
-		SmartSimpleIndexPool<ResourceID> indexPool;
-		
-		using HandlersStorage = std::map<Resource*const, ResourceHandler*>;
+
+		using HandlersStorage = std::map<Resource*const, std::unique_ptr<ResourceHandler>>;
+
 		HandlersStorage handlers;
 		
-		
+		SmartSimpleIndexPool<ResourceID> indexPool;
 	public:
 
+		ResourceHandlingEngine() = delete;
+
 		ResourceHandlingEngine(	ResourceID _maxId = RHE_GLOBAL_MAX_RESOURCES, 
-								unsigned int _bandwidth = RHE_ALLOCATION_BANDWIDTH) : 
-								indexPool(1, _maxId, _bandwidth)
+								unsigned int _bandwidth = RHE_ALLOCATION_BANDWIDTH) : indexPool(1, _maxId, _bandwidth)
 		{
-			handlers[this] = new ResourceHandler(ResourceHandler::ResourceHandlerStatus::PUBLIC, this);
+			handlers[this] = std::make_unique<ResourceHandler>(ResourceHandler::ResourceHandlerStatus::PUBLIC, this);
+		}
+
+		~ResourceHandlingEngine() = default;
+
+		ResourceHandlingEngine(const ResourceHandlingEngine&) = delete;
+
+		ResourceHandlingEngine& operator= (const ResourceHandlingEngine&) = delete;
+
+		ResourceHandlingEngine(ResourceHandlingEngine&& other)  NOEXCEPT :  status(std::move(other.status))
+		{
+			other.owner = nullptr;
+		}
+
+		ResourceHandlingEngine& operator= (ResourceHandlingEngine&& other) NOEXCEPT
+		{
+			owner = other.owner;
+			other.owner = nullptr;
+			status = std::move(other.status);
+			Base::operator=(std::move(other));
+			return *this;
 		}
 
 		template < class T >
@@ -158,7 +160,7 @@ namespace resources {
 
 		void secureRemove(const ResourceID _Id, ResourceHandler* const _owner) NOEXCEPT {
 			for (const auto& v : handlers) {
-				if (v.second == _owner) {
+				if (v.second.get() == _owner) {
 					indexPool.deleteIndex(_Id);
 					return;
 				}
