@@ -56,10 +56,10 @@ class SimpleIndexPool {
 	/**
 	*	\brief Performs index search based on last linear index search defined by 'currentPosition' pointer.
 	*	Accepts ternary variant with SIMPLEINDEXPOOL_TERNARY macro.
-	*	\throw std::out_of_range If no new endexes can be allocated.
-	*	\return Newly allocated index.
+	*	\throw nothrow
+	*	\return Newly allocated index or 'notFoundIndex'.
 	**/
-	TIndex newIndexFromCurrentPosition() {
+	TIndex newIndexFromCurrentPosition() NOEXCEPT {
 		TIndex _result;
 		register Bucket* ptr(currentPosition);
 		register Bucket* _end(pool + length);
@@ -70,7 +70,7 @@ class SimpleIndexPool {
 						if (!(*ptr & (((Bucket)1) << _index))) {
 							*ptr |= ((Bucket)1) << _index;
 							currentPosition = ptr;
-							_result = (TIndex)((ptr - pool) * bucketBitSize + _index + minIndex);
+							_result = (TIndex)(((ptr - pool) * bucketBitSize + _index) + minIndex);
 							ptr = nullptr;
 							_end = nullptr;
 							return _result;
@@ -84,7 +84,7 @@ class SimpleIndexPool {
 						if (!(*ptr & (((Bucket)1) << _index))) {
 							*ptr |= ((Bucket)1) << _index;
 							currentPosition = ptr;
-							_result = (TIndex)((ptr - pool) * bucketBitSize + _index + minIndex);
+							_result = (TIndex)(((ptr - pool) * bucketBitSize + _index) + minIndex);
 							ptr = nullptr;
 							_end = nullptr;
 							return _result;
@@ -99,7 +99,7 @@ class SimpleIndexPool {
 							//Save current position of linear search
 							currentPosition = ptr;
 							//Compute corresponding index
-							_result = (TIndex)((ptr - pool) * bucketBitSize + _index + minIndex);
+							_result = (TIndex)(((ptr - pool) * bucketBitSize + _index) + minIndex);
 							ptr = nullptr;
 							_end = nullptr;
 							return _result;
@@ -111,25 +111,26 @@ class SimpleIndexPool {
 		}
 		ptr = nullptr;
 		_end = nullptr;
-		throw std::out_of_range("ERROR::SIMPLE_INDEX_POOL::newIndexFromCurrentPosition::New index not found.");
-		return (TIndex)0;
+		//throw std::out_of_range("ERROR::SIMPLE_INDEX_POOL::newIndexFromCurrentPosition::New index not found.");
+		return notFoundIndex;
 	}
 
 	/**
 	*	\brief Preforms index search from start of index interval.
 	*	Accepts ternary variant with SIMPLEINDEXPOOL_TERNARY macro.
-	*	\throw std::out_of_range If no new endexes can be allocated.
-	*	\return Newly allocated index.
+	*	\throw nothrow
+	*	\return Newly allocated index or 'notFoundIndex'.
 	**/
-	TIndex newIndexFromStart() {
+	TIndex newIndexFromStart() NOEXCEPT {
 		//Reset position of linear search to zero
 		currentPosition = pool;
 		//Preform a linear search
-		try { return newIndexFromCurrentPosition(); }
+		/*try { return newIndexFromCurrentPosition(); }
 		catch (...) { 
 			throw std::out_of_range("ERROR::SIMPLE_INDEX_POOL::newIndexFromStart::New index not found.");
 			return (TIndex)0;
-		}
+		}*/
+		return newIndexFromCurrentPosition();
 	}
 
 	/**
@@ -138,10 +139,10 @@ class SimpleIndexPool {
 	*	ternary operator ?:; generates slower machine code and will perform a lot of unnecessary checks.
 	*	Accepts ternary variant with SIMPLEINDEXPOOL_TERNARY macro.
 	*	\param[in]	startFrom	Index to start search.
-	*	\throw std::out_of_range If no new endexes can be allocated.
-	*	\return Newly allocated index.
+	*	\throw nothrow
+	*	\return Newly allocated index or 'notFoundIndex'.
 	**/
-	TIndex newIndexFromProvidedPosition(unsigned int startFrom) {
+	TIndex newIndexFromProvidedPosition(unsigned int startFrom) NOEXCEPT {
 		TIndex _result;
 		//Get the bucket of index in position 'startFrom'
 		register Bucket* ptr(pool + startFrom / bucketBitSize);
@@ -157,7 +158,7 @@ class SimpleIndexPool {
 					{
 						if (!(*ptr & (((Bucket)1) << _index))) {
 							*ptr |= ((Bucket)1) << _index;
-							_result = (TIndex)((ptr - pool) * bucketBitSize + _index + minIndex);
+							_result = (TIndex)(((ptr - pool) * bucketBitSize + _index) + minIndex);
 							ptr = nullptr;
 							return _result;
 						}
@@ -173,7 +174,7 @@ class SimpleIndexPool {
 				for (register unsigned int _index = startFrom % bucketBitSize; _index < tail; _index++) {
 					if (!(*ptr & (((Bucket)1) << _index))) {
 						*ptr |= ((Bucket)1) << _index;
-						_result = (TIndex)((ptr - pool) * bucketBitSize + _index + minIndex);
+						_result = (TIndex)(((ptr - pool) * bucketBitSize + _index) + minIndex);
 						ptr = nullptr;
 						return _result;
 					}
@@ -183,7 +184,7 @@ class SimpleIndexPool {
 				for (register unsigned int _index = startFrom % bucketBitSize; _index < bucketBitSize; _index++) {
 					if (!(*ptr & (((Bucket)1) << _index))) {
 						*ptr |= ((Bucket)1) << _index;
-						_result = (TIndex)((ptr - pool) * bucketBitSize + _index + minIndex);
+						_result = (TIndex)(((ptr - pool) * bucketBitSize + _index) + minIndex);
 						ptr = nullptr;
 						return _result;
 					}
@@ -199,7 +200,7 @@ class SimpleIndexPool {
 					for (register unsigned int _index = 0; _index < tail; _index++) {
 						if (!(*ptr & (((Bucket)1) << _index))) {
 							*ptr |= ((Bucket)1) << _index;
-							_result = (TIndex)((ptr - pool) * bucketBitSize + _index + minIndex);
+							_result = (TIndex)(((ptr - pool) * bucketBitSize + _index) + minIndex);
 							ptr = nullptr;
 							return _result;
 						}
@@ -208,7 +209,7 @@ class SimpleIndexPool {
 					for (register unsigned int _index = 0; _index < bucketBitSize; _index++) {
 						if (!(*ptr & (((Bucket)1) << _index))) {
 							*ptr |= ((Bucket)1) << _index;
-							_result = (TIndex)((ptr - pool) * bucketBitSize + _index + minIndex);
+							_result = (TIndex)(((ptr - pool) * bucketBitSize + _index) + minIndex);
 							ptr = nullptr;
 							return _result;
 						}
@@ -219,10 +220,14 @@ class SimpleIndexPool {
 			}
 		#endif
 		ptr = nullptr;
-		throw std::out_of_range("ERROR::SIMPLE_INDEX_POOL::newIndexFromProvidedPosition::New index not found.");
-		return (TIndex)0;
+		//throw std::out_of_range("ERROR::SIMPLE_INDEX_POOL::newIndexFromProvidedPosition::New index not found.");
+		//return (TIndex)0;
+		return notFoundIndex;
 	}
 protected:
+	//Special index that indicates that no indexes was found.
+	TIndex notFoundIndex;
+
 	/**
 	*	\brief Internal function for performing trustful index data change.
 	*	\param[in] _array	Array of indexes to be trastfuly allocated.
@@ -231,6 +236,8 @@ protected:
 	*	\return noreturn
 	**/
 	void allocateSpecific(TIndex _array[], unsigned int _length) NOEXCEPT {
+		if (!pool)
+			return;
 		//Bucket position
 		register Bucket* ptr = nullptr;
 		//Bit position
@@ -264,20 +271,37 @@ public:
 		//Total count of allocated indexes
 		unsigned int totalAllocatedCount;
 		
-		MaxAllocationHelper() {};
+		MaxAllocationHelper() : partitions(nullptr), realCount(0), length(0), totalAllocatedCount(0), tailLength(0), allocatedCount(0) {};
+
+		MaxAllocationHelper(const MaxAllocationHelper&) = delete;
+
+		MaxAllocationHelper& operator=(const MaxAllocationHelper&) = delete;
 
 		MaxAllocationHelper(MaxAllocationHelper&& other) : 
-							partitions(std::move(other.partitions)),
-							allocatedCount(std::move(other.allocatedCount)),
-							realCount(std::move(other.realCount)),
-							length(std::move(other.length)),
-							tailLength(std::move(other.tailLength)),
-							totalAllocatedCount(std::move(other.totalAllocatedCount)) 
+							partitions(other.partitions),	allocatedCount(other.allocatedCount),
+							realCount(sother.realCount),	length(other.length),
+							tailLength(other.tailLength),	totalAllocatedCount(other.totalAllocatedCount)
 		{
 			other.partitions = nullptr;
 		}
+
+		MaxAllocationHelper& operator=(MaxAllocationHelper&& other)
+		{
+			if (partitions)
+				for (unsigned int _index = 0; _index < realCount; _index++)
+					delete[] partitions[_index];
+			delete[] partitions;
+			partitions = other.partitions;
+			allocatedCount = other.allocatedCount;
+			realCount = other.realCount;
+			length = other.length;
+			tailLength = other.tailLength;
+			totalAllocatedCount = other.totalAllocatedCount;
+			other.partitions = nullptr;
+		}
+
 		//Proper memory cleaning
-		~MaxAllocationHelper() {
+		~MaxAllocationHelper() NOEXCEPT {
 			if (partitions)
 				for (unsigned int _index = 0; _index < realCount; _index++)
 					delete[] partitions[_index];
@@ -287,12 +311,19 @@ public:
 
 	SimpleIndexPool() = delete;
 
-	SimpleIndexPool(TIndex _min, TIndex _max) : minIndex(_min), maxIndex(_max)
+	SimpleIndexPool(TIndex _min, TIndex _max) : minIndex(_min), maxIndex(_max), pool(nullptr)
 	{
 		if (_min > _max) {
 			maxIndex = _min;
 			minIndex = _max;
 		}
+
+		if (maxIndex == minIndex)
+			throw std::invalid_argument("ERROR::SIMPLE_INDEX_POOL::Constructor::Invalid pool size.");
+
+		notFoundIndex = maxIndex + 1;
+		if (notFoundIndex == minIndex)
+			notFoundIndex == maxIndex;
 
 		size = maxIndex - minIndex + 1;
 		bucketBitSize = sizeof(Bucket) * CHAR_BIT;
@@ -302,9 +333,9 @@ public:
 		if (tail)
 			length++;
 
+		//ERROR::SIMPLE_INDEX_POOL::Constructor::System can't allocate memory for pool.
+		//std::bad_alloc may be thrown here
 		pool = new Bucket[length];
-		if (!pool)
-			std::exception("ERROR::SIMPLE_INDEX_POOL::Constructor::System can't allocate memory for pool.");
 
 		std::memset(pool, 0, length * sizeof(Bucket));
 
@@ -318,13 +349,14 @@ public:
 
 	SimpleIndexPool(const SimpleIndexPool& other) : minIndex(other.minIndex),
 													maxIndex(other.maxIndex),
+													notFoundIndex(other.notFoundIndex),
 													size(other.size),
 													tail(other.tail),
 													length(other.length)
 	{
+		//ERROR::SIMPLE_INDEX_POOL::CopyConstructor::System can't allocate memory for pool.
+		//std::bad_alloc may be thrown here
 		pool = new Bucket[length];
-		if (!pool)
-			std::exception("ERROR::SIMPLE_INDEX_POOL::CopyConstructor::System can't allocate memory for pool.");
 		std::memcpy(pool, other.pool, length * sizeof(Bucket));
 		currentPosition = pool + (other.currentPosition - other.pool);
 	}
@@ -335,44 +367,42 @@ public:
 		delete[] pool;
 		minIndex = other.minIndex;
 		maxIndex = other.maxIndex;
+		notFoundIndex = other.notFoundIndex;
 		size = other.size;
 		tail = other.tail;
 		length = other.length;
+		//ERROR::SIMPLE_INDEX_POOL::CopyAssignment::System can't allocate memory for pool.
+		//std::bad_alloc may be thrown here
 		pool = new Bucket[length];
-		if (!pool)
-			std::exception("ERROR::SIMPLE_INDEX_POOL::CopyAssignment::System can't allocate memory for pool.");
 		std::memcpy(pool, other.pool, length * sizeof(Bucket));
 		currentPosition = pool + (other.currentPosition - other.pool);
 	}
 
-	SimpleIndexPool(SimpleIndexPool&& other) :	minIndex(other.minIndex),
-												maxIndex(std::move(other.maxIndex)),
-												size(std::move(other.size)),
-												currentPosition(std::move(other.currentPosition)),
-												tail(std::move(other.tail)),
-												length(std::move(other.length))
+	SimpleIndexPool(SimpleIndexPool&& other) NOEXCEPT_IF(CONCEPT_NOEXCEPT_MOVE_CONSTRUCTIBLE_V(TIndex)) :
+					minIndex(std::move(other.minIndex)),
+					maxIndex(std::move(other.maxIndex)),
+					notFoundIndex(std::move(other.notFoundIndex)),
+					size(other.size),
+					currentPosition(other.currentPosition),
+					tail(other.tail),
+					length(other.length)
 	{
+		//ERROR::SIMPLE_INDEX_POOL::MoveConstructor::Empty pool of rvalue.
 		pool = other.pool;
-		if (!pool) {
-			other.~SimpleIndexPool();
-			std::exception("ERROR::SIMPLE_INDEX_POOL::MoveConstructor::Empty pool of rvalue.");
-		}
 		other.pool = nullptr;
 		other.currentPosition = nullptr;
 	}
 
-	SimpleIndexPool& operator= (SimpleIndexPool&& other) {
+	SimpleIndexPool& operator= (SimpleIndexPool&& other) NOEXCEPT_IF(CONCEPT_NOEXCEPT_MOVE_CONSTRUCTIBLE_V(TIndex)) {
 		delete[] pool;
-		minIndex = other.minIndex;
-		maxIndex = other.maxIndex;
+		minIndex = std::move(other.minIndex);
+		maxIndex = std::move(other.maxIndex);
+		notFoundIndex = std::move(other.notFoundIndex);
 		size = other.size;
 		tail = other.tail;
 		length = other.length;
+		//ERROR::SIMPLE_INDEX_POOL::MoveAssignment::Empty pool of rvalue.
 		pool = other.pool;
-		if (!pool) {
-			other.~SimpleIndexPool();
-			std::exception("ERROR::SIMPLE_INDEX_POOL::MoveAssignment::Empty pool of rvalue.");
-		}
 		currentPosition = other.currentPosition;
 		if (!currentPosition)
 			currentPosition = pool;
@@ -381,24 +411,29 @@ public:
 	}
 
 	/**
+	*	Compares given '_index' with notFound index.
+	**/
+	inline bool isNotFound(const TIndex& _index) { return _index == notFoundIndex; }
+
+	/**
 	*	Provides read access to 'size' value.
 	**/
-	unsigned int getSize() { return size; }
+	unsigned int getSize() NOEXCEPT { return size; }
 
 	/**
 	*	Provides read access to 'minIndex' value.
 	**/
-	TIndex getMinIndex() { return minIndex; }
+	TIndex getMinIndex() NOEXCEPT { return minIndex; }
 
 	/**
 	*	Provides read access to 'maxIndex' value.
 	**/
-	TIndex getMaxIndex() { return maxIndex; }
+	TIndex getMaxIndex() NOEXCEPT { return maxIndex; }
 
 	/**
 	*	Computes memory used by this pool.
 	**/
-	size_t usedMemory() { return length * sizeof(Bucket) + sizeof(SimpleIndexPool); }
+	size_t usedMemory() NOEXCEPT { return length * sizeof(Bucket) + sizeof(SimpleIndexPool); }
 
 	/**
 	*	\brief Performs a search of new index.
@@ -408,13 +443,16 @@ public:
 	*	-- startFrom > 0 -- : Performs search from provided index place startFrom :
 	*	---- Index places are marked from 0 to obj.size-1.
 	*	---- Use 'obj.startLocation(last_given_index)' to obtain a new location for linear index search.
-	*	\param[in]	startFrom	Index to start search.
-	*	\return Newly allocated index.
-	*	\throw std::out_of_range If no more indexes can be allocated.
+	*	\param[in]	startFrom	Behaviour qualificator.
+	*	\throw nothrow
+	*	\return Newly allocated index or 'notFoundIndex'.
 	**/
-	TIndex newIndex(int startFrom) {
+	TIndex newIndex(int startFrom) NOEXCEPT {
+		if (!pool)
+			return notFoundIndex;
 		if (startFrom >= (int)size)
 			startFrom = size - 1;
+		/*
 		if (!startFrom) {
 			try { return newIndexFromStart(); }
 			catch (...) { throw; }
@@ -426,7 +464,10 @@ public:
 				throw std::out_of_range("ERROR::SIMPLE_INDEX_POOL::newIndex::Can't allocate more indexes.");
 				return (TIndex)0;
 			}
-		}
+		}*/
+		if (!startFrom)
+			return newIndexFromStart();
+		return startFrom < 0 ? newIndexFromCurrentPosition() : newIndexFromProvidedPosition(startFrom);
 	}
 
 	/**
@@ -438,49 +479,24 @@ public:
 	*	\return Count of successfully allocated indexes.
 	**/
 	unsigned int newIndex(TIndex _array[], unsigned int _count) NOEXCEPT {
-		if (!_count)
+		if (!(_count && pool))
 			return 0;
 		#ifdef SIMPLEINDEXPOOL_TERNARY
 			for (unsigned int _index = 0; _index < _count; _index++) {
-				try {
-					_array[_index] = newIndex(_index ? _array[_index - 1] - minIndex + 1 : -1);
-				}
-				catch (std::out_of_range e) {
-					#if defined(DEBUG_SIMPLEINDEXPOOL) && defined(WARNINGS_SIMPLEINDEXPOOL)
-						DEBUG_NEW_MESSAGE("WARNING::SIMPLE_INDEX_POOL::newIndex")
-							DEBUG_WRITE1("\tMessage: Can't allocate more indexes.");
-							DEBUG_WRITE2("\tFinal allocated count: ", _index);
-						DEBUG_END_MESSAGE
-					#endif
+				_array[_index] = newIndex(_index ? _array[_index - 1] - minIndex + 1 : -1);
+				//No debug logger: it may produce exceptions.
+				if (_array[_index] == notFoundIndex) 
 					return _index;
-				}
 			}
 		#else
-			try {
-				_array[0] = newIndex(-1);
-			}
-			catch (std::out_of_range e) {
-				#if defined(DEBUG_SIMPLEINDEXPOOL) && defined(WARNINGS_SIMPLEINDEXPOOL)
-					DEBUG_NEW_MESSAGE("WARNING::SIMPLE_INDEX_POOL::newIndex")
-						DEBUG_WRITE1("\tMessage: Can't allocate more indexes.");
-						DEBUG_WRITE1("\tFinal allocated count: 0");
-					DEBUG_END_MESSAGE
-				#endif
+			//No debug logger: it may produce exceptions.
+			_array[0] = newIndex(-1);
+			if (_array[0] == notFoundIndex) 
 				return 0;
-			}
 			for (unsigned int _index = 1; _index < _count; _index++) {
-				try {
-					_array[_index] = newIndex(_array[_index-1] - minIndex + 1);
-				}
-				catch (std::out_of_range e) {
-					#if defined(DEBUG_SIMPLEINDEXPOOL) && defined(WARNINGS_SIMPLEINDEXPOOL)
-						DEBUG_NEW_MESSAGE("WARNING::SIMPLE_INDEX_POOL::newIndex")
-							DEBUG_WRITE1("\tMessage: Can't allocate more indexes.");
-							DEBUG_WRITE2("\tFinal allocated count: ", _index);
-						DEBUG_END_MESSAGE
-					#endif
+				_array[_index] = newIndex(_array[_index - 1] - minIndex + 1);
+				if (_array[_index] == notFoundIndex) 
 					return _index;
-				}
 			}
 		#endif
 		return _count;
@@ -489,11 +505,13 @@ public:
 	/**
 	*	\brief Performs allocation of all remaining non-allocated indexes.
 	*	\param[in]	indexesPerPartiotion	Length of internal index buckets.
-	*	\throw std::exception If system don't have enougth memory for this allocation.
+	*	\throw std::bad_alloc If system don't have enougth memory for this allocation.
 	*	\return Helper structure.
 	**/
 	MaxAllocationHelper allocateMax(unsigned int indexesPerPartiotion = 1000) {
 		MaxAllocationHelper result;
+		if (!pool || indexesPerPartiotion == 0)
+			return result;
 		result.length = indexesPerPartiotion;
 
 		unsigned int _freeCount = 0;
@@ -507,34 +525,24 @@ public:
 			_freeCount++;
 
 		result.allocatedCount = (_freeCount * bucketBitSize) / indexesPerPartiotion + 1;
+		//ERROR::SIMPLE_INDEX_POOL::allocateMax::System don't have enougth memory to allocate halper array.
+		//std::bad_alloc may be thrown here
 		result.partitions = new TIndex*[result.allocatedCount];
-		if (!result.partitions)
-			throw std::exception("ERROR::SIMPLE_INDEX_POOL::allocateMax::System don't have enougth memory to allocate halper array.");
 
-		unsigned int _partitionIndex = 0;
-		unsigned int _totalAllocatedCount = 0;
-		unsigned int _stepAllocated = 0;
-
+		result.realCount = 0;
+		result.totalAllocatedCount = 0;
 		for (;;) {
-			result.partitions[_partitionIndex] = new TIndex[result.length];
-			if (!(result.partitions[_partitionIndex])) {
-				for (unsigned int _index = 0; _index < _partitionIndex; _index++) {
-					delete[] result.partitions[_index];
-					delete[] result.partitions;
-					result.partitions = nullptr;
-				}
-				throw std::exception("ERROR::SIMPLE_INDEX_POOL::allocateMax::System don't have enougth memory to allocate halper array.");
-			}
-			_stepAllocated = newIndex(result.partitions[_partitionIndex], result.length);
-			_totalAllocatedCount += _stepAllocated;
-			_partitionIndex++;
-			if (_stepAllocated != result.length)
+			//ERROR::SIMPLE_INDEX_POOL::allocateMax::System don't have enougth memory to allocate halper array.
+			//std::bad_alloc may be thrown here
+			result.partitions[result.realCount] = new TIndex[result.length];
+			//Now there is no need to manualy free memory.
+			//In case of exception 'result' as a local object will be automatically deleted.
+			result.tailLength = newIndex(result.partitions[result.realCount], result.length);
+			result.totalAllocatedCount += result.tailLength;
+			(result.realCount)++;
+			if (result.tailLength != result.length)
 				break;
 		}
-
-		result.realCount = _partitionIndex;
-		result.totalAllocatedCount = _totalAllocatedCount;
-		result.tailLength = _stepAllocated;
 
 		_ptr = nullptr;
 		return result;
@@ -545,24 +553,30 @@ public:
 	*	Returns count of allocated indexes via '_allocatedCount' variable.
 	*	\param[out]	_allocatedCount			Count of allocated indexes.
 	*	\param[in]	indexesPerPartiotion	Length of internal index buckets.
-	*	\throw std::exception In not enougth memory to for buffer index arrays.
-	*	\return Pointer to array of indexes
+	*	\throw std::bad_alloc If system don't have enougth memory for this allocation.
+	*	\return Pointer to array of indexes, may be nullptr if pool is not allocated.
 	**/
-	TIndex* allocateMaxByArray(unsigned int &_allocatedCount, unsigned int indexesPerPartiotion = 1000) {
+	TIndex* allocateMaxByArray(unsigned int& _allocatedCount, unsigned int indexesPerPartiotion = 1000) {
+		if (!pool) {
+			_allocatedCount = 0;
+			return nullptr;
+		}
 		MaxAllocationHelper _buff;
-		try { _buff = allocateMax(indexesPerPartiotion); }
-		catch (...) { throw; }
+		//std::bad_alloc may be thrown here
+		_buff = allocateMax(indexesPerPartiotion);
 		_allocatedCount = _buff.totalAllocatedCount;
+		//ERROR::SIMPLE_INDEX_POOL::allocateMaxByArray::System don't have enougth memory to unpack helper structure.
+		//std::bad_alloc may be thrown here
 		TIndex* _resultPtr = new TIndex[_allocatedCount];
-		if (!_resultPtr) {
-			_buff.~MaxAllocationHelper();
-			throw std::exception("ERROR::SIMPLE_INDEX_POOL::allocateMaxByArray::System don't have enougth memory to unpack helper structure.");
-		}
 		TIndex* _currentPtr(_resultPtr);
-		for (unsigned int _index = 0; _index < _buff.realCount; _index++) {
+		for (unsigned int _index = 0; _index < _buff.realCount - 1; _index++) {
+			//Copy normal length buffers
 			_currentPtr = _resultPtr + _index * _buff.length;
-			std::memcpy(_currentPtr, _buff.partitions[_index], (_index < _buff.realCount - 1 ? _buff.length : _buff.tailLength) * sizeof(TIndex));
+			std::memcpy(_currentPtr, _buff.partitions[_index],  _buff.length * sizeof(TIndex));
 		}
+		//Copy tail buffer
+		_currentPtr = _resultPtr + (_buff.realCount - 1) * _buff.length;
+		std::memcpy(_currentPtr, _buff.partitions[_index], _buff.tailLength * sizeof(TIndex));
 		_currentPtr = nullptr;
 		return _resultPtr;
 	}
@@ -590,7 +604,7 @@ public:
 	*	\return noreturn
 	**/
 	void deleteIndex(TIndex _index) NOEXCEPT {
-		if (_index < minIndex || _index > maxIndex)
+		if (_index < minIndex || _index > maxIndex || !pool)
 			return;
 		//Bucket position
 		register Bucket* ptr = pool + (_index - minIndex) / bucketBitSize;
@@ -609,6 +623,8 @@ public:
 	*	\return noreturn
 	**/
 	void deleteIndex(TIndex _start, TIndex _end) NOEXCEPT {
+		if (!pool) 
+			return;
 		if (_start > _end) 
 			_start ^= _end ^= _start ^= _end;
 		if (_start < minIndex)
@@ -646,7 +662,7 @@ public:
 	*	\return Index allocation status.
 	**/
 	bool isUsed(TIndex _index) NOEXCEPT {
-		if (_index < minIndex || _index > maxIndex)
+		if (_index < minIndex || _index > maxIndex || !pool)
 			return false;
 		bool _result;
 		//Bucket position

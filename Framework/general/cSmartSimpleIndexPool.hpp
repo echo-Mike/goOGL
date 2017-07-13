@@ -37,6 +37,7 @@ template < class TIndex = int >
 **/
 class SmartSimpleIndexPool : public SimpleIndexPool<TIndex> {
 	CONCEPT_INTEGRAL(TIndex, "ASSERTION_ERROR::SMART_SIMPLE_INDEX_POOL::Provided type \"TIndex\" must be integral.")
+	typedef SimpleIndexPool<TIndex> Base;
 	//Pool of preallocated indexes
 	TIndex* preallocatedPool;
 	//Pointer to pool top
@@ -44,11 +45,11 @@ class SmartSimpleIndexPool : public SimpleIndexPool<TIndex> {
 	//Estimated size of periodic requests
 	unsigned int meanRequestSize;
 	//Hide public interface of SimpleIndexPool
-	SimpleIndexPool::newIndex;
-	SimpleIndexPool::startLocation;
-	SimpleIndexPool::deleteIndex;
-	SimpleIndexPool::allocateMax;
-	SimpleIndexPool::allocateMaxByArray;
+	Base::newIndex;
+	Base::startLocation;
+	Base::deleteIndex;
+	Base::allocateMax;
+	Base::allocateMaxByArray;
 public:
 
 	SmartSimpleIndexPool() = delete;
@@ -56,9 +57,9 @@ public:
 	SmartSimpleIndexPool(	TIndex _min, TIndex _max, unsigned int _meanRequestSize) : 
 							SimpleIndexPool(_max, _min), meanRequestSize(_meanRequestSize)
 	{
+		//ERROR::SMART_SIMPLE_INDEX_POOL::Constructor::System can't allocate memory for preallocated pool.
+		//std::bad_alloc may be thrown here
 		preallocatedPool = new TIndex[meanRequestSize * 2];
-		if (!preallocatedPool)
-			std::exception("ERROR::SMART_SIMPLE_INDEX_POOL::Constructor::System can't allocate memory for preallocated pool.");
 		auto _allocated = SimpleIndexPool::newIndex(preallocatedPool, meanRequestSize * 2);
 		topPtr = preallocatedPool + _allocated - 1;
 	}
@@ -71,9 +72,9 @@ public:
 	SmartSimpleIndexPool(const SmartSimpleIndexPool& other) :	SimpleIndexPool(other),
 																meanRequestSize(other.meanRequestSize)
 	{
+		//ERROR::SMART_SIMPLE_INDEX_POOL::CopyConstructor::System can't allocate memory for preallocated pool.
+		//std::bad_alloc may be thrown here
 		preallocatedPool = new TIndex[meanRequestSize * 2];
-		if (!preallocatedPool)
-			std::exception("ERROR::SMART_SIMPLE_INDEX_POOL::CopyConstructor::System can't allocate memory for preallocated pool.");
 		std::memcpy(preallocatedPool, other.preallocatedPool, meanRequestSize * 2 * sizeof(TIndex));
 		topPtr = preallocatedPool + (other.topPtr - other.preallocatedPool);
 	}
@@ -81,37 +82,30 @@ public:
 	SmartSimpleIndexPool& operator= (const SmartSimpleIndexPool& other) {
 		if (&other == this)
 			return *this;
+		//std::bad_alloc may be thrown here
 		SimpleIndexPool::operator=(other);
 		delete[] preallocatedPool;
 		meanRequestSize = other.meanRequestSize;
+		//ERROR::SMART_SIMPLE_INDEX_POOL::CopyAssignment::System can't allocate memory for preallocated pool.
+		//std::bad_alloc may be thrown here
 		preallocatedPool = new TIndex[meanRequestSize * 2];
-		if (!preallocatedPool)
-			std::exception("ERROR::SMART_SIMPLE_INDEX_POOL::CopyAssignment::System can't allocate memory for preallocated pool.");
 		std::memcpy(preallocatedPool, other.preallocatedPool, meanRequestSize * 2 * sizeof(TIndex));
 		topPtr = preallocatedPool + (other.topPtr - other.preallocatedPool);
 	}
 
-	SmartSimpleIndexPool(SmartSimpleIndexPool&& other) :SimpleIndexPool(std::move(other)),
-														topPtr(std::move(other.topPtr))
+	SmartSimpleIndexPool(SmartSimpleIndexPool&& other)	NOEXCEPT_IF(CONCEPT_NOEXCEPT_MOVE_CONSTRUCTIBLE_V(Base)) :
+														SimpleIndexPool(std::move(other))
 	{
 		preallocatedPool = other.preallocatedPool;
-		if (!preallocatedPool) {
-			//This is a controversial line, we don't realy now how to free resources of base index pool.
-			//other.~SmartSimpleIndexPool();
-			std::exception("ERROR::SMART_SIMPLE_INDEX_POOL::MoveConstructor::Empty preallocatedPool of rvalue.");
-		}
 		other.preallocatedPool = nullptr;
 		other.topPtr = nullptr;
 	}
 
-	SmartSimpleIndexPool& operator= (SmartSimpleIndexPool&& other) {
+	SmartSimpleIndexPool& operator= (SmartSimpleIndexPool&& other) NOEXCEPT_IF(CONCEPT_NOEXCEPT_MOVE_CONSTRUCTIBLE_V(Base))	{
 		delete[] preallocatedPool;
 		meanRequestSize = other.meanRequestSize;
+		//ERROR::SMART_SIMPLE_INDEX_POOL::MoveAssignment::Empty preallocatedPool of rvalue.
 		preallocatedPool = other.preallocatedPool;
-		if (!preallocatedPool) {
-			other.~SmartSimpleIndexPool();
-			std::exception("ERROR::SMART_SIMPLE_INDEX_POOL::MoveAssignment::Empty preallocatedPool of rvalue.");
-		}
 		//This is not safe:
 		topPtr = other.topPtr;
 		try { SimpleIndexPool::operator=(std::move(other)); }
@@ -128,14 +122,14 @@ public:
 	/**
 	*	Computes memory used by this pool.
 	**/
-	size_t usedMemory() { return SimpleIndexPool::usedMemory() - sizeof(SimpleIndexPool) + sizeof(SmartSimpleIndexPool); }
+	size_t usedMemory() NOEXCEPT { return SimpleIndexPool::usedMemory() - sizeof(SimpleIndexPool) + sizeof(SmartSimpleIndexPool); }
 
 	/**
 	*	\brief Performs an allocation of new index.
-	*	\return Newly allocated index.
-	*	\throw std::out_of_range If no more indexes can be allocated.
+	*	\throw nothrow
+	*	\return Newly allocated index or 'notFoundIndex'.
 	**/
-	TIndex newIndex() {
+	TIndex newIndex() NOEXCEPT {
 		if (topPtr < preallocatedPool + meanRequestSize) {
 			/*unsigned int _allocated = 2 * meanRequestSize - (topPtr - preallocatedPool + 1);
 			_allocated = SimpleIndexPool::newIndex(++topPtr, _allocated);
@@ -144,11 +138,11 @@ public:
 			topPtr += SimpleIndexPool::newIndex(++topPtr, 2 * meanRequestSize - (topPtr - preallocatedPool)) - 1;
 		}
 		if (topPtr != preallocatedPool - 1) {
-			topPtr--;
+			--topPtr;
 			return *(topPtr + 1);
 		}
-		throw std::out_of_range("ERROR::SMART_SIMPLE_INDEX_POOL::newIndex::Can't allocate more indexes.");
-		return (TIndex)0;
+		//throw std::out_of_range("ERROR::SMART_SIMPLE_INDEX_POOL::newIndex::Can't allocate more indexes.");
+		return notFoundIndex;
 	}
 
 	/**
@@ -156,7 +150,7 @@ public:
 	*	Allocated indexes returned via '_array' parameter.
 	*	\param[out]	_array	Array filled with new indexes.
 	*	\param[in]	_count	Count of indexes to be allocated.
-	*	\throw nothrow
+	*	\throw nothrow Exept if defined DEBUG_SMARTSIMPLEINDEXPOOL and WARNINGS_SMARTSIMPLEINDEXPOOL then unkown.
 	*	\return Count of successfully allocated indexes.
 	**/
 	unsigned int newIndex(TIndex _array[], unsigned int _count) NOEXCEPT {

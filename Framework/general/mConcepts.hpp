@@ -34,8 +34,16 @@
 #define CONCEPT_DEFCONSTR(_type, _msg) static_assert(std::is_default_constructible<_type>::value, _msg);
 //Check that provided type '_Type' is move constructible.
 #define CONCEPT_MOVE_CONSTRUCTIBLE(_Type, _msg) static_assert(std::is_move_constructible<_Type>::value, _msg);
+//Check that provided type '_Type' is nothrow move constructible.
+#define CONCEPT_NOEXCEPT_MOVE_CONSTRUCTIBLE(_Type, _msg) static_assert(std::is_nothrow_move_constructible<_Type>::value, _msg);
+//Check that provided type '_Type' is nothrow move constructible, returns bool on it's place.
+#define CONCEPT_NOEXCEPT_MOVE_CONSTRUCTIBLE_V(_Type) std::is_nothrow_move_constructible<_Type>::value
 //Check that provided type '_Type' is copy constructible.
 #define CONCEPT_COPY_CONSTRUCTIBLE(_Type, _msg) static_assert(std::is_copy_constructible<_Type>::value, _msg);
+//Check that provided type '_Type' is nothrow copy constructible.
+#define CONCEPT_NOEXCEPT_COPY_CONSTRUCTIBLE(_Type, _msg) static_assert(std::is_nothrow_copy_constructible<_Type>::value, _msg);
+//Check that provided type '_Type' is nothrow copy constructible, returns bool on it's place.
+#define CONCEPT_NOEXCEPT_COPY_CONSTRUCTIBLE_V(_Type) std::is_nothrow_copy_constructible<_Type>::value
 
 //Check that provided type '_Type' is not constant.
 #define CONCEPT_NOT_CONSTANT(_Type, _msg) static_assert(!std::is_const<_Type>::value, _msg);

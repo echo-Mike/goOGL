@@ -32,8 +32,10 @@
 
 #ifdef HAS_NOEXCEPT
 	#define NOEXCEPT noexcept
+	#define NOEXCEPT_IF(_expr) noexcept(_expr)
 #else
 	#define NOEXCEPT
+	#define NOEXCEPT_IF(_expr)
 #endif
 
 /**
